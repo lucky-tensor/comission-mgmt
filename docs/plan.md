@@ -14,11 +14,14 @@ Build a deal-level economic ledger for recruiting and staffing firms that makes 
 ## Phases
 
 ### Phase 1 - Foundation
-Goal: Establish the core data model, access control, and audit infrastructure that all later modules depend on.
+Goal: Establish the monorepo scaffold, CI pipeline, three-database schema, passkey auth, and field encryption that all later modules depend on. Tech stack: TypeScript + Bun, PostgreSQL 16, WebAuthn passkeys, distroless containers, k3s. Reference implementation: smart-crm.
 
-- [ ] Dev-scout: validate data model, tech stack, and tenancy architecture decisions
-- [ ] Core schema — placement, contributor, commission plan, commission record, invoice, audit log entities with lifecycle states
-- [ ] Authentication, multi-tenant isolation, and role-based access control (Finance Admin, Producer, Manager, Executive, HR, External Partner)
+- [ ] Dev-scout: commission domain data model, field encryption registry, tenancy approach, analytics/audit event taxonomy
+- [ ] Monorepo scaffold — Bun workspace (apps/server, apps/web, apps/worker, packages/core, packages/db, packages/ui), multi-stage distroless Dockerfile, docker-compose, /healthz + /readyz endpoints, trace ID middleware, structured JSON logging
+- [ ] Core schema — three PostgreSQL 16 databases (commission_app, commission_analytics, commission_audit), three DB roles (app_rw, analytics_w, audit_w), all placement-lifecycle entity tables with org_id tenancy column, packages/db migration runner
+- [ ] Authentication and RBAC — WebAuthn passkey registration and assertion (no passwords), HTTP-only Secure SameSite=Strict session cookies with JTI revocation, six application roles enforced in middleware
+- [ ] Field-level encryption and KMS — FieldEncryptor with per-entity-type KMS keys, DEK cache (5 min TTL), GCP Cloud KMS in production, dev stub, encrypted BYTEA columns for financial fields
+- [ ] CI pipeline — per-suite GitHub Actions workflows (quality-gate, test-unit, test-api, test-migration, container build), branch protection requiring all checks green
 
 ### Phase 2 - Placement Ledger and Attribution
 Goal: Let Finance Admins create and manage complete placement records and let managers govern split attribution.
