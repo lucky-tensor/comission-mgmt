@@ -173,7 +173,7 @@ Alternate path: `Active` → `Forgiven`
 
 ### Applicant Tracking and CRM Data
 
-The platform ingests placement, job order, candidate, submission, and contributor data from applicant tracking and CRM systems. Business event triggers: placement record created or updated, offer accepted, candidate submitted, ownership assigned. Early implementations may use file-based import in place of a live connection.
+The platform ingests placement, job order, candidate, submission, and contributor data from applicant tracking and CRM systems. Business event triggers: placement record created or updated, offer accepted, candidate submitted, ownership assigned.
 
 ### Accounts Receivable and Invoice Data
 
@@ -181,7 +181,7 @@ The platform receives invoice issuance, payment, partial payment, credit memo, a
 
 ### Payroll System Export
 
-The platform produces an approved, structured payout file for import into a payroll system. Business event trigger: Finance Admin approves a commission run and initiates export. Early implementations may use a structured file export in place of a direct integration.
+The platform delivers approved, payroll-ready payout output for submission to a payroll system. Business event trigger: Finance Admin approves a commission run and initiates the handoff to payroll.
 
 ### Document and File Storage
 
@@ -198,14 +198,14 @@ The following are explicitly out of scope for the initial release:
 - **Automated contract ingestion** — structured fee terms are entered manually or imported in a structured format. Automated parsing of unstructured contract documents is not included.
 - **Plan simulation** — modeling the impact of plan changes before rollout is not supported in the initial release.
 - **Client-facing portal** — clients do not have access to any part of the platform.
-- **Direct payroll integration** — the initial release produces a payroll-ready export file. Native two-way payroll system connections are a future capability.
+- **Direct payroll integration** — native two-way payroll system connections are out of scope for the initial release; approved payout output is handed off for downstream payroll submission. Native integration is a future capability.
 
 ---
 
 ## 9. Constraints
 
 ### Audit and Compliance
-- All changes to placement records, commission calculations, split assignments, and approvals must be recorded in an immutable audit log with timestamp, actor, and reason.
+- All changes to placement records, commission calculations, split assignments, and approvals must be permanently recorded — never silently overwritten — with timestamp, actor, and reason.
 - Commission plan versions must be versioned, date-stamped, and linked to producer acknowledgments.
 - No commission amount may reach payroll without an explicit approval action by an authorized Finance Admin.
 

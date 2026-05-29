@@ -22,6 +22,7 @@ Goal: Establish the monorepo scaffold, CI pipeline, three-database schema, passk
 - [ ] Authentication and RBAC — WebAuthn passkey registration and assertion (no passwords), HTTP-only Secure SameSite=Strict session cookies with JTI revocation, six application roles enforced in middleware
 - [ ] Field-level encryption and KMS — FieldEncryptor with per-entity-type KMS keys, DEK cache (5 min TTL), GCP Cloud KMS in production, dev stub, encrypted BYTEA columns for financial fields
 - [ ] CI pipeline — per-suite GitHub Actions workflows (quality-gate, test-unit, test-api, test-migration, container build), branch protection requiring all checks green
+- [ ] Task queue and worker execution model — PostgreSQL claim-execute-submit queue, network-isolated worker that writes only via the API with delegated scoped credentials, dead-worker lease recovery (foundation for guarantee-expiry, clawback, and event-driven recalculation jobs)
 - [ ] Sign-in page and passkey UX — Login.tsx with WebAuthn registration/assertion tabs, DEMO_MODE one-click persona buttons and ephemeral account creation via /api/demo/session
 - [ ] Demo seed script — scripts/demo-seed.ts with 6 role personas, 8 placements across lifecycle states, commission records in all statuses, draw balance, exceptions, and one completed commission run with payroll export
 - [ ] Deployment scripts — scripts/local-demo.ts (k3d + cloudflared tunnel + hot-reload watch loop), scripts/gcp/ (provision VPC/AlloyDB/VM, deploy with four-phase health-gated rollout, doctor), deploy.sh, k8s/ manifests for three environments
