@@ -16,7 +16,7 @@ The core problem is not that commissions are hard to calculate. It is that the f
 
 1. Give every placement a complete, governed economic record that all stakeholders agree is the source of truth.
 2. Reduce the time and manual effort required to close a commission cycle.
-3. Give producers real-time, explainable visibility into their expected payouts.
+3. Give producers continuously updated, explainable visibility into their expected payouts, reflecting the latest placement, invoice, and approval data.
 4. Give finance accurate, approval-gated, payroll-ready commission output.
 5. Give executives and managers reliable margin, liability, and dispute-rate visibility.
 
@@ -41,6 +41,8 @@ The core problem is not that commissions are hard to calculate. It is that the f
 - Reduction in commission overpayment as a share of revenue
 - Improvement in net fee income and gross profit visibility
 - Reduction in exception rate over time (as plans stabilize)
+
+Baseline values for operational metrics are captured during onboarding so that improvement is measured against each customer's own starting point.
 
 ---
 
@@ -76,11 +78,13 @@ The core problem is not that commissions are hard to calculate. It is that the f
 - As a Manager, I want to approve or modify split allocations for deals on my team before they are finalized, so that credit disputes are resolved upstream of payroll.
 - As a Manager, I want to see an attribution timeline for any deal so that I can resolve ownership disputes with evidence rather than memory.
 - As a Manager, I want to view my team's commission accruals, pending payouts, and exception requests so that I can manage performance with accurate data.
+- As a Manager, I want to escalate a cross-team or contested split to a designated tiebreaker so that disputes spanning teams have a defined resolution path rather than a stalemate.
 
 ### Executive
 - As an Executive, I want to see gross fees, net fee income, commission accrued, commission payable, and clawback exposure in one view so that I can assess the firm's financial position.
 - As an Executive, I want to see profitability by client, recruiter, team, and practice so that I can identify margin concentration and low-margin relationships.
 - As an Executive, I want to see the exception rate and dispute rate over time so that I can evaluate whether commission plan rules are working.
+- As an Executive, I want to act as the final approver on escalated attribution disputes so that contested credit is resolved with documented authority.
 
 ### HR / People Ops
 - As an HR operator, I want producers to acknowledge their commission plan in the platform so that there is a documented record of plan acceptance.
@@ -109,6 +113,8 @@ The commission rules engine applies the plan associated with each contributor to
 
 Finance Admins review the commission run before it is finalized. Placements with missing data, disputed attribution, or flagged exceptions are surfaced in a review queue. Exceptions — custom splits, fee discounts, accelerated payouts, manual overrides, draw forgiveness, clawback waivers — are requested, documented with a reason, and approved or rejected with a full audit trail.
 
+Attribution disputes that cannot be resolved at the producer and manager level are escalated to a designated approver — manager, practice lead, or executive, per the customer's configured hierarchy. The escalation, the deciding actor, and the rationale are recorded in the audit trail. A disputed split blocks the affected placement from the commission run until it is resolved.
+
 ### 5.5 Invoice and Collection Tracking
 
 Each placement is linked to one or more invoices. Invoice status (issued, partially paid, paid, disputed, written off) is updated by import or manual entry. For commission plans that gate payout on cash collection, commission is held until the linked invoice is marked paid. Producers can see which payouts are blocked and why.
@@ -119,11 +125,19 @@ The platform tracks the guarantee expiration date for each placement. Placements
 
 ### 5.7 Commission Close and Payroll Export
 
-After all placements in a cycle are reviewed and approved, Finance Admins generate a payroll-ready export containing each producer's approved payout, draw recovery amounts, and clawback recoveries. The export is the final step before payroll submission; no commission amount reaches payroll without prior approval.
+After all placements in a cycle are reviewed and approved, Finance Admins generate a payroll-ready export containing each producer's approved payout, draw recovery amounts, and clawback recoveries. The export is produced in the import format expected by the customer's payroll system so that submission requires no manual reformatting or re-keying. The export is the final step before payroll submission; no commission amount reaches payroll without prior approval.
 
 ### 5.8 Producer Payout Portal
 
-Producers access a personal view showing their credited placements, commission calculations, tier progress, holdback status, payment trigger, estimated payout cycle, and historical payouts. Producers can submit questions or disputes from this view.
+Producers access a personal view showing their credited placements, commission calculations, tier progress, holdback status, payment trigger, estimated payout cycle, and historical payouts. Each payout figure reflects the most recent placement and collection data and is stamped with the data it was derived from, so producers understand how current it is. Producers can submit questions or disputes from this view.
+
+### 5.9 Onboarding and Data Import
+
+Customers onboard through a guided import that maps existing applicant tracking, CRM, and accounts receivable data to the placement ledger. Records with missing or ambiguous required fields — including attribution and split credit that were never captured in structured ATS fields — are routed to a reconciliation queue for assisted resolution rather than silently dropped. The platform supports assisted import of historical placements so that early commission runs can reference prior deal history. Data completeness gating (§9) applies to imported records identically to manually entered records.
+
+### 5.10 External Partner Access
+
+External partners receive scoped, in-platform access limited to the deals where they hold a split agreement. They see the amounts owed to them, the payment trigger, and the payment status for those deals. Partners cannot view other contributors' credit, internal margin, draw balances, or any firm-wide data.
 
 ---
 
@@ -191,14 +205,14 @@ The platform stores commission plan documents, exception attachments, and audit 
 
 ## 8. Out of Scope
 
-The following are explicitly out of scope for the initial release:
+The following are explicitly out of scope:
 
-- **Contract staffing gross profit engine** — timesheet-based calculations using bill rate, pay rate, hours, burden, and overtime adjustments are not supported. Direct-hire and retained search placements are the initial focus.
-- **Multi-currency** — the platform supports a single operating currency. Multi-currency support is a future capability.
+- **Contract staffing gross profit engine** — timesheet-based calculations using bill rate, pay rate, hours, burden, and overtime adjustments are not supported. The platform calculates commissions for direct-hire and retained search placements; hybrid firms manage their direct-hire and retained desks on the platform.
+- **Multi-currency** — the platform operates in a single currency.
 - **Automated contract ingestion** — structured fee terms are entered manually or imported in a structured format. Automated parsing of unstructured contract documents is not included.
-- **Plan simulation** — modeling the impact of plan changes before rollout is not supported in the initial release.
+- **Plan simulation** — modeling the impact of plan changes before rollout is not supported.
 - **Client-facing portal** — clients do not have access to any part of the platform.
-- **Direct payroll integration** — native two-way payroll system connections are out of scope for the initial release; approved payout output is handed off for downstream payroll submission. Native integration is a future capability.
+- **Direct payroll integration** — the platform does not maintain native two-way connections to payroll systems. Approved payout output is produced as a payroll-ready export for downstream submission.
 
 ---
 
@@ -216,6 +230,11 @@ The following are explicitly out of scope for the initial release:
 ### Data Completeness Gating
 - A commission run cannot be approved if any included placement has required fields missing. The platform surfaces a blocking queue of incomplete records before the run can proceed.
 
+### Visibility and Confidentiality
+- A producer sees the full derivation of their own credit on any placement, including co-contributors' roles where that is required to explain a split, but does not see other producers' payout amounts, plan assignments, draw balances, or firm-wide financials.
+- Manager and executive visibility is scoped to their team, practice, or organization per the customer's configured hierarchy.
+- External partner visibility is limited to their own participation (see §5.10).
+
 ### Employment Law
 - Clawback and draw recovery terms are configured by the customer. The platform surfaces balances, schedules, and adjustments. Legal enforceability of specific terms under applicable employment law is the responsibility of the customer and their counsel.
 
@@ -227,9 +246,6 @@ The following are explicitly out of scope for the initial release:
 2. **Primary wedge** — Is the strongest buying trigger finance commission close efficiency, attribution and split dispute reduction, recruiter payout transparency, or guarantee/clawback risk management?
 3. **ATS integration priority** — Which applicant tracking systems represent the highest concentration in the target segment and should be prioritized for the first live integrations?
 4. **Configurability threshold** — How much plan configurability is required for initial customers to replace their spreadsheets? Specifically: are retroactive tiers, draw recovery, and team pools required at launch, or can they be deferred?
-5. **External partner access** — How important is external partner portal access for early customers? Do split partners need in-platform visibility at launch, or is a payout statement emailed to them sufficient?
-6. **Plan acknowledgment workflow** — Is digital plan acknowledgment by producers a requirement for initial customers, or a later compliance add-on?
-7. **Buyer title** — Which title most commonly signs the check: COO, CFO, CEO, or managing partner? This affects positioning and sales motion.
-8. **Contract staffing timeline** — At what point does the absence of a gross profit engine become a deal-blocker for target customers?
-9. **Data quality risk** — How much of the target segment's ATS data is clean enough to support automated calculation? Will a concierge-assisted import phase be required for most early customers?
-10. **Pricing model** — Is per-producer-per-month pricing the strongest fit, or do customers respond better to per-placement or commission-volume-based pricing?
+5. **Plan acknowledgment workflow** — Is digital plan acknowledgment by producers a requirement for initial customers, or a later compliance add-on?
+6. **Buyer title** — Which title most commonly signs the check: COO, CFO, CEO, or managing partner? This affects positioning and sales motion.
+7. **Pricing model** — Is per-producer-per-month pricing the strongest fit, or do customers respond better to per-placement or commission-volume-based pricing?
