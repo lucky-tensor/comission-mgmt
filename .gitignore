@@ -1,0 +1,30 @@
+# Machine-local symlink to shared superfield agent tooling
+# (resolves to an absolute path outside the repo; do not commit)
+/.claude
+
+# Agent scratch space
+.agents/tmp/
+
+# Node / build artifacts (for when the monorepo lands)
+node_modules/
+dist/
+dist-ssr/
+*.local
+*.log
+
+# Environment files
+.env
+.env.test
+
+# Editor / OS
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+
+# Kubernetes secrets (never commit real credentials)
+k8s/secrets.yaml
+.k3d-kubeconfig*
+
+# Note: ./blueprint (relative symlink) and .agents/blueprint/ ARE committed —
+# the blueprint rules must travel with the repo for the architecture/strategy skills.
