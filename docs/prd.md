@@ -67,7 +67,7 @@ Baseline values for operational metrics are captured during onboarding so that i
 - As a Finance Admin, I want to see all placements that are missing required fields so that I can resolve data gaps before running commissions.
 - As a Finance Admin, I want to run a commission cycle, review each calculated payout, and approve the batch before it reaches payroll, so that no unreviewed amounts are disbursed.
 - As a Finance Admin, I want to export an approved, payroll-ready file at the end of each commission cycle so that I can submit it to payroll without manual rework.
-- As a Finance Admin, I want to track invoice and collection status per placement so that collection-gated commissions are released accurately.
+- As a Finance Admin, I want to track invoice and collection status per placement and per billing phase so that collection-gated commissions are released accurately at the phase level and a paid retainer does not release held delivery commission prematurely.
 - As a Finance Admin, I want to apply adjustments — refunds, credit memos, clawbacks — as new ledger entries with an audit trail, so that history is never silently overwritten.
 
 ### Producer
@@ -103,15 +103,17 @@ Baseline values for operational metrics are captured during onboarding so that i
 
 ### 5.1 Placement Ledger Creation
 
-A placement record is created either by import from a connected applicant tracking system or by manual entry. The record captures the client, job order, candidate, start date, fee agreement, and compensation base. The record is incomplete — and blocked from commission calculation — until all required fields are present.
+A placement record is created either by import from a connected applicant tracking system or by manual entry. The record captures the client, job order, candidate, start date, fee agreement, compensation base, and placed compensation (base salary, bonus, and other compensation components). The platform is the system of record for placed compensation data — it is not sourced from the ATS or the financial system. The record is incomplete — and blocked from commission calculation — until all required fields are present.
+
+For retained searches, the placement carries named billing phases — typically **retainer** and **delivery** — each representing a distinct invoicing event with its own projected, billed, and received amounts. Contributor credit assignments (originator, converter, delivery) may differ between phases; commission for each phase is calculated against the revenue credited to that phase independently (see §5.3, §5.5).
 
 ### 5.2 Contribution Assignment
 
-Contributors are assigned to the placement with their role (client originator, account owner, job owner, candidate sourcer, candidate owner, delivery credit, manager override, external partner) and their split credit (percentage or point allocation). Split assignments are subject to manager approval before finalization.
+Contributors are assigned to the placement with their role (client originator, account owner, job owner, candidate sourcer, candidate owner, delivery credit, manager override, external partner), their practice, and their split credit (percentage or point allocation). Practice is a configurable organizational grouping — typically a team or industry vertical — that drives reporting rollups, visibility scoping, and management hierarchy. Split assignments are subject to manager approval before finalization.
 
 ### 5.3 Commission Calculation
 
-The commission rules engine applies the plan associated with each contributor to their credited base. Calculations account for: percentage of gross fee or net fee income, tiers and thresholds, desk cost recovery, draw balance offset, manager overrides, team pool allocations, retainer milestone treatment, and holdback or clawback conditions. Every calculated payout includes a plain-language explanation traceable to the deal record, plan version, and triggering event.
+The commission rules engine applies the plan associated with each contributor to their credited base. Each search carries a named fee rate structure — expressed as a percentage of placed compensation, a fractional share of gross fee, or a flat amount — which determines the commissionable base before plan rates are applied. Fee rate structures are customer-configurable. Calculations further account for: tiers and thresholds, desk cost recovery, draw balance offset, manager overrides, team pool allocations, retainer milestone treatment, and holdback or clawback conditions. Every calculated payout includes a plain-language explanation traceable to the deal record, fee rate structure, plan version, and triggering event.
 
 ### 5.4 Approval and Exception Handling
 
@@ -121,7 +123,9 @@ Attribution disputes that cannot be resolved at the producer and manager level a
 
 ### 5.5 Invoice and Collection Tracking
 
-Each placement is linked to one or more invoices. Invoice status (issued, partially paid, paid, disputed, written off) is updated by import or manual entry. For commission plans that gate payout on cash collection, commission is held until the linked invoice is marked paid. Producers can see which payouts are blocked and why.
+Each placement is linked to one or more invoices. For retained searches, invoices belong to a named billing phase (retainer or delivery), and each phase is tracked independently through its own Projected → Billed → Received lifecycle. Invoice status (issued, partially paid, paid, disputed, written off) is updated by import or manual entry.
+
+For commission plans that gate payout on cash collection, collection gating applies at the phase level: commission credited to the retainer phase is held until the retainer invoice is marked paid; commission credited to the delivery phase is held until the delivery invoice is marked paid. A paid retainer does not release held delivery commission. Producers can see which payouts are blocked, at which phase, and why.
 
 ### 5.6 Guarantee Monitoring
 
@@ -131,15 +135,19 @@ The platform tracks the guarantee expiration date for each placement. Placements
 
 After all placements in a cycle are reviewed and approved, Finance Admins generate a payroll-ready export containing each producer's approved payout, draw recovery amounts, and clawback recoveries. The export is produced in the import format expected by the customer's payroll system so that submission requires no manual reformatting or re-keying. The export is the final step before payroll submission; no commission amount reaches payroll without prior approval.
 
-### 5.8 Producer Payout Portal
+### 5.8 Financial Reconciliation
+
+Finance Admins generate a reconciliation report that cross-checks billed and received amounts in the commission ledger against the firm's financial system of record. The report surfaces discrepancies — amounts present in one system but not the other, or timing gaps between billed and received dates — so that errors can be identified and corrected before commissions are finalized. This reconciliation is a required step in the month-end close, not an optional audit tool.
+
+### 5.9 Producer Payout Portal
 
 Producers access a personal view showing their credited placements, commission calculations, tier progress, holdback status, payment trigger, estimated payout cycle, and historical payouts. Each payout figure reflects the most recent placement and collection data and is stamped with the data it was derived from, so producers understand how current it is. Producers can submit questions or disputes from this view.
 
-### 5.9 Onboarding and Data Import
+### 5.10 Onboarding and Data Import
 
 Customers onboard through a guided import that maps existing applicant tracking, CRM, and accounts receivable data to the placement ledger. Records with missing or ambiguous required fields — including attribution and split credit that were never captured in structured ATS fields — are routed to a reconciliation queue for assisted resolution rather than silently dropped. The platform supports assisted import of historical placements so that early commission runs can reference prior deal history. Data completeness gating (§9) applies to imported records identically to manually entered records.
 
-### 5.10 External Partner Access
+### 5.11 External Partner Access
 
 External partners receive scoped, in-platform access limited to the deals where they hold a split agreement. They see the amounts owed to them, the payment trigger, and the payment status for those deals. Partners cannot view other contributors' credit, internal margin, draw balances, or any firm-wide data.
 
@@ -185,17 +193,25 @@ Alternate path: `Active` → `Forgiven`
 
 `Draft` → `Active` → `Superseded`
 
+### Practice
+
+`Active` → `Inactive`
+
+A practice is a configurable organizational grouping (team, industry vertical, or business unit) to which contributors belong. It appears on every contributor line, drives reporting aggregation by practice, and determines the management hierarchy used for visibility scoping and dispute escalation.
+
 ---
 
 ## 7. Integration Needs
 
 ### Applicant Tracking and CRM Data
 
-The platform ingests placement, job order, candidate, submission, and contributor data from applicant tracking and CRM systems. Business event triggers: placement record created or updated, offer accepted, candidate submitted, ownership assigned.
+The platform ingests placement, job order, candidate, submission, and contributor data from applicant tracking and CRM systems. The ATS is the source of search and contributor identity data; the commission record itself originates in this platform, not in the ATS. Business event triggers: placement record created or updated, offer accepted, candidate submitted, ownership assigned.
+
+ATS platforms in this segment undergo periodic re-platforming. The integration layer must tolerate API and schema changes without requiring full re-implementation — adapters should be versioned and decoupled from the core data model.
 
 ### Accounts Receivable and Invoice Data
 
-The platform receives invoice issuance, payment, partial payment, credit memo, and write-off events from accounting and AR systems. This data drives collection-gated commission release. Business event triggers: invoice issued, payment recorded, credit memo applied.
+The platform receives invoice issuance, payment, partial payment, credit memo, and write-off events from the firm's financial system of record. This data drives collection-gated commission release and feeds the financial reconciliation workflow (§5.8). The platform also produces a reconciliation report for cross-checking billed and received amounts against the financial system. Business event triggers: invoice issued, payment recorded, credit memo applied.
 
 ### Payroll System Export
 
@@ -234,10 +250,15 @@ The following are explicitly out of scope:
 ### Data Completeness Gating
 - A commission run cannot be approved if any included placement has required fields missing. The platform surfaces a blocking queue of incomplete records before the run can proceed.
 
+### Data Security and Need-to-Know Access
+- All placement, commission, and contributor data is encrypted at the database level. Encryption is not conditional on record sensitivity — it is the baseline posture for all data in the system.
+- Field-level access is governed by role and placement relationship. A user is authorized to see only the data their role and credited involvement entitle them to; access to any record or field is denied by default and granted explicitly, not inherited by proximity to adjacent records.
+- Placements carry a confidential flag set by Finance Admin at the time of record creation. When set, the position title and client-identifying details are masked in producer-facing payout statements, external partner views, and any export or report that surfaces placement-level detail. Confidential status does not affect the commission calculation, approval workflow, or audit trail — it controls only what identifying information is presented in stakeholder-facing views.
+
 ### Visibility and Confidentiality
 - A producer sees the full derivation of their own credit on any placement, including co-contributors' roles where that is required to explain a split, but does not see other producers' payout amounts, plan assignments, draw balances, or firm-wide financials.
 - Manager and executive visibility is scoped to their team, practice, or organization per the customer's configured hierarchy.
-- External partner visibility is limited to their own participation (see §5.10).
+- External partner visibility is limited to their own participation (see §5.11).
 
 ### Employment Law
 - Clawback and draw recovery terms are configured by the customer. The platform surfaces balances, schedules, and adjustments. Legal enforceability of specific terms under applicable employment law is the responsibility of the customer and their counsel.
