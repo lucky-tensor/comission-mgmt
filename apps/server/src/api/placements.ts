@@ -2,10 +2,13 @@
  * Placement API routes.
  *
  * Routes:
- *   POST /placements              — create a placement manually
- *   POST /placements/import       — import placements from CSV upload
- *   GET  /placements              — list placements for the authenticated tenant
- *   GET  /placements/:id          — get a single placement by ID
+ *   POST   /placements              — create a placement manually
+ *   POST   /placements/import       — import placements from CSV upload
+ *   GET    /placements              — list placements for the authenticated tenant
+ *   GET    /placements/incomplete   — list placements with missing commission-required fields
+ *   GET    /placements/:id          — get a single placement by ID
+ *   PATCH  /placements/:id          — update a placement (fill in missing fields)
+ *   POST   /commission-runs         — pre-flight check: reject if any included placement is incomplete
  *
  * Multi-tenant isolation: all queries are scoped to the session org_id.
  * Encrypted fields: compensationBase (fee_amount in CSV) and feeAmount
@@ -17,10 +20,18 @@
  *   an ephemeral Postgres connection without touching the module-level pool.
  *
  * Canonical docs: docs/prd.md §5.1, docs/architecture.md — Phase 2 Domain
- * Issue: feat: placement record creation — manual entry and CSV import
+ * Issues: feat: placement record creation — manual entry and CSV import (#5)
+ *         feat: placement completeness validation and blocking queue (#6)
  */
 
-import { createPlacement, getPlacement, listPlacements } from 'db/placements';
+import {
+  createPlacement,
+  getPlacement,
+  listPlacements,
+  updatePlacement,
+  listIncompletePlacements,
+  checkPlacementsComplete,
+} from 'db/placements';
 import { sql as defaultSql } from 'db/index';
 import type { SessionClaims } from 'core/auth';
 import type { Sql } from 'postgres';
@@ -458,5 +469,240 @@ export async function handleGetPlacement(
   } catch (err: unknown) {
     console.error('[placements] get error:', err);
     return errorResponse('Failed to get placement', 500);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// GET /placements/incomplete — list placements with missing required fields
+// ---------------------------------------------------------------------------
+
+/**
+ * GET /placements/incomplete — returns all placements for the authenticated tenant
+ * that are missing at least one commission-required field.
+ *
+ * Response body: Array of placement objects, each annotated with a `missing_fields`
+ * array listing the field names that are absent or empty.
+ *
+ * Required fields for commission eligibility:
+ *   - start_date
+ *   - fee_amount (non-zero)
+ *   - compensation_base (non-zero)
+ *   - contributors (at least one contributor row)
+ *
+ * Canonical docs: docs/prd.md §5.1, §9 Data Completeness Gating
+ *
+ * @param sqlClient - Optional injectable SQL client (for testing).
+ */
+export async function handleListIncompletePlacements(
+  _req: Request,
+  claims: SessionClaims,
+  sqlClient?: SqlClient,
+): Promise<Response> {
+  const db = sqlClient ?? defaultSql;
+
+  try {
+    const placements = await listIncompletePlacements(db, claims.org_id);
+    return jsonResponse(
+      placements.map((p) => ({
+        id: p.id,
+        org_id: p.orgId,
+        candidate_id: p.candidateId,
+        client_entity_id: p.clientEntityId,
+        job_title: p.jobTitle,
+        compensation_base: p.compensationBase,
+        fee_amount: p.feeAmount,
+        status: p.status,
+        start_date: formatDate(p.startDate),
+        guarantee_days: p.guaranteeDays,
+        created_at: p.createdAt,
+        updated_at: p.updatedAt,
+        missing_fields: p.missingFields,
+      })),
+    );
+  } catch (err: unknown) {
+    console.error('[placements] list incomplete error:', err);
+    return errorResponse('Failed to list incomplete placements', 500);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// PATCH /placements/:id — update a placement
+// ---------------------------------------------------------------------------
+
+export interface UpdatePlacementBody {
+  candidate_id?: string;
+  client_entity_id?: string;
+  job_title?: string;
+  start_date?: string | null;
+  fee_pct?: string;
+  fee_amount?: string;
+  compensation_base?: string;
+  guarantee_days?: number | null;
+  status?: string;
+}
+
+/**
+ * PATCH /placements/:id — updates mutable fields on an existing placement.
+ *
+ * Only provided fields are updated; absent fields are left unchanged.
+ * Returns 404 if the placement does not exist or belongs to a different tenant.
+ * Returns 422 if any provided field value is invalid.
+ *
+ * Canonical docs: docs/prd.md §5.1
+ *
+ * @param sqlClient - Optional injectable SQL client (for testing).
+ */
+export async function handleUpdatePlacement(
+  placementId: string,
+  req: Request,
+  claims: SessionClaims,
+  sqlClient?: SqlClient,
+): Promise<Response> {
+  let body: Partial<UpdatePlacementBody>;
+  try {
+    body = (await req.json()) as Partial<UpdatePlacementBody>;
+  } catch {
+    return errorResponse('Invalid JSON body', 400);
+  }
+
+  const db = sqlClient ?? defaultSql;
+
+  // Verify the placement exists and belongs to this tenant
+  try {
+    const existing = await getPlacement(db, placementId);
+    if (!existing) {
+      return errorResponse('Placement not found', 404);
+    }
+    if (existing.orgId !== claims.org_id) {
+      return errorResponse('Placement not found', 404);
+    }
+  } catch (err: unknown) {
+    console.error('[placements] update get error:', err);
+    return errorResponse('Failed to update placement', 500);
+  }
+
+  // Validate numeric fields
+  const errors: Record<string, string> = {};
+  if (body.compensation_base !== undefined && isNaN(Number(body.compensation_base))) {
+    errors['compensation_base'] = 'compensation_base must be a numeric string';
+  }
+  if (body.fee_amount !== undefined && isNaN(Number(body.fee_amount))) {
+    errors['fee_amount'] = 'fee_amount must be a numeric string';
+  }
+  if (body.fee_pct !== undefined && isNaN(Number(body.fee_pct))) {
+    errors['fee_pct'] = 'fee_pct must be a numeric string';
+  }
+  if (Object.keys(errors).length > 0) {
+    return errorResponse('Validation failed', 422, errors);
+  }
+
+  // Resolve fee_amount from fee_pct if only fee_pct is given
+  let feeAmount: string | undefined = body.fee_amount;
+  if (!feeAmount && body.fee_pct) {
+    const base = Number(body.compensation_base ?? '0');
+    const pct = Number(body.fee_pct);
+    feeAmount = String(Math.round((base * pct) / 100));
+  }
+
+  try {
+    const updated = await updatePlacement(db, placementId, {
+      candidateId: body.candidate_id,
+      clientEntityId: body.client_entity_id,
+      jobTitle: body.job_title,
+      compensationBase: body.compensation_base,
+      feeAmount,
+      startDate: 'start_date' in body ? body.start_date : undefined,
+      guaranteeDays: 'guarantee_days' in body ? body.guarantee_days : undefined,
+    });
+
+    if (!updated) {
+      return errorResponse('Placement not found', 404);
+    }
+
+    return jsonResponse({
+      id: updated.id,
+      org_id: updated.orgId,
+      candidate_id: updated.candidateId,
+      client_entity_id: updated.clientEntityId,
+      job_title: updated.jobTitle,
+      compensation_base: updated.compensationBase,
+      fee_amount: updated.feeAmount,
+      status: updated.status,
+      start_date: formatDate(updated.startDate),
+      guarantee_days: updated.guaranteeDays,
+      created_at: updated.createdAt,
+      updated_at: updated.updatedAt,
+    });
+  } catch (err: unknown) {
+    console.error('[placements] update error:', err);
+    return errorResponse('Failed to update placement', 500);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// POST /commission-runs — pre-flight completeness check
+// ---------------------------------------------------------------------------
+
+export interface CommissionRunBody {
+  placement_ids: string[];
+}
+
+/**
+ * POST /commission-runs — pre-flight check for a commission run.
+ *
+ * Validates that all placements listed in `placement_ids` are commission-eligible
+ * (no missing required fields). Returns 422 with the incomplete placement IDs if
+ * any placement is incomplete.
+ *
+ * Returns 200 when all placements are complete (the run is allowed to proceed).
+ *
+ * Canonical docs: docs/prd.md §9 Data Completeness Gating
+ *
+ * @param sqlClient - Optional injectable SQL client (for testing).
+ */
+export async function handlePreflightCommissionRun(
+  req: Request,
+  claims: SessionClaims,
+  sqlClient?: SqlClient,
+): Promise<Response> {
+  let body: Partial<CommissionRunBody>;
+  try {
+    body = (await req.json()) as Partial<CommissionRunBody>;
+  } catch {
+    return errorResponse('Invalid JSON body', 400);
+  }
+
+  if (!body.placement_ids || !Array.isArray(body.placement_ids)) {
+    return errorResponse('placement_ids must be a non-empty array', 422);
+  }
+
+  if (body.placement_ids.length === 0) {
+    return errorResponse('placement_ids must be a non-empty array', 422);
+  }
+
+  const db = sqlClient ?? defaultSql;
+
+  try {
+    const incompleteMap = await checkPlacementsComplete(db, claims.org_id, body.placement_ids);
+
+    if (incompleteMap.size > 0) {
+      const incompleteList = Array.from(incompleteMap.entries()).map(([id, missingFields]) => ({
+        placement_id: id,
+        missing_fields: missingFields,
+      }));
+
+      return jsonResponse(
+        {
+          error: 'Commission run blocked: incomplete placements',
+          incomplete_placements: incompleteList,
+        },
+        422,
+      );
+    }
+
+    return jsonResponse({ status: 'preflight_passed', placement_ids: body.placement_ids });
+  } catch (err: unknown) {
+    console.error('[commission-runs] preflight error:', err);
+    return errorResponse('Failed to validate commission run', 500);
   }
 }

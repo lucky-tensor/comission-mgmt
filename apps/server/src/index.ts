@@ -36,6 +36,9 @@ import {
   handleImportPlacements,
   handleListPlacements,
   handleGetPlacement,
+  handleListIncompletePlacements,
+  handleUpdatePlacement,
+  handlePreflightCommissionRun,
 } from './api/placements';
 import { handleDemoUsers, handleDemoSession, isDemoMode } from './api/demo-session';
 import { requireAuth } from './middleware/auth';
@@ -155,6 +158,9 @@ async function fetchHandler(req: Request): Promise<Response> {
   if (req.method === 'POST' && pathname === '/placements/import') {
     return handleImportPlacements(req, authResult.claims);
   }
+  if (req.method === 'GET' && pathname === '/placements/incomplete') {
+    return handleListIncompletePlacements(req, authResult.claims);
+  }
   if (req.method === 'POST' && pathname === '/placements') {
     return handleCreatePlacement(req, authResult.claims);
   }
@@ -164,6 +170,15 @@ async function fetchHandler(req: Request): Promise<Response> {
   const placementGetMatch = pathname.match(/^\/placements\/([^/]+)$/);
   if (req.method === 'GET' && placementGetMatch) {
     return handleGetPlacement(placementGetMatch[1], authResult.claims);
+  }
+  const placementPatchMatch = pathname.match(/^\/placements\/([^/]+)$/);
+  if (req.method === 'PATCH' && placementPatchMatch) {
+    return handleUpdatePlacement(placementPatchMatch[1], req, authResult.claims);
+  }
+
+  // Commission run pre-flight check
+  if (req.method === 'POST' && pathname === '/commission-runs') {
+    return handlePreflightCommissionRun(req, authResult.claims);
   }
 
   // 404 for all other paths
