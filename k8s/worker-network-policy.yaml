@@ -1,0 +1,75 @@
+# Worker Network Policy — network-level DB isolation (WORKER-X-001)
+#
+# This NetworkPolicy denies egress from worker pods to the PostgreSQL service.
+# Workers are structurally prevented from opening a direct database connection;
+# all writes must go through the application API using single-use delegated tokens.
+#
+# Architecture constraint: docs/architecture.md — Phase 1 Foundation, Worker section
+# Issue: feat: task queue and network-isolated worker execution model (#35)
+#
+# Applies to:
+#   - Pods with label app=commission-worker in the commission namespace
+#
+# Egress allowed:
+#   - TCP to the app server (port 31415) for task claim and result submission
+#   - DNS (UDP/TCP port 53) for service discovery
+#
+# Egress denied:
+#   - TCP to the postgres service (port 5432) — structural isolation guarantee
+
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: worker-deny-db-egress
+  namespace: commission
+  labels:
+    app.kubernetes.io/part-of: commission-mgmt
+    app.kubernetes.io/component: worker
+spec:
+  podSelector:
+    matchLabels:
+      app: commission-worker
+  policyTypes:
+    - Egress
+  egress:
+    # Allow DNS resolution (UDP and TCP port 53)
+    - ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+
+    # Allow outbound to the commission app server only (task claim + result submit)
+    - to:
+        - podSelector:
+            matchLabels:
+              app: commission-server
+      ports:
+        - port: 31415
+          protocol: TCP
+
+    # Explicitly: no rule allows egress to the postgres service (port 5432).
+    # Any attempt by a worker pod to connect to postgres is denied at the
+    # network level by this policy (deny-by-default when policyTypes includes Egress).
+---
+# Deny-all egress default for the worker pods.
+# The allow rules above are the only permitted egress paths.
+# This NetworkPolicy works in conjunction with the CNI plugin's default-deny
+# behaviour when a NetworkPolicy selects the pod.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: worker-default-deny-egress
+  namespace: commission
+  labels:
+    app.kubernetes.io/part-of: commission-mgmt
+    app.kubernetes.io/component: worker
+spec:
+  podSelector:
+    matchLabels:
+      app: commission-worker
+  policyTypes:
+    - Egress
+  # No egress rules — combined with worker-deny-db-egress the allow rules
+  # from that policy take precedence via CNI policy merging.
+  # The net effect: worker pods may only reach the app server and DNS.

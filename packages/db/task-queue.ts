@@ -1,5 +1,50 @@
 import { sql } from './index';
 
+// ---------------------------------------------------------------------------
+// Payload validation: references-only enforcement (TQ-P-004)
+//
+// Task payloads must carry entity references (IDs) only — never raw business
+// values such as salaries, commission amounts, or percentages. This prevents
+// sensitive data from sitting in the task queue and ensures the worker cannot
+// act on stale or tampered business data.
+// ---------------------------------------------------------------------------
+
+/** Keys that are explicitly forbidden as payload keys (business-data values). */
+const BUSINESS_DATA_KEYS: ReadonlySet<string> = new Set([
+  'salary',
+  'base_salary',
+  'fee',
+  'amount',
+  'commission_amount',
+  'rate',
+  'split_rate',
+  'percentage',
+  'split_percentage',
+  'clawback_amount',
+  'draw_amount',
+  'invoice_amount',
+  'payment_amount',
+  'balance',
+]);
+
+/**
+ * Validates that a task payload carries only references (entity IDs), never
+ * raw business values (TQ-P-004 references-only payload enforcement).
+ *
+ * Throws a descriptive Error when validation fails so the caller can return
+ * a 400 to the enqueue requester without reaching the DB.
+ */
+export function validatePayload(payload: Record<string, unknown>): void {
+  for (const key of Object.keys(payload)) {
+    if (BUSINESS_DATA_KEYS.has(key)) {
+      throw new Error(
+        `Task payload must contain only entity references, not business-data values. ` +
+          `Rejected key: "${key}". Use a placement_id, commission_record_id, etc. instead.`,
+      );
+    }
+  }
+}
+
 /**
  * Task status values matching the CHECK constraint in schema.sql.
  *

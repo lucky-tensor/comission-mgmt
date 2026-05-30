@@ -136,6 +136,47 @@ CREATE INDEX IF NOT EXISTS idx_worker_tokens_jti ON worker_tokens (jti);
 CREATE INDEX IF NOT EXISTS idx_worker_tokens_pod ON worker_tokens (pod_id) WHERE consumed_at IS NULL AND invalidated_at IS NULL;
 
 -- =============================================================================
+-- Task Queue: agent_rw DB role and claimable task view
+--
+-- The agent_rw role is the DB identity used by worker containers.
+-- Workers connect only to read claimable tasks — all mutations go through
+-- the application API using single-use delegated credentials.
+--
+-- Security constraints (WORKER-X-001):
+--   - agent_rw has NO access to domain tables (placements, commission_records, etc.)
+--   - agent_rw can SELECT only from the claimable_tasks view
+--   - The view exposes only the columns needed for the claim-execute loop
+-- =============================================================================
+
+-- Create the agent_rw role if it does not exist.
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'agent_rw') THEN
+    CREATE ROLE agent_rw NOLOGIN;
+  END IF;
+END$$;
+
+-- Claimable tasks view: exposes only pending tasks for the agent_rw role.
+-- Workers read from this view to discover available tasks; the actual
+-- claim UPDATE is performed by the application server on behalf of the worker.
+CREATE OR REPLACE VIEW claimable_tasks AS
+  SELECT
+    id,
+    agent_type,
+    job_type,
+    status,
+    priority,
+    created_at,
+    next_retry_at
+  FROM task_queue
+  WHERE status = 'pending'
+    AND (next_retry_at IS NULL OR next_retry_at <= NOW());
+
+-- Grant agent_rw SELECT on the claimable_tasks view only.
+-- No access to any domain table is granted.
+GRANT SELECT ON claimable_tasks TO agent_rw;
+
+-- =============================================================================
 -- Commission Domain: Lifecycle State Enums
 -- Matches PRD §6 exactly.
 -- =============================================================================

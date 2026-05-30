@@ -24,6 +24,13 @@ import {
   handlePasskeyLoginComplete,
   handleLogout,
 } from './api/auth';
+import {
+  handleEnqueueTask,
+  handleGetTask,
+  handleSubmitTaskResult,
+  handleMintAgentCredential,
+  handleClaimTask,
+} from './api/tasks';
 import { requireAuth } from './middleware/auth';
 
 // Re-export foundation modules so they continue to be verified at compile time.
@@ -97,9 +104,34 @@ async function fetchHandler(req: Request): Promise<Response> {
     return handleLogout(req);
   }
 
+  // Worker task result submission — Bearer token auth (no session cookie)
+  const taskResultMatch = pathname.match(/^\/tasks\/([^/]+)\/result$/);
+  if (req.method === 'POST' && taskResultMatch) {
+    return handleSubmitTaskResult(taskResultMatch[1], req);
+  }
+
+  // Worker task claim — Bearer token auth (no session cookie)
+  if (req.method === 'POST' && pathname === '/tasks/claim') {
+    return handleClaimTask(req);
+  }
+
   // All other routes require authentication
   const authResult = await requireAuth(req);
   if (authResult instanceof Response) return authResult;
+
+  // Task routes — authenticated (session cookie)
+  if (req.method === 'POST' && pathname === '/tasks') {
+    return handleEnqueueTask(req, authResult.claims);
+  }
+  const taskGetMatch = pathname.match(/^\/tasks\/([^/]+)$/);
+  if (req.method === 'GET' && taskGetMatch) {
+    return handleGetTask(taskGetMatch[1], authResult.claims);
+  }
+
+  // Agent credential issuance — Finance Admin only
+  if (req.method === 'POST' && pathname === '/agents/credentials') {
+    return handleMintAgentCredential(req, authResult.claims);
+  }
 
   // 404 for all other paths
   log('info', 'not_found', { trace_id: traceId, path: pathname });
