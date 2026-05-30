@@ -111,6 +111,14 @@ import {
 // Leadership Visibility analytics stubs — issue #28
 // See docs/architecture/phase-leadership-visibility.md for aggregation strategy.
 import { handleGetExecutiveAnalytics, handleGetTeamAnalytics } from './api/analytics';
+// Manager Team View routes — issue #21
+// See docs/architecture/phase-leadership-visibility.md for aggregation strategy.
+import {
+  handleGetTeamPlacements,
+  handleGetTeamCommissionSummary,
+  handleGetTeamPendingApprovals,
+  handleGetTeamDisputes,
+} from './api/manager-team';
 
 // Re-export foundation modules so they continue to be verified at compile time.
 export * from './auth/jwt';
@@ -492,6 +500,24 @@ async function fetchHandler(req: Request): Promise<Response> {
   }
   if (req.method === 'GET' && pathname === '/me/clawback-exposure') {
     return handleGetMyClawbackExposure(authResult.claims);
+  }
+
+  // Manager Team View routes — issue #21
+  // GET /me/team/placements         — team placements (Manager/FinanceAdmin)
+  // GET /me/team/commission-summary — aggregated accruals/payables/holds (Manager/FinanceAdmin)
+  // GET /me/team/pending-approvals  — attribution requests awaiting approval (Manager/FinanceAdmin)
+  // GET /me/team/disputes           — open disputes for team placements (Manager/FinanceAdmin)
+  if (req.method === 'GET' && pathname === '/me/team/placements') {
+    return handleGetTeamPlacements(req, authResult.claims);
+  }
+  if (req.method === 'GET' && pathname === '/me/team/commission-summary') {
+    return handleGetTeamCommissionSummary(req, authResult.claims);
+  }
+  if (req.method === 'GET' && pathname === '/me/team/pending-approvals') {
+    return handleGetTeamPendingApprovals(req, authResult.claims);
+  }
+  if (req.method === 'GET' && pathname === '/me/team/disputes') {
+    return handleGetTeamDisputes(req, authResult.claims);
   }
 
   // Leadership Visibility analytics routes — stub endpoints returning 501 (issue #28)
