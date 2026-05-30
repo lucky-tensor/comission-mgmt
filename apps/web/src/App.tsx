@@ -1,28 +1,15 @@
 /**
  * Root application component.
  *
- * Phase 1 Foundation: blank shell — product UI implemented in later issues.
+ * Renders the Login page for authentication. Post-login product UI is
+ * implemented in later phase issues.
+ *
  * Canonical docs: docs/architecture.md — Phase 1 Foundation
+ * Issue: feat: sign-in page and WebAuthn passkey UX with demo bypass
  */
 
+import Login from './components/Login';
+
 export default function App() {
-  return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: '100vh',
-        fontFamily: 'system-ui, sans-serif',
-        color: '#374151',
-      }}
-    >
-      <div style={{ textAlign: 'center' }}>
-        <h1 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '0.5rem' }}>
-          Commission Management
-        </h1>
-        <p style={{ color: '#6b7280' }}>Platform scaffolding complete — UI coming soon.</p>
-      </div>
-    </div>
-  );
+  return <Login />;
 }

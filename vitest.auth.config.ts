@@ -31,7 +31,10 @@ export default defineConfig({
   test: {
     globals: false,
     environment: 'node',
-    include: ['apps/server/tests/integration/auth/**/*.test.ts'],
+    include: [
+      'apps/server/tests/integration/auth/**/*.test.ts',
+      'apps/server/tests/integration/demo-session/**/*.test.ts',
+    ],
     testTimeout: 300_000,
     hookTimeout: 300_000,
   },

@@ -8,6 +8,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@simplewebauthn/browser": "^13.3.0",
+    "@simplewebauthn/types": "^12.0.0",
     "core": "workspace:*",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
