@@ -1,21 +1,26 @@
 /**
- * Vitest configuration for API integration tests.
+ * Vitest configuration for commission plan API integration tests.
  *
  * Covers:
- *   - POST /placements — manual placement creation
- *   - POST /placements/import — CSV import
- *   - GET /placements — tenant-scoped list
- *   - GET /placements/:id — detail fetch
- *   - Validation errors and tenant isolation
- *   - Commission plan CRUD, versioning, and assignment (issue #9)
+ *   - POST /plans — create a plan with initial Draft version
+ *   - POST /plans/:id/versions — create a new plan version
+ *   - POST /plans/:id/versions/:vid/activate — activate a draft version
+ *   - GET  /plans/:id/versions — list versions in descending order
+ *   - GET  /plans/:id/active — get the active version
+ *   - POST /plans/:id/assignments — assign a producer to a plan version
+ *   - GET  /plans/:id/assignments — list producer assignments
+ *   - Tier threshold validation (422 for overlapping thresholds)
+ *   - Multi-tenant isolation
  *
  * Requires an ephemeral Postgres container (Docker) and uses workspace package
  * aliases for db/* and core/* imports.
+ *
+ * Issue: feat: commission plan configuration and versioning (#9)
  */
 import { defineConfig } from 'vitest/config';
 import { resolve } from 'path';
 
-const root = resolve(__dirname, '../..');
+const root = __dirname;
 
 export default defineConfig({
   resolve: {
@@ -32,7 +37,6 @@ export default defineConfig({
       { find: 'db/passkeys', replacement: resolve(root, 'packages/db/passkeys.ts') },
       { find: 'db/pg-container', replacement: resolve(root, 'packages/db/pg-container.ts') },
       { find: 'db/ssl', replacement: resolve(root, 'packages/db/ssl.ts') },
-      { find: 'db/placements', replacement: resolve(root, 'packages/db/src/placements.ts') },
       { find: 'db/plans', replacement: resolve(root, 'packages/db/src/plans.ts') },
       { find: 'db/index', replacement: resolve(root, 'packages/db/index.ts') },
       { find: 'db', replacement: resolve(root, 'packages/db/index.ts') },
@@ -41,10 +45,7 @@ export default defineConfig({
   test: {
     globals: false,
     environment: 'node',
-    include: [
-      'apps/server/tests/integration/placements/**/*.test.ts',
-      'tests/api/plans/**/*.test.ts',
-    ],
+    include: ['tests/api/plans/**/*.test.ts'],
     testTimeout: 300_000,
     hookTimeout: 300_000,
   },

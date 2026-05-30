@@ -41,6 +41,30 @@ export type {
   CreateAttributionEventInput,
 } from './src/attribution.js';
 
+export {
+  createPlan,
+  createPlanVersion,
+  activatePlanVersion,
+  listPlanVersions,
+  listPlans,
+  getPlan,
+  getActivePlanVersion,
+  createPlanAssignment,
+  listPlanAssignments,
+  validateTiers,
+} from './src/plans.js';
+export type {
+  CommissionPlan,
+  PlanVersion,
+  PlanVersionState,
+  PlanAssignment,
+  PlanRules,
+  TierRule,
+  CreatePlanInput,
+  CreatePlanVersionInput,
+  CreatePlanAssignmentInput,
+} from './src/plans.js';
+
 const DEFAULT_DATABASE_URLS = {
   app: 'postgres://app_rw:app_rw_password@localhost:5432/commission_app',
   audit: 'postgres://audit_w:audit_w_password@localhost:5432/commission_audit',
