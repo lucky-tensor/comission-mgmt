@@ -78,6 +78,26 @@ export type {
   CreateCommissionRecordInput,
 } from './src/commission-records.js';
 
+export {
+  createInvoice,
+  getInvoice,
+  listInvoicesForPlacement,
+  updateInvoice,
+  upsertInvoiceByNumber,
+  releaseCollectionGate,
+  listHeldCommissionRecordsByReason,
+  INVOICE_STATES,
+  _setEncryptorForTest as _setInvoiceEncryptorForTest,
+  _resetEncryptorForTest as _resetInvoiceEncryptorForTest,
+} from './src/invoices.js';
+export type {
+  InvoiceRow,
+  InvoiceStatus,
+  CreateInvoiceInput,
+  UpdateInvoiceInput,
+  HeldCommissionRecordRow,
+} from './src/invoices.js';
+
 const DEFAULT_DATABASE_URLS = {
   app: 'postgres://app_rw:app_rw_password@localhost:5432/commission_app',
   audit: 'postgres://audit_w:audit_w_password@localhost:5432/commission_audit',

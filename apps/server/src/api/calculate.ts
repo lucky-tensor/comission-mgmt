@@ -385,6 +385,16 @@ export async function handleCalculateCommission(
       );
     }
 
+    // Determine hold_reason for Held records
+    let holdReason: string | null = null;
+    if (record.status === 'Held') {
+      if (record.heldForCollection) {
+        holdReason = 'collection_gate';
+      } else if (record.heldForGuarantee) {
+        holdReason = 'guarantee_hold';
+      }
+    }
+
     // Persist the commission record
     const createInput: CreateCommissionRecordInput = {
       orgId: claims.org_id,
@@ -396,6 +406,7 @@ export async function handleCalculateCommission(
       tierRate: record.tierRate,
       status: record.status === 'Held' ? 'Held' : 'Accrued',
       explanation: record.explanation,
+      holdReason,
     };
 
     let dbRecord;
@@ -418,6 +429,7 @@ export async function handleCalculateCommission(
       status: dbRecord.status,
       held_for_collection: record.heldForCollection,
       held_for_guarantee: record.heldForGuarantee,
+      hold_reason: holdReason,
       draw_deducted: record.drawDeducted,
       explanation: record.explanation,
       created_at: dbRecord.createdAt,

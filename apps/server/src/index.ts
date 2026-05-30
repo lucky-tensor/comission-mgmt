@@ -67,6 +67,12 @@ import {
   handleListCommissionRecords,
   handleGetCommissionRecord,
 } from './api/calculate';
+import {
+  handleCreateInvoice,
+  handleUpdateInvoice,
+  handleImportInvoices,
+  handleListAllCommissionRecords,
+} from './api/invoices';
 import { handleDemoUsers, handleDemoSession, isDemoMode } from './api/demo-session';
 import { requireAuth } from './middleware/auth';
 
@@ -302,6 +308,23 @@ async function fetchHandler(req: Request): Promise<Response> {
   const commissionRecordGetMatch = pathname.match(/^\/commission-records\/([^/]+)$/);
   if (req.method === 'GET' && commissionRecordGetMatch) {
     return handleGetCommissionRecord(commissionRecordGetMatch[1], authResult.claims);
+  }
+
+  // Commission records list (global) — GET /commission-records?reason=...
+  if (req.method === 'GET' && pathname === '/commission-records') {
+    return handleListAllCommissionRecords(req, authResult.claims);
+  }
+
+  // Invoice routes — authenticated (session cookie), scoped to tenant
+  if (req.method === 'POST' && pathname === '/invoices/import') {
+    return handleImportInvoices(req, authResult.claims);
+  }
+  if (req.method === 'POST' && pathname === '/invoices') {
+    return handleCreateInvoice(req, authResult.claims);
+  }
+  const invoicePatchMatch = pathname.match(/^\/invoices\/([^/]+)$/);
+  if (req.method === 'PATCH' && invoicePatchMatch) {
+    return handleUpdateInvoice(invoicePatchMatch[1], req, authResult.claims);
   }
 
   // 404 for all other paths

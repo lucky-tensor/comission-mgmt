@@ -406,6 +406,10 @@ CREATE INDEX IF NOT EXISTS idx_commission_records_status ON commission_records (
 -- Nullable so existing rows without an explanation remain valid.
 ALTER TABLE commission_records ADD COLUMN IF NOT EXISTS explanation TEXT;
 
+-- Hold reason for commission_records with status=Held (issue #12: invoice and collection tracking).
+-- Values: 'collection_gate' | 'guarantee_hold' | NULL (for non-Held records).
+ALTER TABLE commission_records ADD COLUMN IF NOT EXISTS hold_reason TEXT;
+
 -- Invoices: billed amounts sent to clients for placements.
 CREATE TABLE IF NOT EXISTS invoices (
   id               UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -420,6 +424,7 @@ CREATE TABLE IF NOT EXISTS invoices (
   collected_at     TIMESTAMPTZ
 );
 
+CREATE UNIQUE INDEX IF NOT EXISTS idx_invoices_org_number ON invoices (org_id, invoice_number);
 CREATE INDEX IF NOT EXISTS idx_invoices_org ON invoices (org_id);
 CREATE INDEX IF NOT EXISTS idx_invoices_placement ON invoices (placement_id);
 CREATE INDEX IF NOT EXISTS idx_invoices_status ON invoices (org_id, status);
