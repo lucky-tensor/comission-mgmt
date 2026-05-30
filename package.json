@@ -17,7 +17,12 @@
     "typecheck": "bun tsc --noEmit",
     "lint": "bunx eslint .",
     "format": "bunx prettier --write .",
-    "format:check": "bunx prettier --check ."
+    "format:check": "bunx prettier --check .",
+    "local-demo": "bun run scripts/local-demo.ts",
+    "provision": "bun run scripts/gcp/provision.ts",
+    "deploy": "bun run scripts/gcp/deploy.ts",
+    "doctor": "bun run scripts/gcp/doctor.ts",
+    "demo:seed": "bun run packages/db/seed-demo.ts"
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",

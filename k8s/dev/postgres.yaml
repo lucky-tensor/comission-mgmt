@@ -1,0 +1,178 @@
+# StatefulSet + Service for the dev Postgres instance running inside k3d.
+#
+# Uses the same postgres:16-alpine image as production but with simplified
+# storage (emptyDir) suitable for a local dev cluster.
+#
+# The three commission databases and roles are created by the
+# dev-postgres-init SQL scripts mounted as initdb.
+#
+# Architecture constraints (DATA-A-001):
+#   Three physically separated databases: commission_app, commission_analytics, commission_audit.
+#
+# Credentials are sourced from the commission-dev-config ConfigMap in dev-secrets.yaml.
+# These are dev-only plain-text credentials — never use in CI or production.
+#
+# Apply order (handled by scripts/local-demo.ts):
+#   kubectl apply -f k8s/dev/dev-secrets.yaml
+#   kubectl apply -f k8s/dev/postgres.yaml
+#   kubectl rollout status statefulset/commission-dev-postgres
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: commission-postgres-init
+  labels:
+    app: commission-dev-postgres
+    env: dev
+data:
+  01-databases.sql: |
+    -- Creates the three commission databases and three insert-only roles.
+    -- Architecture constraints (DATA-A-001, DATA-C-002):
+    --   Three physically separated databases: commission_app, commission_analytics, commission_audit
+    --   Three roles: app_rw (read-write on app), analytics_w (insert-only), audit_w (insert-only)
+
+    -- Databases
+    SELECT 'CREATE DATABASE commission_app OWNER app_rw'
+    WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'commission_app')
+    \gexec
+
+    SELECT 'CREATE DATABASE commission_analytics OWNER app_rw'
+    WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'commission_analytics')
+    \gexec
+
+    SELECT 'CREATE DATABASE commission_audit OWNER app_rw'
+    WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'commission_audit')
+    \gexec
+
+    -- Roles (app_rw already exists as POSTGRES_USER)
+    DO $$
+    BEGIN
+      IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'analytics_w') THEN
+        CREATE ROLE analytics_w WITH LOGIN PASSWORD 'analytics_w_dev_password' NOINHERIT;
+      END IF;
+    END
+    $$;
+
+    DO $$
+    BEGIN
+      IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'audit_w') THEN
+        CREATE ROLE audit_w WITH LOGIN PASSWORD 'audit_w_dev_password' NOINHERIT;
+      END IF;
+    END
+    $$;
+
+  02-grants.sql: |
+    \connect commission_analytics
+    GRANT CONNECT ON DATABASE commission_analytics TO analytics_w;
+    GRANT USAGE ON SCHEMA public TO analytics_w;
+    ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT INSERT ON TABLES TO analytics_w;
+
+    \connect commission_audit
+    GRANT CONNECT ON DATABASE commission_audit TO audit_w;
+    GRANT USAGE ON SCHEMA public TO audit_w;
+    ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT INSERT ON TABLES TO audit_w;
+
+    \connect postgres
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: commission-dev-postgres
+  labels:
+    app: commission-dev-postgres
+    env: dev
+spec:
+  serviceName: commission-dev-postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: commission-dev-postgres
+  template:
+    metadata:
+      labels:
+        app: commission-dev-postgres
+        env: dev
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: commission-dev-config
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                configMapKeyRef:
+                  name: commission-dev-config
+                  key: POSTGRES_PASSWORD
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: commission-dev-config
+                  key: POSTGRES_DB
+          livenessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - $(POSTGRES_USER)
+                - -d
+                - $(POSTGRES_DB)
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          readinessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - $(POSTGRES_USER)
+                - -d
+                - $(POSTGRES_DB)
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: '100m'
+              memory: '128Mi'
+            limits:
+              cpu: '500m'
+              memory: '256Mi'
+          # emptyDir volume: data is lost when the pod restarts.
+          # This is intentional for dev — no persistent storage dependency.
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+            - name: initdb
+              mountPath: /docker-entrypoint-initdb.d
+              readOnly: true
+      volumes:
+        - name: postgres-data
+          emptyDir: {}
+        - name: initdb
+          configMap:
+            name: commission-postgres-init
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: commission-dev-postgres
+  labels:
+    app: commission-dev-postgres
+    env: dev
+spec:
+  selector:
+    app: commission-dev-postgres
+  ports:
+    - name: postgres
+      protocol: TCP
+      port: 5432
+      targetPort: 5432
+  type: ClusterIP

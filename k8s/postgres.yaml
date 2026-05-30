@@ -1,0 +1,122 @@
+# StatefulSet + Service for commission-mgmt PostgreSQL 16.
+#
+# Single replica — suitable for dev and small deployments.
+# Persistent storage is provided by a PVC so data survives pod restarts.
+# Credentials are sourced from the `superfield-api-secrets` Secret.
+#
+# Three databases are created by init scripts on first container start:
+#   commission_app       — transactional ledger
+#   commission_analytics — insert-only analytics events
+#   commission_audit     — append-only audit log
+#
+# Architecture constraints (DATA-A-001):
+#   Three physically separated databases with role-based isolation.
+#   No cross-DB privileges.
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: commission-postgres-pvc
+  labels:
+    app: commission-postgres
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: commission-postgres
+  labels:
+    app: commission-postgres
+spec:
+  serviceName: commission-postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: commission-postgres
+  template:
+    metadata:
+      labels:
+        app: commission-postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: superfield-api-secrets
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: superfield-api-secrets
+                  key: POSTGRES_PASSWORD
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: superfield-api-secrets
+                  key: POSTGRES_DB
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+          livenessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - $(POSTGRES_USER)
+                - -d
+                - $(POSTGRES_DB)
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          readinessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - $(POSTGRES_USER)
+                - -d
+                - $(POSTGRES_DB)
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: '100m'
+              memory: '256Mi'
+            limits:
+              cpu: '500m'
+              memory: '512Mi'
+      volumes:
+        - name: postgres-data
+          persistentVolumeClaim:
+            claimName: commission-postgres-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: commission-postgres
+  labels:
+    app: commission-postgres
+spec:
+  selector:
+    app: commission-postgres
+  ports:
+    - name: postgres
+      protocol: TCP
+      port: 5432
+      targetPort: 5432
+  clusterIP: None

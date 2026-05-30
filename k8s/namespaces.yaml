@@ -1,0 +1,46 @@
+# namespaces.yaml — Three deployment namespaces for commission-mgmt on k3s.
+#
+# Namespaces:
+#   commission-demo        — demo environment; CI-deployed on every release tag
+#   commission-stage       — staging environment; CI-deployed on every release tag
+#   commission-production  — production environment; human-triggered only
+#
+# Branch protection rule: production deploys require a GitHub Environment
+# approval gate. CI credentials are scoped to demo and stage only.
+#
+# Apply order:
+#   kubectl apply -f k8s/namespaces.yaml
+#   (before any workload manifests)
+#
+# Blueprint refs:
+#   DEPLOY-C-001  three-namespace model (demo / stage / production)
+#   DEPLOY-C-002  production deploys require human approval
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: commission-demo
+  labels:
+    environment: demo
+    app.kubernetes.io/managed-by: github-actions
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: commission-stage
+  labels:
+    environment: stage
+    app.kubernetes.io/managed-by: github-actions
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: commission-production
+  labels:
+    environment: production
+    # Production namespace is human-managed. No CI service account has write
+    # access to this namespace — deployments are operator-initiated only.
+    app.kubernetes.io/managed-by: operator

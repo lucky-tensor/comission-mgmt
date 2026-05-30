@@ -1,0 +1,139 @@
+# deploy-production.yaml — commission-app Deployment, Service, and Ingress
+# for the production environment (namespace: commission-production).
+#
+# IMPORTANT: Production deploys are human-triggered only.
+# No CI service account has write access to commission-production.
+# Image tag is set at deploy time via:
+#   kubectl set image -n commission-production deployment/commission-app app=ghcr.io/<owner>/commission-mgmt:<tag>
+#
+# Apply order:
+#   kubectl apply -f k8s/namespaces.yaml
+#   kubectl apply -n commission-production -f k8s/deploy-production.yaml
+#
+# Blueprint refs:
+#   DEPLOY-C-001  three-namespace model
+#   DEPLOY-C-002  production deploys require human approval
+#   WORKER-C-001  distroless runtime (no shell)
+
+---
+# ── Deployment ────────────────────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: commission-app
+  namespace: commission-production
+  labels:
+    app: commission-app
+    environment: production
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: commission-app
+  template:
+    metadata:
+      labels:
+        app: commission-app
+        environment: production
+    spec:
+      containers:
+        - name: app
+          # Image tag set via deploy.sh or kubectl set image at release time.
+          image: ghcr.io/<owner>/commission-mgmt:latest
+          ports:
+            - containerPort: 31415
+          env:
+            - name: PORT
+              value: '31415'
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: superfield-api-secrets
+                  key: DATABASE_URL
+            - name: ANALYTICS_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: superfield-api-secrets
+                  key: ANALYTICS_DATABASE_URL
+            - name: AUDIT_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: superfield-api-secrets
+                  key: AUDIT_DATABASE_URL
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: superfield-api-secrets
+                  key: JWT_SECRET
+            - name: ENCRYPTION_MASTER_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: superfield-api-secrets
+                  key: ENCRYPTION_MASTER_KEY
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 31415
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 31415
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: '200m'
+              memory: '256Mi'
+            limits:
+              cpu: '2000m'
+              memory: '2Gi'
+
+---
+# ── Service ───────────────────────────────────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: commission-app
+  namespace: commission-production
+  labels:
+    app: commission-app
+    environment: production
+spec:
+  selector:
+    app: commission-app
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 31415
+  type: ClusterIP
+
+---
+# ── Ingress ───────────────────────────────────────────────────────────────────
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: commission-app
+  namespace: commission-production
+  labels:
+    app: commission-app
+    environment: production
+  annotations:
+    kubernetes.io/ingress.class: traefik
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: commission-app
+                port:
+                  number: 80

@@ -1,0 +1,60 @@
+# Deployment for commission-worker — background job runner.
+#
+# Processes guarantee-expiry, clawback-trigger, and related commission tasks.
+# Architecture constraints:
+#   - Distroless worker image (WORKER-C-001 — no shell in runtime)
+#   - Network-isolated: no direct DB write grants; all mutations via the API (WORKER-C-006)
+#   - Reads task queue via app_rw (SELECT only on task view)
+#   - Writes delegated via API_BASE_URL (HTTP to commission-app)
+#
+# Apply order:
+#   kubectl apply -f k8s/namespaces.yaml
+#   kubectl apply -f k8s/secrets.yaml
+#   kubectl apply -f k8s/app.yaml   (worker waits for app health)
+#   kubectl apply -f k8s/worker.yaml
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: commission-worker
+  labels:
+    app: commission-worker
+    role: worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: commission-worker
+  template:
+    metadata:
+      labels:
+        app: commission-worker
+        role: worker
+    spec:
+      containers:
+        - name: worker
+          # Image tag is set via deploy.sh:
+          #   kubectl set image deployment/commission-worker worker=ghcr.io/<owner>/commission-mgmt-worker:<tag>
+          image: ghcr.io/<owner>/commission-mgmt-worker:latest
+          env:
+            # READ-ONLY queue access — worker must not write directly to the DB
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: superfield-api-secrets
+                  key: DATABASE_URL
+            # Write channel — delegated tokens submitted to the local app server
+            - name: API_BASE_URL
+              value: 'http://commission-app'
+            - name: ENCRYPTION_MASTER_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: superfield-api-secrets
+                  key: ENCRYPTION_MASTER_KEY
+          resources:
+            requests:
+              cpu: '50m'
+              memory: '64Mi'
+            limits:
+              cpu: '500m'
+              memory: '256Mi'

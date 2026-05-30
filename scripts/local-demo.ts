@@ -1,0 +1,682 @@
+#!/usr/bin/env bun
+/**
+ * local-demo.ts — Local Kubernetes demo runtime using k3d + cloudflared.
+ *
+ * Run via: bun run local-demo
+ *
+ * Lifecycle:
+ *   1) Verify docker/k3d/kubectl/bun are installed and docker daemon is up
+ *   2) Create/reuse a k3d cluster with a local registry
+ *   3) Apply dev Postgres manifests and wait for readiness
+ *   4) Run schema migration against the cluster Postgres (port-forward)
+ *   5) Build latest app image (Dockerfile --target release) and import into k3d
+ *   6) Apply demo app Service + Deployment + Ingress
+ *   7) Wait for rollout; run smoke test (internal pod probe)
+ *   8) Start cloudflared tunnel (unless --no-tunnel); print public URL
+ *   9) Enter interactive watch mode: Enter to redeploy, q to quit
+ *
+ * Flags:
+ *   --no-tunnel   Skip cloudflared; print localhost URL only (used by CI smoke tests)
+ *   --status      Print cluster status and exit
+ */
+
+import { execSync, spawn } from 'node:child_process';
+import { existsSync, watch } from 'node:fs';
+import { createInterface, type Interface as ReadlineInterface } from 'node:readline';
+import { join } from 'node:path';
+import { networkInterfaces } from 'node:os';
+import { createConnection } from 'node:net';
+
+const REPO_ROOT = join(import.meta.dir, '..');
+const CLUSTER_NAME = 'commission-demo';
+const KUBECONFIG_PATH = process.env.KUBECONFIG ?? join(REPO_ROOT, '.k3d-kubeconfig-demo');
+const NAMESPACE = 'default';
+
+const INGRESS_HOST_PORT = Number(process.env.COMMISSION_DEMO_PORT ?? 58080);
+const DB_HOST_PORT = Number(process.env.COMMISSION_DEMO_DB_PORT ?? 55432);
+const PUBLIC_URL = `http://localhost:${INGRESS_HOST_PORT}`;
+
+const APP_IMAGE = 'commission-demo-app:dev';
+const APP_NAME = 'commission-demo-app';
+const APP_SERVICE = 'commission-demo-app';
+const APP_SECRET = 'commission-demo-secrets';
+
+// In-cluster DB URL (used by the app pod)
+const APP_DB_URL =
+  'postgres://app_rw:app_rw_password@commission-dev-postgres:5432/commission_app';
+// Host-side DB URL (used by migration runner over port-forward)
+const HOST_DB_URL = `postgres://app_rw:app_rw_password@localhost:${DB_HOST_PORT}/commission_app`;
+
+const WATCH_DIRS = ['apps/web', 'apps/server', 'apps/worker', 'packages'];
+
+process.env.KUBECONFIG = KUBECONFIG_PATH;
+
+function run(cmd: string, options?: { cwd?: string; stdio?: 'inherit' | 'pipe' }): string {
+  try {
+    const out = execSync(cmd, {
+      cwd: options?.cwd ?? REPO_ROOT,
+      stdio: options?.stdio === 'inherit' ? 'inherit' : 'pipe',
+      encoding: 'utf-8',
+      env: { ...process.env },
+    });
+    return typeof out === 'string' ? out.trim() : '';
+  } catch (err) {
+    const execErr = err as { stderr?: string | Buffer };
+    const stderr =
+      execErr.stderr instanceof Buffer ? execErr.stderr.toString('utf-8') : (execErr.stderr ?? '');
+    throw new Error(`Command failed: ${cmd}\n${stderr}`, { cause: err });
+  }
+}
+
+function commandExists(cmd: string): boolean {
+  try {
+    execSync(`command -v ${cmd}`, { stdio: 'pipe', env: { ...process.env } });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function checkPrerequisites(noTunnel: boolean): void {
+  console.log('\nChecking prerequisites...');
+  const missing: string[] = [];
+
+  if (!commandExists('docker')) missing.push('docker');
+  if (!commandExists('k3d')) missing.push('k3d');
+  if (!commandExists('kubectl')) missing.push('kubectl');
+  if (!commandExists('bun')) missing.push('bun');
+  if (!noTunnel && !commandExists('cloudflared')) {
+    console.warn('  cloudflared not found — tunnel will be skipped. Install from https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/');
+    // Non-fatal: degrade gracefully to --no-tunnel behaviour.
+  }
+
+  if (missing.length > 0) {
+    console.error(`Missing prerequisites: ${missing.join(', ')}`);
+    process.exit(1);
+  }
+
+  try {
+    run('docker info');
+  } catch {
+    console.error('Docker daemon is not running. Start Docker and retry.');
+    process.exit(1);
+  }
+
+  console.log('  All prerequisites found.');
+}
+
+function clusterExists(): boolean {
+  try {
+    const output = run('k3d cluster list -o json');
+    const list = JSON.parse(output) as Array<{ name: string }>;
+    return list.some((cluster) => cluster.name === CLUSTER_NAME);
+  } catch {
+    return false;
+  }
+}
+
+function teardownCluster(): void {
+  console.log('\nTearing down demo cluster...');
+  if (!clusterExists()) {
+    console.log(`  k3d cluster ${CLUSTER_NAME} is not present.`);
+    return;
+  }
+
+  try {
+    run(`k3d cluster delete ${CLUSTER_NAME}`, { stdio: 'inherit' });
+  } catch (err) {
+    console.error(
+      `  Failed to delete cluster: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+}
+
+function ensureCluster(): void {
+  if (!clusterExists()) {
+    console.log(`\nCreating k3d cluster ${CLUSTER_NAME}...`);
+    run(
+      `k3d cluster create ${CLUSTER_NAME} --port 0.0.0.0:${INGRESS_HOST_PORT}:80@loadbalancer --wait`,
+      { stdio: 'inherit' },
+    );
+  } else {
+    console.log(`\nk3d cluster ${CLUSTER_NAME} already exists. Reusing.`);
+  }
+
+  console.log('Writing kubeconfig...');
+  run(`k3d kubeconfig write ${CLUSTER_NAME} --output ${KUBECONFIG_PATH}`, { stdio: 'inherit' });
+}
+
+function applyPostgres(): void {
+  console.log('\nApplying Postgres manifests...');
+  run('kubectl apply -f k8s/dev/dev-secrets.yaml', { stdio: 'inherit' });
+  run('kubectl apply -f k8s/dev/postgres.yaml', { stdio: 'inherit' });
+
+  console.log('Waiting for Postgres rollout...');
+  run(
+    `kubectl rollout status statefulset/commission-dev-postgres -n ${NAMESPACE} --timeout=180s`,
+    { stdio: 'inherit' },
+  );
+}
+
+function waitForPort(host: string, port: number, timeoutMs = 20_000): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+
+  return new Promise((resolve, reject) => {
+    const attempt = () => {
+      const socket = createConnection({ host, port });
+
+      socket.once('connect', () => {
+        socket.destroy();
+        resolve();
+      });
+
+      socket.once('error', () => {
+        socket.destroy();
+        if (Date.now() >= deadline) {
+          reject(new Error(`Timed out waiting for ${host}:${port}`));
+          return;
+        }
+        setTimeout(attempt, 250);
+      });
+    };
+
+    attempt();
+  });
+}
+
+async function runMigrations(): Promise<void> {
+  console.log('\nRunning database migration against demo Postgres...');
+  console.log(
+    `Starting temporary port-forward: svc/commission-dev-postgres ${DB_HOST_PORT}:5432 (namespace ${NAMESPACE})`,
+  );
+
+  const portForward = spawn(
+    'kubectl',
+    [
+      'port-forward',
+      'svc/commission-dev-postgres',
+      `${DB_HOST_PORT}:5432`,
+      '-n',
+      NAMESPACE,
+    ],
+    {
+      cwd: REPO_ROOT,
+      env: { ...process.env },
+      stdio: ['ignore', 'pipe', 'pipe'],
+    },
+  );
+
+  portForward.stdout.on('data', (chunk) => {
+    process.stdout.write(String(chunk));
+  });
+  portForward.stderr.on('data', (chunk) => {
+    process.stderr.write(String(chunk));
+  });
+
+  try {
+    await waitForPort('127.0.0.1', DB_HOST_PORT);
+    run(`DATABASE_URL=${HOST_DB_URL} bun run packages/db/migrate.ts`, { stdio: 'inherit' });
+  } finally {
+    if (!portForward.killed) {
+      portForward.kill('SIGTERM');
+    }
+  }
+}
+
+function buildAndImportImage(): void {
+  console.log('\nBuilding app image from latest local code...');
+  run(`docker build --target release -t ${APP_IMAGE} .`, { stdio: 'inherit' });
+
+  console.log(`Importing ${APP_IMAGE} into k3d cluster...`);
+  run(`k3d image import ${APP_IMAGE} -c ${CLUSTER_NAME}`, { stdio: 'inherit' });
+}
+
+function applyDemoApp(): void {
+  console.log('\nApplying demo app resources...');
+
+  // Create the app secret (idempotent via --dry-run | apply)
+  run(
+    [
+      `kubectl create secret generic ${APP_SECRET}`,
+      `--from-literal=DATABASE_URL=${APP_DB_URL}`,
+      `--from-literal=ANALYTICS_DATABASE_URL=postgres://analytics_w:analytics_w_dev_password@commission-dev-postgres:5432/commission_analytics`,
+      `--from-literal=AUDIT_DATABASE_URL=postgres://audit_w:audit_w_dev_password@commission-dev-postgres:5432/commission_audit`,
+      '--from-literal=JWT_SECRET=demo-dev-jwt-secret',
+      '--from-literal=ENCRYPTION_MASTER_KEY=0000000000000000000000000000000000000000000000000000000000000001',
+      '--dry-run=client -o yaml | kubectl apply -f -',
+    ].join(' '),
+    { stdio: 'inherit' },
+  );
+
+  const manifest = `
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ${APP_NAME}
+  labels:
+    app: ${APP_NAME}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ${APP_NAME}
+  template:
+    metadata:
+      labels:
+        app: ${APP_NAME}
+    spec:
+      containers:
+        - name: app
+          image: ${APP_IMAGE}
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 31415
+          env:
+            - name: PORT
+              value: "31415"
+            - name: DEMO_MODE
+              value: "true"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: ${APP_SECRET}
+                  key: DATABASE_URL
+            - name: ANALYTICS_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: ${APP_SECRET}
+                  key: ANALYTICS_DATABASE_URL
+            - name: AUDIT_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: ${APP_SECRET}
+                  key: AUDIT_DATABASE_URL
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: ${APP_SECRET}
+                  key: JWT_SECRET
+            - name: ENCRYPTION_MASTER_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: ${APP_SECRET}
+                  key: ENCRYPTION_MASTER_KEY
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 31415
+            initialDelaySeconds: 60
+            periodSeconds: 20
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 31415
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ${APP_SERVICE}
+  labels:
+    app: ${APP_NAME}
+spec:
+  selector:
+    app: ${APP_NAME}
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 31415
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ${APP_NAME}
+  annotations:
+    kubernetes.io/ingress.class: traefik
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ${APP_SERVICE}
+                port:
+                  number: 80
+`;
+
+  run(`kubectl apply -f - <<'YAML'\n${manifest}\nYAML`, { stdio: 'inherit' });
+}
+
+function waitForAppReady(): void {
+  console.log('\nWaiting for app rollout...');
+  try {
+    run(`kubectl rollout status deployment/${APP_NAME} -n ${NAMESPACE} --timeout=300s`, {
+      stdio: 'inherit',
+    });
+  } catch (err) {
+    // Collect diagnostics before failing
+    console.error('\nRollout timed out. Collecting diagnostics...\n');
+    try {
+      const podStatus = run(`kubectl get pods -n ${NAMESPACE} -l app=${APP_NAME} -o wide`);
+      console.error('--- Pod status ---\n' + podStatus);
+    } catch {
+      /* ignore */
+    }
+    try {
+      const podLogs = run(`kubectl logs -n ${NAMESPACE} -l app=${APP_NAME} --tail=50 2>/dev/null`);
+      if (podLogs) console.error('--- Pod logs (last 50 lines) ---\n' + podLogs);
+    } catch {
+      /* ignore */
+    }
+    throw err;
+  }
+}
+
+/**
+ * smokeTest — asserts internal pod probe returns HTTP 200 with {"status":"ok"}.
+ * This is the CI-safe smoke test (no tunnel required).
+ */
+function smokeTest(): void {
+  console.log('\nRunning internal pod smoke test...');
+
+  // Find a running pod
+  const podName = run(
+    `kubectl get pod -n ${NAMESPACE} -l app=${APP_NAME} -o jsonpath='{.items[0].metadata.name}'`,
+  ).trim();
+
+  if (!podName) {
+    throw new Error('No running pod found for smoke test');
+  }
+
+  console.log(`  Probing pod ${podName} at http://127.0.0.1:31415/healthz ...`);
+
+  // kubectl exec into the pod and curl the health endpoint internally
+  const result = run(
+    `kubectl exec -n ${NAMESPACE} ${podName} -- /bin/sh -c "wget -qO- http://127.0.0.1:31415/healthz 2>/dev/null || curl -sf http://127.0.0.1:31415/healthz"`,
+  );
+
+  if (!result.includes('"status":"ok"') && !result.includes('"status": "ok"')) {
+    throw new Error(
+      `Internal pod probe returned unexpected response: ${result.slice(0, 200)}`,
+    );
+  }
+
+  console.log('  Internal pod probe: OK');
+}
+
+function waitForIngress(): void {
+  console.log('\nWaiting for ingress route...');
+  const deadline = Date.now() + 90_000;
+  while (Date.now() < deadline) {
+    try {
+      run(`curl -sSf -o /dev/null ${PUBLIC_URL}/healthz`);
+      console.log(`  Demo URL reachable: ${PUBLIC_URL}`);
+      return;
+    } catch {
+      try {
+        execSync('sleep 1');
+      } catch {
+        // ignore
+      }
+    }
+  }
+
+  console.warn(`  Ingress did not respond within timeout: ${PUBLIC_URL}`);
+}
+
+/**
+ * startCloudflaredTunnel — launches cloudflared tunnel --url http://localhost:<port>
+ * and waits for the trycloudflare.com URL to appear in stdout/stderr.
+ *
+ * Returns the public URL, or undefined if the tunnel could not be established.
+ */
+async function startCloudflaredTunnel(): Promise<string | undefined> {
+  if (!commandExists('cloudflared')) {
+    console.warn('\ncloudflared not found — skipping tunnel. Run with --no-tunnel to suppress this warning.');
+    return undefined;
+  }
+
+  console.log('\nStarting cloudflared tunnel...');
+
+  return new Promise((resolve) => {
+    const proc = spawn(
+      'cloudflared',
+      ['tunnel', '--url', `http://localhost:${INGRESS_HOST_PORT}`],
+      {
+        stdio: ['ignore', 'pipe', 'pipe'],
+        env: { ...process.env },
+      },
+    ) as unknown as import('node:events').EventEmitter & {
+      stdout: import('node:events').EventEmitter | null;
+      stderr: import('node:events').EventEmitter | null;
+      killed: boolean;
+      kill(signal?: string): boolean;
+    };
+
+    const urlPattern = /https:\/\/[a-z0-9-]+\.trycloudflare\.com/;
+    let resolved = false;
+
+    const onData = (chunk: Buffer | string) => {
+      const text = String(chunk);
+      process.stdout.write(text);
+      if (!resolved) {
+        const match = urlPattern.exec(text);
+        if (match) {
+          resolved = true;
+          resolve(match[0]);
+        }
+      }
+    };
+
+    proc.stdout?.on('data', onData);
+    proc.stderr?.on('data', onData);
+
+    proc.on('close', () => {
+      if (!resolved) resolve(undefined);
+    });
+
+    // Register for cleanup on exit
+    process.on('exit', () => {
+      if (!proc.killed) proc.kill('SIGTERM');
+    });
+
+    // Time out after 60s if no URL appears
+    setTimeout(() => {
+      if (!resolved) {
+        console.warn('  cloudflared did not produce a URL within 60s — continuing without tunnel.');
+        resolve(undefined);
+      }
+    }, 60_000);
+  });
+}
+
+function rolloutApp(): void {
+  buildAndImportImage();
+  run(`kubectl rollout restart deployment/${APP_NAME}`, { stdio: 'inherit' });
+  waitForAppReady();
+}
+
+type RolloutAction = 'rollout' | 'all' | 'quit' | 'skip';
+
+function promptRolloutAction(rl: ReadlineInterface): Promise<RolloutAction> {
+  return new Promise((resolve) => {
+    console.log('\nPress Enter to redeploy, q+Enter to quit, or s+Enter to skip:');
+    rl.question('> ', (answer) => {
+      const choice = answer.trim().toLowerCase();
+      if (choice === 'q' || choice === 'quit') resolve('quit');
+      else if (choice === 's' || choice === 'skip') resolve('skip');
+      else if (choice === 'a' || choice === 'all') resolve('all');
+      else resolve('rollout');
+    });
+  });
+}
+
+async function handleRolloutAction(action: RolloutAction): Promise<boolean> {
+  if (action === 'quit') {
+    return false;
+  }
+
+  if (action === 'rollout') {
+    rolloutApp();
+    return true;
+  }
+
+  if (action === 'all') {
+    buildAndImportImage();
+    applyDemoApp();
+    waitForAppReady();
+    waitForIngress();
+    return true;
+  }
+
+  console.log('Skipped.');
+  return true;
+}
+
+function startWatcher(rl: ReadlineInterface): void {
+  console.log('\nWatching for file changes...');
+  console.log('Press Ctrl+C to stop (cluster will be torn down on exit).\n');
+
+  let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+  let inPrompt = false;
+  let pending = false;
+
+  const schedulePrompt = () => {
+    if (inPrompt) {
+      pending = true;
+      return;
+    }
+
+    inPrompt = true;
+    void (async () => {
+      const action = await promptRolloutAction(rl);
+      const shouldContinue = await handleRolloutAction(action);
+      inPrompt = false;
+      if (!shouldContinue) {
+        console.log('\nQuitting...');
+        process.exit(0);
+      }
+      if (pending) {
+        pending = false;
+        schedulePrompt();
+      }
+    })();
+  };
+
+  for (const dir of WATCH_DIRS) {
+    const fullPath = join(REPO_ROOT, dir);
+    if (!existsSync(fullPath)) continue;
+
+    watch(fullPath, { recursive: true }, (_event, filename) => {
+      if (!filename) return;
+      if (filename.includes('node_modules') || filename.includes('dist')) return;
+
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        schedulePrompt();
+      }, 500);
+    });
+  }
+
+  // Also respond to bare Enter presses from stdin
+  (rl as unknown as import('node:events').EventEmitter).on('line', () => {
+    schedulePrompt();
+  });
+}
+
+async function main(): Promise<void> {
+  console.log('\n=== Commission Management — Local Demo ===\n');
+
+  const args = process.argv.slice(2);
+  const noTunnel = args.includes('--no-tunnel');
+
+  if (args.includes('--status')) {
+    console.log(`k3d cluster '${CLUSTER_NAME}': ${clusterExists() ? 'running' : 'not found'}`);
+    return;
+  }
+
+  checkPrerequisites(noTunnel);
+
+  let teardownRan = false;
+  const runTeardownOnce = () => {
+    if (teardownRan) return;
+    teardownRan = true;
+    teardownCluster();
+  };
+
+  const onSignal = (signal: 'SIGINT' | 'SIGTERM') => {
+    console.log(`\nReceived ${signal}. Cleaning up...`);
+    runTeardownOnce();
+    process.exit(signal === 'SIGINT' ? 130 : 143);
+  };
+
+  process.on('SIGINT', () => onSignal('SIGINT'));
+  process.on('SIGTERM', () => onSignal('SIGTERM'));
+  process.on('exit', () => runTeardownOnce());
+
+  ensureCluster();
+  applyPostgres();
+  await runMigrations();
+  buildAndImportImage();
+  applyDemoApp();
+  waitForAppReady();
+
+  // CI smoke test: internal pod probe (no tunnel needed)
+  smokeTest();
+
+  waitForIngress();
+
+  const externalIps = Object.values(networkInterfaces())
+    .flat()
+    .filter((iface) => iface && iface.family === 'IPv4' && !iface.internal)
+    .map((iface) => iface!.address);
+
+  console.log('\n=== Demo Environment Ready ===');
+  console.log(`  Local:      ${PUBLIC_URL}`);
+  for (const ip of externalIps) {
+    console.log(`  Network:    http://${ip}:${INGRESS_HOST_PORT}`);
+  }
+  console.log(`  KUBECONFIG: ${KUBECONFIG_PATH}`);
+
+  // Start cloudflared tunnel unless --no-tunnel flag is set
+  if (!noTunnel) {
+    const tunnelUrl = await startCloudflaredTunnel();
+    if (tunnelUrl) {
+      console.log(`\n  Public URL: ${tunnelUrl}`);
+      console.log('  (Cloudflare Tunnel — valid until this process exits)\n');
+    }
+  } else {
+    console.log('\n  --no-tunnel: skipping cloudflared.');
+  }
+
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  process.on('exit', () => {
+    try {
+      rl.close();
+    } catch {
+      // ignore
+    }
+  });
+
+  startWatcher(rl);
+}
+
+const meta = import.meta as unknown as { main?: boolean };
+const isMainModule =
+  typeof meta.main === 'boolean'
+    ? meta.main
+    : (process.argv[1]?.endsWith('local-demo.ts') ?? false);
+
+if (isMainModule) {
+  main().catch((err) => {
+    console.error('\nDemo startup failed:');
+    console.error(err instanceof Error ? err.message : String(err));
+    process.exit(1);
+  });
+}
