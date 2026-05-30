@@ -74,13 +74,9 @@ const financeAdminA: SessionClaims = {
   exp: Math.floor(Date.now() / 1000) + 3600,
 };
 
-const financeAdminB: SessionClaims = {
-  org_id: ORG_B_ID,
-  user_id: crypto.randomUUID(),
-  role: 'FinanceAdmin',
-  jti: crypto.randomUUID(),
-  exp: Math.floor(Date.now() / 1000) + 3600,
-};
+// financeAdminB is intentionally not declared here — Org B isolation
+// tests use producer claims with org_id=ORG_B_ID directly, scoped to
+// the same resource that was created under Org A.
 
 beforeAll(async () => {
   pg = await startPostgres();
