@@ -28,6 +28,7 @@
       "db/billing-phases": ["packages/db/src/billing-phases.ts"],
       "db/guarantee-periods": ["packages/db/src/guarantee-periods.ts"],
       "db/clawback": ["packages/db/src/clawback.ts"],
+      "db/analytics-executive": ["packages/db/src/analytics-executive.ts"],
       "db/*": ["packages/db/*.ts"]
     }
   },
