@@ -801,3 +801,15 @@ CREATE INDEX IF NOT EXISTS idx_disputes_org ON disputes (org_id);
 CREATE INDEX IF NOT EXISTS idx_disputes_submitted_by ON disputes (org_id, submitted_by);
 CREATE INDEX IF NOT EXISTS idx_disputes_state ON disputes (org_id, state);
 CREATE INDEX IF NOT EXISTS idx_disputes_commission_record ON disputes (commission_record_id);
+
+-- =============================================================================
+-- Confidential placement flag — field masking for Producer and External Partner.
+-- Finance Admins set is_confidential=true on a placement to suppress position
+-- title and client-identifying details in producer-facing and partner-facing views.
+-- Masking is enforced in the API response layer (position_title → "Confidential",
+-- client_entity_id → masked). Commission amounts are never affected.
+-- Canonical: docs/prd.md §9, docs/architecture.md §4
+-- Issue: feat: placement confidential flag and field masking (#64)
+-- =============================================================================
+
+ALTER TABLE placements ADD COLUMN IF NOT EXISTS is_confidential BOOLEAN NOT NULL DEFAULT false;

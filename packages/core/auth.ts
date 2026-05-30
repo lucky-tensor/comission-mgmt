@@ -136,6 +136,7 @@ export const ROLE_PERMISSIONS: Record<AppRole, Permission[]> = {
   ExternalPartner: [
     // External partners can only view placements they are associated with
     { method: 'GET', pathPrefix: '/placements' },
+    { method: 'GET', pathPrefix: '/partner/placements' },
     { method: 'GET', pathPrefix: '/invoices' },
     { method: 'POST', pathPrefix: '/auth/logout' },
     { method: 'GET', pathPrefix: '/healthz' },

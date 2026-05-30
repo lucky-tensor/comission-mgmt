@@ -30,9 +30,13 @@ import {
   sql as defaultSql,
   listCommissionRecordsByContributor,
   listApprovedPayoutsByContributor,
+  getPlacement,
 } from 'db/index';
 import { getBillingPhase } from 'db/billing-phases';
 import { handleCreateDispute } from './disputes';
+
+// Roles that see unmasked placement data even when is_confidential=true.
+const UNMASKED_ROLES = new Set(['FinanceAdmin', 'Manager']);
 
 type SqlClient = Sql;
 
@@ -193,24 +197,55 @@ export async function handleGetMyPayouts(
 
   try {
     const records = await listApprovedPayoutsByContributor(db, claims.org_id, claims.user_id);
+
+    // Build a placement cache to avoid repeated lookups
+    const placementCache = new Map<string, { isConfidential: boolean; jobTitle: string }>();
+    for (const r of records) {
+      if (!placementCache.has(r.placementId)) {
+        try {
+          const p = await getPlacement(db, r.placementId);
+          if (p) {
+            placementCache.set(r.placementId, {
+              isConfidential: p.isConfidential,
+              jobTitle: p.jobTitle,
+            });
+          }
+        } catch {
+          // Non-fatal — treat as non-confidential if lookup fails
+        }
+      }
+    }
+
+    const shouldMask = (placementId: string): boolean => {
+      if (UNMASKED_ROLES.has(claims.role)) return false;
+      return placementCache.get(placementId)?.isConfidential ?? false;
+    };
+
     return jsonResponse({
-      payouts: records.map((r) => ({
-        id: r.id,
-        org_id: r.orgId,
-        placement_id: r.placementId,
-        contributor_id: r.contributorId,
-        plan_version_id: r.planVersionId,
-        gross_commission: r.grossAmount,
-        net_payable: r.netPayable,
-        tier_rate: r.tierRate,
-        status: r.status,
-        hold_reason: r.holdReason,
-        billing_phase_id: r.billingPhaseId,
-        explanation: r.explanation,
-        approval_actor: r.approvalActor,
-        approval_at: r.approvalAt,
-        created_at: r.createdAt,
-      })),
+      payouts: records.map((r) => {
+        const masked = shouldMask(r.placementId);
+        return {
+          id: r.id,
+          org_id: r.orgId,
+          placement_id: r.placementId,
+          contributor_id: r.contributorId,
+          plan_version_id: r.planVersionId,
+          gross_commission: r.grossAmount,
+          net_payable: r.netPayable,
+          tier_rate: r.tierRate,
+          status: r.status,
+          hold_reason: r.holdReason,
+          billing_phase_id: r.billingPhaseId,
+          explanation: r.explanation,
+          approval_actor: r.approvalActor,
+          approval_at: r.approvalAt,
+          created_at: r.createdAt,
+          position_title: masked
+            ? 'Confidential'
+            : (placementCache.get(r.placementId)?.jobTitle ?? null),
+          client_name: masked ? 'Confidential' : null,
+        };
+      }),
     });
   } catch (err: unknown) {
     console.error('[me/payouts] list error:', err);
