@@ -97,7 +97,7 @@ export class GcpKmsAdapter implements IKmsAdapter {
     return this.accessToken;
   }
 
-  private async getTokenFromServiceAccountKey(saKeyJson: string): Promise<string> {
+  private async getTokenFromServiceAccountKey(_saKeyJson: string): Promise<string> {
     // Minimal JWT-based SA token — sign with RS256 using the SA private key
     // For now we throw to indicate this path requires an SDK or full JWT impl.
     // In practice, GKE workload identity covers the production path.
