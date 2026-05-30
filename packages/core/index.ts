@@ -5,3 +5,5 @@ export * from './encryption';
 export * from './scrub-pii';
 export * from './kms';
 export * from './auth';
+export * from './placement-state';
+export * from './contributor-role';
