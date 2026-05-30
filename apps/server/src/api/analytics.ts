@@ -21,8 +21,7 @@
  */
 
 import type { Sql } from 'postgres';
-import { sql as defaultSql } from 'db/index';
-import { getExecutiveAnalytics } from 'db/analytics-executive';
+import { sql as defaultSql, getExecutiveAnalytics } from 'db/index';
 import type { SessionClaims } from 'core/auth';
 
 type SqlClient = Sql;
