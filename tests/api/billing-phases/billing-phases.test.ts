@@ -534,12 +534,8 @@ describe('per-phase commission calculation (AC#3)', () => {
 
     expect(calcBody.commission_records).toHaveLength(2);
 
-    const retainerRecord = calcBody.commission_records.find(
-      (r) => r.phase_name === 'retainer',
-    );
-    const deliveryRecord = calcBody.commission_records.find(
-      (r) => r.phase_name === 'delivery',
-    );
+    const retainerRecord = calcBody.commission_records.find((r) => r.phase_name === 'retainer');
+    const deliveryRecord = calcBody.commission_records.find((r) => r.phase_name === 'delivery');
 
     // Each record has billing_phase_id set
     expect(retainerRecord?.billing_phase_id).toBe(retainerPhaseId);
@@ -890,8 +886,7 @@ describe('producer visibility of blocked phase (AC#6)', () => {
     // The retainer record has blocked_phase info with the invoice linked
     const retainerHeld = meBody.commission_records.find(
       (r) =>
-        r.hold_reason === 'held_pending_phase_invoice' &&
-        r.billing_phase_id === retainerPhaseId,
+        r.hold_reason === 'held_pending_phase_invoice' && r.billing_phase_id === retainerPhaseId,
     );
     expect(retainerHeld).toBeDefined();
     expect(retainerHeld?.blocked_phase?.phase_name).toBe('retainer');
@@ -1056,9 +1051,7 @@ describe('regression: contingency placement flow unaffected (AC#8)', () => {
     const { placementId } = await setupRetainedPlacement();
 
     // POST /placements/:id/calculate (regular, non-phase endpoint)
-    const { handleCalculateCommission } = await import(
-      '../../../apps/server/src/api/calculate'
-    );
+    const { handleCalculateCommission } = await import('../../../apps/server/src/api/calculate');
     const calcRes = await handleCalculateCommission(
       placementId,
       makeRequest({ path: `/placements/${placementId}/calculate`, method: 'POST' }),

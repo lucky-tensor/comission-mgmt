@@ -153,8 +153,7 @@ export async function createCommissionRecord(
   const holdReasonClause =
     input.holdReason != null ? `'${input.holdReason.replace(/'/g, "''")}'` : 'NULL';
 
-  const billingPhaseClause =
-    input.billingPhaseId != null ? `'${input.billingPhaseId}'` : 'NULL';
+  const billingPhaseClause = input.billingPhaseId != null ? `'${input.billingPhaseId}'` : 'NULL';
 
   const rows = await sql.unsafe(
     `

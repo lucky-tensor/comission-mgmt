@@ -305,9 +305,7 @@ export async function updateBillingPhase(
   let paramIdx = 1;
 
   if ('invoiceId' in input) {
-    sets.push(
-      input.invoiceId != null ? `invoice_id = '${input.invoiceId}'` : `invoice_id = NULL`,
-    );
+    sets.push(input.invoiceId != null ? `invoice_id = '${input.invoiceId}'` : `invoice_id = NULL`);
   }
 
   if (input.projectedAmount !== undefined) {
@@ -322,11 +320,7 @@ export async function updateBillingPhase(
 
   if ('billedAmount' in input) {
     if (input.billedAmount != null) {
-      const buf = await enc.encrypt(
-        'billing_phases',
-        'billed_amount',
-        String(input.billedAmount),
-      );
+      const buf = await enc.encrypt('billing_phases', 'billed_amount', String(input.billedAmount));
       sets.push(`billed_amount = $${paramIdx++}`);
       params.push(buf);
     } else {
@@ -588,7 +582,10 @@ interface BillingPhaseRawRow {
   updated_at: Date;
 }
 
-async function decryptPhaseRow(enc: FieldEncryptor, row: BillingPhaseRawRow): Promise<BillingPhase> {
+async function decryptPhaseRow(
+  enc: FieldEncryptor,
+  row: BillingPhaseRawRow,
+): Promise<BillingPhase> {
   const projectedAmount = await enc.decrypt(
     'billing_phases',
     'projected_amount',
@@ -611,9 +608,7 @@ async function decryptPhaseRow(enc: FieldEncryptor, row: BillingPhaseRawRow): Pr
     receivedAmount = await enc.decrypt(
       'billing_phases',
       'received_amount',
-      Buffer.isBuffer(row.received_amount)
-        ? row.received_amount
-        : Buffer.from(row.received_amount),
+      Buffer.isBuffer(row.received_amount) ? row.received_amount : Buffer.from(row.received_amount),
     );
   }
 

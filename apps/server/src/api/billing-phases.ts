@@ -138,11 +138,9 @@ export async function handleCreateBillingPhase(
   const { phase_name, projected_amount, invoice_id } = body;
 
   if (!phase_name || !BILLING_PHASE_NAMES.includes(phase_name as BillingPhaseName)) {
-    return errorResponse(
-      `phase_name must be one of: ${BILLING_PHASE_NAMES.join(', ')}`,
-      422,
-      { phase_name: 'invalid' },
-    );
+    return errorResponse(`phase_name must be one of: ${BILLING_PHASE_NAMES.join(', ')}`, 422, {
+      phase_name: 'invalid',
+    });
   }
 
   if (!projected_amount || isNaN(Number(projected_amount))) {
@@ -289,12 +287,10 @@ export async function handleUpdateBillingPhase(
     updateInput.projectedAmount = String(body.projected_amount);
   }
   if ('billed_amount' in body) {
-    updateInput.billedAmount =
-      body.billed_amount != null ? String(body.billed_amount) : null;
+    updateInput.billedAmount = body.billed_amount != null ? String(body.billed_amount) : null;
   }
   if ('received_amount' in body) {
-    updateInput.receivedAmount =
-      body.received_amount != null ? String(body.received_amount) : null;
+    updateInput.receivedAmount = body.received_amount != null ? String(body.received_amount) : null;
   }
 
   try {
@@ -417,10 +413,7 @@ export async function handleCreatePhaseContributor(
   } catch (err: unknown) {
     const msg = (err as Error).message ?? '';
     if (msg.includes('unique') || msg.includes('duplicate')) {
-      return errorResponse(
-        'This contributor is already assigned to this billing phase',
-        409,
-      );
+      return errorResponse('This contributor is already assigned to this billing phase', 409);
     }
     console.error('[billing-phases] create phase contributor error:', err);
     return errorResponse('Failed to create phase contributor', 500);
@@ -772,10 +765,7 @@ async function resolvePhaseInvoiceCollected(
 ): Promise<boolean> {
   if (!invoiceId) return false;
 
-  const rows = await sql.unsafe(
-    `SELECT status FROM invoices WHERE id = $1 LIMIT 1`,
-    [invoiceId],
-  );
+  const rows = await sql.unsafe(`SELECT status FROM invoices WHERE id = $1 LIMIT 1`, [invoiceId]);
 
   if (!rows || rows.length === 0) return false;
   return (rows[0] as unknown as { status: string }).status === 'Paid';
@@ -788,10 +778,9 @@ async function resolveContributorProducerId(
   sql: SqlClient,
   contributorId: string,
 ): Promise<string | null> {
-  const rows = await sql.unsafe(
-    `SELECT producer_id FROM contributors WHERE id = $1 LIMIT 1`,
-    [contributorId],
-  );
+  const rows = await sql.unsafe(`SELECT producer_id FROM contributors WHERE id = $1 LIMIT 1`, [
+    contributorId,
+  ]);
 
   if (!rows || rows.length === 0) return null;
   return (rows[0] as unknown as { producer_id: string }).producer_id;
