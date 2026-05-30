@@ -167,7 +167,12 @@ describe('POST /placements/:id/attribution/submit', () => {
   });
 
   test('returns 404 when placement does not exist', async () => {
-    const res = await handleSubmitAttribution(crypto.randomUUID(), financeAdminClaims, testSql, auditSql);
+    const res = await handleSubmitAttribution(
+      crypto.randomUUID(),
+      financeAdminClaims,
+      testSql,
+      auditSql,
+    );
     expect(res.status).toBe(404);
   });
 
@@ -244,7 +249,12 @@ describe('POST /placements/:id/attribution/approve', () => {
   });
 
   test('returns 404 when placement does not exist', async () => {
-    const res = await handleApproveAttribution(crypto.randomUUID(), managerClaims, testSql, auditSql);
+    const res = await handleApproveAttribution(
+      crypto.randomUUID(),
+      managerClaims,
+      testSql,
+      auditSql,
+    );
     expect(res.status).toBe(404);
   });
 });
@@ -283,7 +293,13 @@ describe('POST /placements/:id/attribution/reject', () => {
       body: { reason: 'Split percentages need revision' },
     });
 
-    const res = await handleRejectAttribution(placementId, rejectReq, managerClaims, testSql, auditSql);
+    const res = await handleRejectAttribution(
+      placementId,
+      rejectReq,
+      managerClaims,
+      testSql,
+      auditSql,
+    );
     expect(res.status).toBe(200);
 
     const body = (await res.json()) as Record<string, unknown>;
@@ -301,7 +317,13 @@ describe('POST /placements/:id/attribution/reject', () => {
       body: { reason: 'Some reason' },
     });
 
-    const res = await handleRejectAttribution(placementId, rejectReq, financeAdminClaims, testSql, auditSql);
+    const res = await handleRejectAttribution(
+      placementId,
+      rejectReq,
+      financeAdminClaims,
+      testSql,
+      auditSql,
+    );
     expect(res.status).toBe(403);
   });
 
@@ -314,7 +336,13 @@ describe('POST /placements/:id/attribution/reject', () => {
       body: { reason: 'Some reason' },
     });
 
-    const res = await handleRejectAttribution(placementId, rejectReq, producerClaims, testSql, auditSql);
+    const res = await handleRejectAttribution(
+      placementId,
+      rejectReq,
+      producerClaims,
+      testSql,
+      auditSql,
+    );
     expect(res.status).toBe(403);
   });
 
@@ -327,7 +355,13 @@ describe('POST /placements/:id/attribution/reject', () => {
       body: {},
     });
 
-    const res = await handleRejectAttribution(placementId, rejectReq, managerClaims, testSql, auditSql);
+    const res = await handleRejectAttribution(
+      placementId,
+      rejectReq,
+      managerClaims,
+      testSql,
+      auditSql,
+    );
     expect(res.status).toBe(422);
   });
 
@@ -353,7 +387,13 @@ describe('POST /placements/:id/attribution/reject', () => {
       body: { reason: 'Not ready' },
     });
 
-    const res = await handleRejectAttribution(placementId, rejectReq, managerClaims, testSql, auditSql);
+    const res = await handleRejectAttribution(
+      placementId,
+      rejectReq,
+      managerClaims,
+      testSql,
+      auditSql,
+    );
     expect(res.status).toBe(422);
   });
 });
@@ -367,7 +407,12 @@ describe('GET /placements/:id/attribution/timeline', () => {
     const placementId = await createPlacementInContributorsAssigned();
 
     // Submit
-    const submitRes = await handleSubmitAttribution(placementId, financeAdminClaims, testSql, auditSql);
+    const submitRes = await handleSubmitAttribution(
+      placementId,
+      financeAdminClaims,
+      testSql,
+      auditSql,
+    );
     expect(submitRes.status).toBe(200);
 
     // Reject
@@ -376,15 +421,31 @@ describe('GET /placements/:id/attribution/timeline', () => {
       method: 'POST',
       body: { reason: 'Needs revision' },
     });
-    const rejectRes = await handleRejectAttribution(placementId, rejectReq, managerClaims, testSql, auditSql);
+    const rejectRes = await handleRejectAttribution(
+      placementId,
+      rejectReq,
+      managerClaims,
+      testSql,
+      auditSql,
+    );
     expect(rejectRes.status).toBe(200);
 
     // Re-submit after rejection
-    const submitRes2 = await handleSubmitAttribution(placementId, financeAdminClaims, testSql, auditSql);
+    const submitRes2 = await handleSubmitAttribution(
+      placementId,
+      financeAdminClaims,
+      testSql,
+      auditSql,
+    );
     expect(submitRes2.status).toBe(200);
 
     // Approve
-    const approveRes = await handleApproveAttribution(placementId, managerClaims, testSql, auditSql);
+    const approveRes = await handleApproveAttribution(
+      placementId,
+      managerClaims,
+      testSql,
+      auditSql,
+    );
     expect(approveRes.status).toBe(200);
 
     // Fetch timeline
@@ -465,7 +526,13 @@ describe('State machine — invalid transitions return 422', () => {
       body: { reason: 'Test reason' },
     });
 
-    const res = await handleRejectAttribution(placementId, rejectReq, managerClaims, testSql, auditSql);
+    const res = await handleRejectAttribution(
+      placementId,
+      rejectReq,
+      managerClaims,
+      testSql,
+      auditSql,
+    );
     expect(res.status).toBe(422);
   });
 

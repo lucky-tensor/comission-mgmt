@@ -217,27 +217,19 @@ async function fetchHandler(req: Request): Promise<Response> {
   }
 
   // Attribution routes — authenticated (session cookie), scoped to tenant
-  const attributionSubmitMatch = pathname.match(
-    /^\/placements\/([^/]+)\/attribution\/submit$/,
-  );
+  const attributionSubmitMatch = pathname.match(/^\/placements\/([^/]+)\/attribution\/submit$/);
   if (req.method === 'POST' && attributionSubmitMatch) {
     return handleSubmitAttribution(attributionSubmitMatch[1], authResult.claims);
   }
-  const attributionApproveMatch = pathname.match(
-    /^\/placements\/([^/]+)\/attribution\/approve$/,
-  );
+  const attributionApproveMatch = pathname.match(/^\/placements\/([^/]+)\/attribution\/approve$/);
   if (req.method === 'POST' && attributionApproveMatch) {
     return handleApproveAttribution(attributionApproveMatch[1], authResult.claims);
   }
-  const attributionRejectMatch = pathname.match(
-    /^\/placements\/([^/]+)\/attribution\/reject$/,
-  );
+  const attributionRejectMatch = pathname.match(/^\/placements\/([^/]+)\/attribution\/reject$/);
   if (req.method === 'POST' && attributionRejectMatch) {
     return handleRejectAttribution(attributionRejectMatch[1], req, authResult.claims);
   }
-  const attributionTimelineMatch = pathname.match(
-    /^\/placements\/([^/]+)\/attribution\/timeline$/,
-  );
+  const attributionTimelineMatch = pathname.match(/^\/placements\/([^/]+)\/attribution\/timeline$/);
   if (req.method === 'GET' && attributionTimelineMatch) {
     return handleAttributionTimeline(attributionTimelineMatch[1], authResult.claims);
   }
