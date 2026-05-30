@@ -16,6 +16,7 @@
     "test:contributors": "bun --bun vitest run --config vitest.contributors.config.ts",
     "test:attribution": "bun --bun vitest run --config vitest.attribution.config.ts",
     "test:plans": "bun --bun vitest run --config vitest.plans.config.ts",
+    "test:calculate": "bun --bun vitest run --config vitest.calculate.config.ts",
     "migrate": "bun run packages/db/migrate.ts",
     "demo:seed": "bun run scripts/demo-seed.ts",
     "typecheck": "bun tsc --noEmit",

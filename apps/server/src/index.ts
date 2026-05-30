@@ -62,6 +62,7 @@ import {
   handleCreatePlanAssignment,
   handleListPlanAssignments,
 } from './api/plans';
+import { handleCalculateCommission, handleListCommissionRecords } from './api/calculate';
 import { handleDemoUsers, handleDemoSession, isDemoMode } from './api/demo-session';
 import { requireAuth } from './middleware/auth';
 
@@ -279,6 +280,18 @@ async function fetchHandler(req: Request): Promise<Response> {
   }
   if (req.method === 'GET' && planAssignmentsMatch) {
     return handleListPlanAssignments(planAssignmentsMatch[1], authResult.claims);
+  }
+
+  // Commission calculation routes — POST /placements/:id/calculate
+  const calculateMatch = pathname.match(/^\/placements\/([^/]+)\/calculate$/);
+  if (req.method === 'POST' && calculateMatch) {
+    return handleCalculateCommission(calculateMatch[1], req, authResult.claims);
+  }
+
+  // Commission records list — GET /placements/:id/commission-records
+  const commissionRecordsMatch = pathname.match(/^\/placements\/([^/]+)\/commission-records$/);
+  if (req.method === 'GET' && commissionRecordsMatch) {
+    return handleListCommissionRecords(commissionRecordsMatch[1], authResult.claims);
   }
 
   // 404 for all other paths

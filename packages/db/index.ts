@@ -65,6 +65,19 @@ export type {
   CreatePlanAssignmentInput,
 } from './src/plans.js';
 
+export {
+  createCommissionRecord,
+  listCommissionRecords,
+  getCommissionRecord,
+  _setEncryptorForTest as _setCommissionRecordEncryptorForTest,
+  _resetEncryptorForTest as _resetCommissionRecordEncryptorForTest,
+} from './src/commission-records.js';
+export type {
+  CommissionRecordRow,
+  CommissionRecordStatus,
+  CreateCommissionRecordInput,
+} from './src/commission-records.js';
+
 const DEFAULT_DATABASE_URLS = {
   app: 'postgres://app_rw:app_rw_password@localhost:5432/commission_app',
   audit: 'postgres://audit_w:audit_w_password@localhost:5432/commission_audit',

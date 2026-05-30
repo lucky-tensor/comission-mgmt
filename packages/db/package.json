@@ -20,7 +20,9 @@
     "./kms-dev": "./src/kms-dev.ts",
     "./placements": "./src/placements.ts",
     "./contributors": "./src/contributors.ts",
-    "./attribution": "./src/attribution.ts"
+    "./attribution": "./src/attribution.ts",
+    "./plans": "./src/plans.ts",
+    "./commission-records": "./src/commission-records.ts"
   },
   "scripts": {
     "build": "tsc --noEmit --project tsconfig.json"
