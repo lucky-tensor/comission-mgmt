@@ -136,12 +136,7 @@ export async function main(): Promise<void> {
     ['GCP_SUBNETWORK_CIDR'],
     '10.42.0.0/24',
   )!;
-  const vmName = resolveOption(
-    args,
-    'vm-name',
-    ['GCP_VM_NAME'],
-    `commission-${environment}-vm`,
-  )!;
+  const vmName = resolveOption(args, 'vm-name', ['GCP_VM_NAME'], `commission-${environment}-vm`)!;
   const vmMachineType = resolveOption(
     args,
     'vm-machine-type',

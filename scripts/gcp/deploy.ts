@@ -280,10 +280,7 @@ export async function runDeploySsh(config: {
   }
 }
 
-export function runLivenessChecks(
-  kubectlEnv: Record<string, string>,
-  namespace: string,
-): void {
+export function runLivenessChecks(kubectlEnv: Record<string, string>, namespace: string): void {
   runCommand(['kubectl', 'get', 'namespace', namespace], { env: kubectlEnv });
   runCommand(['kubectl', 'get', 'secret', 'superfield-api-secrets', '-n', namespace], {
     env: kubectlEnv,

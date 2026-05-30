@@ -42,8 +42,7 @@ const APP_SERVICE = 'commission-demo-app';
 const APP_SECRET = 'commission-demo-secrets';
 
 // In-cluster DB URL (used by the app pod)
-const APP_DB_URL =
-  'postgres://app_rw:app_rw_password@commission-dev-postgres:5432/commission_app';
+const APP_DB_URL = 'postgres://app_rw:app_rw_password@commission-dev-postgres:5432/commission_app';
 // Host-side DB URL (used by migration runner over port-forward)
 const HOST_DB_URL = `postgres://app_rw:app_rw_password@localhost:${DB_HOST_PORT}/commission_app`;
 
@@ -86,7 +85,9 @@ function checkPrerequisites(noTunnel: boolean): void {
   if (!commandExists('kubectl')) missing.push('kubectl');
   if (!commandExists('bun')) missing.push('bun');
   if (!noTunnel && !commandExists('cloudflared')) {
-    console.warn('  cloudflared not found — tunnel will be skipped. Install from https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/');
+    console.warn(
+      '  cloudflared not found — tunnel will be skipped. Install from https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/',
+    );
     // Non-fatal: degrade gracefully to --no-tunnel behaviour.
   }
 
@@ -152,10 +153,9 @@ function applyPostgres(): void {
   run('kubectl apply -f k8s/dev/postgres.yaml', { stdio: 'inherit' });
 
   console.log('Waiting for Postgres rollout...');
-  run(
-    `kubectl rollout status statefulset/commission-dev-postgres -n ${NAMESPACE} --timeout=180s`,
-    { stdio: 'inherit' },
-  );
+  run(`kubectl rollout status statefulset/commission-dev-postgres -n ${NAMESPACE} --timeout=180s`, {
+    stdio: 'inherit',
+  });
 }
 
 function waitForPort(host: string, port: number, timeoutMs = 20_000): Promise<void> {
@@ -192,13 +192,7 @@ async function runMigrations(): Promise<void> {
 
   const portForward = spawn(
     'kubectl',
-    [
-      'port-forward',
-      'svc/commission-dev-postgres',
-      `${DB_HOST_PORT}:5432`,
-      '-n',
-      NAMESPACE,
-    ],
+    ['port-forward', 'svc/commission-dev-postgres', `${DB_HOST_PORT}:5432`, '-n', NAMESPACE],
     {
       cwd: REPO_ROOT,
       env: { ...process.env },
@@ -402,9 +396,7 @@ function smokeTest(): void {
   );
 
   if (!result.includes('"status":"ok"') && !result.includes('"status": "ok"')) {
-    throw new Error(
-      `Internal pod probe returned unexpected response: ${result.slice(0, 200)}`,
-    );
+    throw new Error(`Internal pod probe returned unexpected response: ${result.slice(0, 200)}`);
   }
 
   console.log('  Internal pod probe: OK');
@@ -438,7 +430,9 @@ function waitForIngress(): void {
  */
 async function startCloudflaredTunnel(): Promise<string | undefined> {
   if (!commandExists('cloudflared')) {
-    console.warn('\ncloudflared not found — skipping tunnel. Run with --no-tunnel to suppress this warning.');
+    console.warn(
+      '\ncloudflared not found — skipping tunnel. Run with --no-tunnel to suppress this warning.',
+    );
     return undefined;
   }
 
