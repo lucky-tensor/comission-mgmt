@@ -14,7 +14,10 @@
     "./seed": "./seed.ts",
     "./passkeys": "./passkeys.ts",
     "./pg-container": "./pg-container.ts",
-    "./index": "./index.ts"
+    "./index": "./index.ts",
+    "./encryption": "./src/encryption.ts",
+    "./kms": "./src/kms.ts",
+    "./kms-dev": "./src/kms-dev.ts"
   },
   "scripts": {
     "build": "tsc --noEmit --project tsconfig.json"
