@@ -1,0 +1,36 @@
+name: doc-lint
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: [main]
+
+jobs:
+  decisions-doc:
+    name: decisions.md lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: decisions.md exists
+        run: test -f docs/architecture/decisions.md
+
+      - name: required sections present
+        run: |
+          for s in 'ER Diagram' 'Field Encryption Registry' 'Event vs State' 'Analytics Taxonomy' 'Audit Write Policy' 'Open Risks'; do
+            grep -q "## $s" docs/architecture/decisions.md || (echo "Missing section: $s" && exit 1)
+          done
+
+      - name: sensitive columns listed
+        run: |
+          python3 -c "
+          body = open('docs/architecture/decisions.md').read()
+          required = ['compensation_base', 'fee_amount', 'net_payable', 'org_id']
+          import sys
+          for t in required:
+              if t not in body:
+                  print(f'Missing required term: {t}')
+                  sys.exit(1)
+          print('All required terms present')
+          "
