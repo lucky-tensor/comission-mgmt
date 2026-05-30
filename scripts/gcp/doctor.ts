@@ -104,9 +104,7 @@ export async function runDoctor(config: DoctorConfig): Promise<DoctorResult> {
     throw new Error(`Unable to read project metadata for ${config.projectId}`);
   }
   if (project.lifecycleState && project.lifecycleState !== 'ACTIVE') {
-    throw new Error(
-      `Project ${config.projectId} is ${project.lifecycleState}; expected ACTIVE`,
-    );
+    throw new Error(`Project ${config.projectId} is ${project.lifecycleState}; expected ACTIVE`);
   }
 
   const grantedPermissions = await testProjectPermissions(config.projectId, permissions);
