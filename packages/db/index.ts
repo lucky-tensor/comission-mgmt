@@ -58,6 +58,9 @@ export {
   createPlanAssignment,
   listPlanAssignments,
   validateTiers,
+  getTierProgressForProducer,
+  _setTierEncryptorForTest,
+  _resetTierEncryptorForTest,
 } from './src/plans.js';
 export type {
   CommissionPlan,
@@ -66,6 +69,7 @@ export type {
   PlanAssignment,
   PlanRules,
   TierRule,
+  TierProgressResult,
   CreatePlanInput,
   CreatePlanVersionInput,
   CreatePlanAssignmentInput,

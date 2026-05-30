@@ -52,7 +52,15 @@ import {
   handleApproveRunRecord,
   handleApproveCommissionRun,
 } from '../../../apps/server/src/api/commission-runs';
-import { handleGetMyCommissionRecords, handleGetMyPayouts } from '../../../apps/server/src/api/me';
+import {
+  handleGetMyCommissionRecords,
+  handleGetMyPayouts,
+  handleGetMyTierProgress,
+} from '../../../apps/server/src/api/me';
+import {
+  _setTierEncryptorForTest,
+  _resetTierEncryptorForTest,
+} from '../../../packages/db/src/plans';
 import type { SessionClaims } from 'core/auth';
 
 // ---------------------------------------------------------------------------
@@ -89,12 +97,14 @@ beforeAll(async () => {
   _setEncryptorForTest(enc);
   _setCommRecordEncryptorForTest(enc);
   _setInvoiceEncryptorForTest(enc);
+  _setTierEncryptorForTest(enc);
 }, 120_000);
 
 afterAll(async () => {
   _resetEncryptorForTest();
   _resetCommRecordEncryptorForTest();
   _resetInvoiceEncryptorForTest();
+  _resetTierEncryptorForTest();
   await testSql?.end({ timeout: 5 });
   await pg?.stop();
 }, 30_000);
@@ -557,6 +567,164 @@ describe('GET /me/payouts — approved payouts only (AC#5)', () => {
     const body = (await jsonBody(res)) as { payouts: unknown[] };
     // Org B should see no payouts (org_id isolation)
     expect(body.payouts).toHaveLength(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// GET /me/tier-progress — integration tests (issue #17)
+// ---------------------------------------------------------------------------
+
+describe('GET /me/tier-progress — returns production total and tier (issue #17)', () => {
+  test('returns correct current_period_production and current_tier_rate after calculation', async () => {
+    const producerId = crypto.randomUUID();
+    const producerClaims: SessionClaims = {
+      org_id: ORG_A_ID,
+      user_id: producerId,
+      role: 'Producer',
+      jti: crypto.randomUUID(),
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    };
+
+    // Create a plan with tiers so we can validate tier lookup
+    const createReq = makeRequest({
+      path: '/plans',
+      method: 'POST',
+      body: {
+        name: `Tier Progress Plan ${Date.now()}-${Math.random()}`,
+        effective_from: '2025-01-01',
+        rules: {
+          rate_type: 'gross_fee',
+          base_rate: 0.1,
+          tiers: [
+            { threshold: 10000, rate: 0.2 },
+            { threshold: 50000, rate: 0.3 },
+          ],
+        },
+      },
+    });
+    const createRes = await handleCreatePlan(createReq, financeAdminA, testSql);
+    expect(createRes.status).toBe(201);
+    const { plan, version } = (await jsonBody(createRes)) as {
+      plan: { id: string };
+      version: { id: string };
+    };
+
+    const activateRes = await handleActivatePlanVersion(
+      plan.id,
+      version.id,
+      financeAdminA,
+      testSql,
+    );
+    expect(activateRes.status).toBe(200);
+
+    const assignReq = makeRequest({
+      path: `/plans/${plan.id}/assignments`,
+      method: 'POST',
+      body: { producer_id: producerId, plan_version_id: version.id },
+    });
+    const assignRes = await handleCreatePlanAssignment(plan.id, assignReq, financeAdminA, testSql);
+    expect(assignRes.status).toBe(201);
+
+    // Create a placement and calculate commissions
+    const placementId = await createPlacementWithContributor(testSql, financeAdminA, producerId);
+    await calculateFor(testSql, financeAdminA, placementId);
+
+    const req = makeRequest({ path: '/me/tier-progress' });
+    const res = await handleGetMyTierProgress(req, producerClaims, testSql);
+    expect(res.status).toBe(200);
+
+    const body = (await jsonBody(res)) as {
+      plan_version_id: string;
+      period_start: string;
+      period_end: string | null;
+      current_period_production: number;
+      current_tier_rate: number;
+      next_tier_threshold: number | null;
+      remaining_to_next_tier: number | null;
+    };
+
+    // All fields must be present
+    expect(body.plan_version_id).toBe(version.id);
+    expect(body.period_start).toBe('2025-01-01');
+    expect(typeof body.current_period_production).toBe('number');
+    expect(body.current_period_production).toBeGreaterThan(0);
+    expect(typeof body.current_tier_rate).toBe('number');
+    // tier rate must be one of the valid rates or base rate
+    expect([0.1, 0.2, 0.3]).toContain(body.current_tier_rate);
+  });
+
+  test('returns 404 when producer has no active plan assignment', async () => {
+    const noPlanProducerId = crypto.randomUUID();
+    const noPlanClaims: SessionClaims = {
+      org_id: ORG_A_ID,
+      user_id: noPlanProducerId,
+      role: 'Producer',
+      jti: crypto.randomUUID(),
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    };
+
+    const req = makeRequest({ path: '/me/tier-progress' });
+    const res = await handleGetMyTierProgress(req, noPlanClaims, testSql);
+    expect(res.status).toBe(404);
+  });
+});
+
+describe('GET /me/tier-progress — producer isolation', () => {
+  test('a producer token cannot retrieve tier progress for a different producer', async () => {
+    // Create two separate producers
+    const producerAId = crypto.randomUUID();
+    const producerBId = crypto.randomUUID();
+
+    // Set up plan for Producer A only
+    const createReq = makeRequest({
+      path: '/plans',
+      method: 'POST',
+      body: {
+        name: `Isolation Plan ${Date.now()}-${Math.random()}`,
+        effective_from: '2025-01-01',
+        rules: { rate_type: 'gross_fee', base_rate: 0.2 },
+      },
+    });
+    const createRes = await handleCreatePlan(createReq, financeAdminA, testSql);
+    expect(createRes.status).toBe(201);
+    const { plan, version } = (await jsonBody(createRes)) as {
+      plan: { id: string };
+      version: { id: string };
+    };
+    await handleActivatePlanVersion(plan.id, version.id, financeAdminA, testSql);
+    const assignReq = makeRequest({
+      path: `/plans/${plan.id}/assignments`,
+      method: 'POST',
+      body: { producer_id: producerAId, plan_version_id: version.id },
+    });
+    await handleCreatePlanAssignment(plan.id, assignReq, financeAdminA, testSql);
+
+    // Producer A gets tier progress (has a plan)
+    const claimsA: SessionClaims = {
+      org_id: ORG_A_ID,
+      user_id: producerAId,
+      role: 'Producer',
+      jti: crypto.randomUUID(),
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    };
+    const reqA = makeRequest({ path: '/me/tier-progress' });
+    const resA = await handleGetMyTierProgress(reqA, claimsA, testSql);
+    expect(resA.status).toBe(200);
+    const bodyA = (await jsonBody(resA)) as { plan_version_id: string };
+    expect(bodyA.plan_version_id).toBe(version.id);
+
+    // Producer B does NOT have a plan — should get 404, not Producer A's data
+    const claimsB: SessionClaims = {
+      org_id: ORG_A_ID,
+      user_id: producerBId,
+      role: 'Producer',
+      jti: crypto.randomUUID(),
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    };
+    const reqB = makeRequest({ path: '/me/tier-progress' });
+    const resB = await handleGetMyTierProgress(reqB, claimsB, testSql);
+    // Producer B has no plan — 404 rather than accidentally returning A's data
+    expect(resB.status).toBe(404);
   });
 });
 

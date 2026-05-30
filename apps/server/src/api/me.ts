@@ -31,6 +31,7 @@ import {
   listCommissionRecordsByContributor,
   listApprovedPayoutsByContributor,
   getPlacement,
+  getTierProgressForProducer,
 } from 'db/index';
 import { getBillingPhase } from 'db/billing-phases';
 import { handleCreateDispute } from './disputes';
@@ -254,7 +255,7 @@ export async function handleGetMyPayouts(
 }
 
 // ---------------------------------------------------------------------------
-// GET /me/tier-progress (stub)
+// GET /me/tier-progress
 // ---------------------------------------------------------------------------
 
 /**
@@ -262,18 +263,49 @@ export async function handleGetMyPayouts(
  *
  * Returns the authenticated producer's tier progress for the current plan period.
  * Computed on-the-fly from CommissionRecord totals (no materialized view).
- * Scout stub — returns 501 Not Implemented.
  *
- * Planned implementation notes:
- *   - SUM(gross_amount) over commission_records WHERE contributor_id = claims.user_id
- *     AND status NOT IN ('ClawbackInitiated', 'Recovered') for the current period.
- *   - Fetches tier thresholds from the active PlanVersion for the producer.
- *   - Returns { period_total, current_tier_rate, next_tier_threshold, next_tier_rate }.
- *   - Decision: on-the-fly aggregation is sufficient for MVP; see
- *     docs/architecture/phase-producer-portal.md §Tier Progress Approach.
+ * Response shape:
+ *   {
+ *     plan_version_id,
+ *     period_start,
+ *     period_end,
+ *     current_period_production,  — SUM(gross_amount) of Accrued/PendingApproval/Approved/Payable records
+ *     current_tier_rate,          — the rate that applies to current production (decimal, e.g. 0.25)
+ *     next_tier_threshold,        — threshold for the next tier, or null if at top tier
+ *     remaining_to_next_tier      — next_tier_threshold − current_period_production, or null
+ *   }
+ *
+ * Returns 404 if the producer has no active plan assignment.
+ *
+ * Isolation: scoped to claims.user_id — a Producer token cannot read another producer's
+ * tier progress because the DB query is always filtered by producerId = claims.user_id.
+ *
+ * Canonical docs: docs/prd.md §4 (Producer user stories), §5.3
+ * Issue: feat: producer tier progress display (#17)
+ *
+ * @param _req       - HTTP request (unused)
+ * @param claims     - Session claims (org_id, user_id)
+ * @param sqlClient  - Optional injectable SQL client for testing
  */
-export function handleGetMyTierProgress(_claims: SessionClaims): Response {
-  return notImplemented('Producer tier progress (on-the-fly aggregation) — not yet implemented');
+export async function handleGetMyTierProgress(
+  _req: Request,
+  claims: SessionClaims,
+  sqlClient?: SqlClient,
+): Promise<Response> {
+  const db = sqlClient ?? defaultSql;
+
+  try {
+    const progress = await getTierProgressForProducer(db, claims.org_id, claims.user_id);
+
+    if (progress === null) {
+      return errorResponse('No active plan assignment found for this producer', 404);
+    }
+
+    return jsonResponse(progress);
+  } catch (err: unknown) {
+    console.error('[me/tier-progress] error:', err);
+    return errorResponse('Failed to retrieve tier progress', 500);
+  }
 }
 
 // ---------------------------------------------------------------------------
