@@ -117,7 +117,7 @@ export async function upsertArIngestedRecord(
     throw new Error('upsertArIngestedRecord: upsert returned no rows');
   }
 
-  return mapArRow(rows[0] as ArIngestedRawRow);
+  return mapArRow(rows[0] as unknown as ArIngestedRawRow);
 }
 
 /**
@@ -193,7 +193,7 @@ export async function createDiscrepancy(
     throw new Error('createDiscrepancy: insert returned no rows');
   }
 
-  return mapDiscrepancyRow(rows[0] as DiscrepancyRawRow);
+  return mapDiscrepancyRow(rows[0] as unknown as DiscrepancyRawRow);
 }
 
 /**
@@ -248,7 +248,7 @@ export async function getDiscrepancy(
   );
 
   if (!rows || rows.length === 0) return null;
-  return mapDiscrepancyRow(rows[0] as DiscrepancyRawRow);
+  return mapDiscrepancyRow(rows[0] as unknown as DiscrepancyRawRow);
 }
 
 /**
@@ -279,7 +279,7 @@ export async function acknowledgeDiscrepancy(
   );
 
   if (!rows || rows.length === 0) return null;
-  return mapDiscrepancyRow(rows[0] as DiscrepancyRawRow);
+  return mapDiscrepancyRow(rows[0] as unknown as DiscrepancyRawRow);
 }
 
 /**

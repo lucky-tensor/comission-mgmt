@@ -36,7 +36,7 @@ import {
   acknowledgeDiscrepancy,
 } from 'db/reconciliation';
 import type { SessionClaims } from 'core/auth';
-import type { ReconciliationDiscrepancy } from 'db/reconciliation';
+import type { ReconciliationDiscrepancy, ArIngestedRecord } from 'db/reconciliation';
 
 type SqlClient = Sql;
 
@@ -207,10 +207,10 @@ export async function handleGetReconciliationReport(
   // Build matched list: ledger invoices with a corresponding AR record and no discrepancy
   const discrepancyInvoiceNumbers = new Set(
     allDiscrepancies
-      .filter((d) => d.invoiceNumber !== null)
-      .map((d) => d.invoiceNumber as string),
+      .filter((d: ReconciliationDiscrepancy) => d.invoiceNumber !== null)
+      .map((d: ReconciliationDiscrepancy) => d.invoiceNumber as string),
   );
-  const arInvoiceNumbers = new Set(arRecords.map((r) => r.invoiceNumber));
+  const arInvoiceNumbers = new Set(arRecords.map((r: ArIngestedRecord) => r.invoiceNumber));
 
   const matched: Array<{ invoice_number: string; ledger_amount_billed: string }> = [];
   for (const [invoiceNumber, ledger] of ledgerAmounts) {
@@ -230,7 +230,7 @@ export async function handleGetReconciliationReport(
       total_ar_records: arRecords.length,
       matched: matched.length,
       discrepancies: allDiscrepancies.length,
-      unacknowledged: allDiscrepancies.filter((d) => !d.acknowledged).length,
+      unacknowledged: allDiscrepancies.filter((d: ReconciliationDiscrepancy) => !d.acknowledged).length,
     },
     matched,
     discrepancies: allDiscrepancies.map(formatDiscrepancy),
