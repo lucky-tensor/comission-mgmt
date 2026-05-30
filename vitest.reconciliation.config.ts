@@ -50,6 +50,7 @@ export default defineConfig({
         find: 'core/invoice-trigger',
         replacement: resolve(root, 'packages/core/invoice-trigger.ts'),
       },
+      { find: 'core/tier-progress', replacement: resolve(root, 'packages/core/tier-progress.ts') },
       { find: 'core', replacement: resolve(root, 'packages/core/index.ts') },
       // db/* — individual subpaths before catch-all
       { find: 'db/revocation', replacement: resolve(root, 'packages/db/revocation.ts') },

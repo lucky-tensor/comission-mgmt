@@ -455,7 +455,7 @@ async function fetchHandler(req: Request): Promise<Response> {
     return handleGetMyPayouts(req, authResult.claims);
   }
   if (req.method === 'GET' && pathname === '/me/tier-progress') {
-    return handleGetMyTierProgress(authResult.claims);
+    return handleGetMyTierProgress(req, authResult.claims);
   }
   if (req.method === 'POST' && pathname === '/me/disputes') {
     return handleCreateMyDispute(req, authResult.claims);

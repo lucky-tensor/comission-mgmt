@@ -22,6 +22,7 @@
     "test:exceptions": "bun --bun vitest run --config vitest.exceptions.config.ts",
     "test:exports": "bun --bun vitest run --config vitest.exports.config.ts",
     "test:producer-portal": "bun --bun vitest run --config vitest.producer-portal.config.ts",
+    "test:tier-progress": "bun --bun vitest run --config vitest.tier-progress.config.ts",
     "test:reconciliation": "bun --bun vitest run --config vitest.reconciliation.config.ts",
     "migrate": "bun run packages/db/migrate.ts",
     "demo:seed": "bun run scripts/demo-seed.ts",

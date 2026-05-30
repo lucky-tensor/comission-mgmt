@@ -77,6 +77,7 @@
     "packages/db": {
       "name": "db",
       "dependencies": {
+        "core": "workspace:*",
         "postgres": "^3.4.8",
       },
       "devDependencies": {

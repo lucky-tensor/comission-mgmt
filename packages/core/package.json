@@ -12,7 +12,8 @@
     "./types": "./types.ts",
     "./contributor-role": "./contributor-role.ts",
     "./placement-state": "./placement-state.ts",
-    "./calculation-engine": "./calculation-engine.ts"
+    "./calculation-engine": "./calculation-engine.ts",
+    "./tier-progress": "./tier-progress.ts"
   },
   "scripts": {
     "build": "tsc --noEmit"

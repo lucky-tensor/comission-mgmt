@@ -15,6 +15,9 @@
  */
 
 import type { Sql } from 'postgres';
+import { FieldEncryptor } from './encryption.js';
+import { createKmsAdapter } from './kms.js';
+import { computeTierProgress } from 'core/tier-progress';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -440,6 +443,174 @@ export async function listPlanAssignments(
 
   if (!rows || rows.length === 0) return [];
   return (rows as unknown as RawAssignmentRow[]).map(mapAssignmentRow);
+}
+
+// ---------------------------------------------------------------------------
+// Encryptor singleton for tier progress (lazy-initialised, mirrors commission-records.ts pattern)
+// ---------------------------------------------------------------------------
+
+let _tierEncryptor: FieldEncryptor | null = null;
+
+async function getTierEncryptor(): Promise<FieldEncryptor> {
+  if (_tierEncryptor) return _tierEncryptor;
+  const adapter = await createKmsAdapter();
+  _tierEncryptor = new FieldEncryptor(adapter);
+  return _tierEncryptor;
+}
+
+/** Replace the encryptor singleton used by getTierProgressForProducer. Used in tests. */
+export function _setTierEncryptorForTest(enc: FieldEncryptor): void {
+  _tierEncryptor = enc;
+}
+
+/** Reset the encryptor singleton. Used in tests for isolation. */
+export function _resetTierEncryptorForTest(): void {
+  _tierEncryptor = null;
+}
+
+// ---------------------------------------------------------------------------
+// getTierProgressForProducer — compute on-the-fly tier progress for the producer portal
+// ---------------------------------------------------------------------------
+
+/**
+ * Tier progress result for a producer in the current plan period.
+ * Returned by GET /me/tier-progress.
+ *
+ * Issue: feat: producer tier progress display (#17)
+ */
+export interface TierProgressResult {
+  /** Plan version driving this calculation. */
+  plan_version_id: string;
+  /** Start of the current plan period (from commission_plans.effective_from). */
+  period_start: string;
+  /** End of the current plan period (from commission_plans.effective_to, or null if open-ended). */
+  period_end: string | null;
+  /** Sum of gross_amount for the producer's Accrued + Payable CommissionRecords in the current period. Decrypted and summed in application code. */
+  current_period_production: number;
+  /** The tier rate that applies to current_period_production (e.g. 0.25 = 25%). */
+  current_tier_rate: number;
+  /** The threshold of the next tier above current production. Null if at the top tier. */
+  next_tier_threshold: number | null;
+  /** Amount remaining to reach next tier (next_tier_threshold - current_period_production). Null if at top tier. */
+  remaining_to_next_tier: number | null;
+}
+
+/**
+ * Raw DB row returned by the tier progress query.
+ * Contains the plan version info, period dates, and the gross_amount blobs.
+ */
+interface TierProgressRawRow {
+  plan_version_id: string;
+  rules_snapshot: unknown;
+  effective_from: string | Date;
+  effective_to: string | Date | null;
+  gross_amount: Buffer | Uint8Array | null;
+}
+
+/**
+ * Returns tier progress for a producer in their current plan period.
+ *
+ * Algorithm:
+ *   1. Find the producer's most-recent active plan assignment, join to plan_versions
+ *      and commission_plans to get period dates and tier rules.
+ *   2. SUM gross_amount for the producer's CommissionRecords in that period
+ *      with status IN ('Accrued', 'PendingApproval', 'Approved', 'Payable').
+ *   3. Walk the tier list to determine current_tier_rate and next_tier_threshold.
+ *
+ * Returns null if the producer has no active plan assignment.
+ *
+ * Issue: feat: producer tier progress display (#17)
+ */
+export async function getTierProgressForProducer(
+  sql: Sql,
+  orgId: string,
+  producerId: string,
+): Promise<TierProgressResult | null> {
+  const encryptor = await getTierEncryptor();
+  // Step 1: fetch the active plan version for this producer.
+  // We join plan_assignments → plan_versions → commission_plans so we can read
+  // the effective_from / effective_to period bounds in one query.
+  const versionRows = await sql.unsafe(
+    `
+    SELECT pv.id AS plan_version_id,
+           pv.rules_snapshot,
+           cp.effective_from,
+           cp.effective_to
+    FROM plan_assignments pa
+    JOIN plan_versions pv ON pv.id = pa.plan_version_id
+    JOIN commission_plans cp ON cp.id = pv.plan_id
+    WHERE pa.org_id = $1
+      AND pa.producer_id = $2
+      AND pv.status = 'Active'
+      AND (pa.expires_at IS NULL OR pa.expires_at > NOW())
+    ORDER BY pa.assigned_at DESC
+    LIMIT 1
+    `,
+    [orgId, producerId],
+  );
+
+  if (!versionRows || versionRows.length === 0) return null;
+
+  const vrow = versionRows[0] as unknown as {
+    plan_version_id: string;
+    rules_snapshot: unknown;
+    effective_from: string | Date;
+    effective_to: string | Date | null;
+  };
+
+  const planVersionId = vrow.plan_version_id;
+  const rules = vrow.rules_snapshot as PlanRules;
+  const periodStart = formatDate(vrow.effective_from) as string;
+  const periodEnd = formatDate(vrow.effective_to);
+
+  // Step 2: fetch encrypted gross_amount blobs for all qualifying commission records
+  // in the current period, scoped to this producer.
+  // We join through contributors so we can filter by producer_id (= session user_id).
+  const periodFilter = periodEnd
+    ? `AND cr.created_at >= $3::date AND cr.created_at < ($4::date + INTERVAL '1 day')`
+    : `AND cr.created_at >= $3::date`;
+
+  const recordRows = await sql.unsafe(
+    `
+    SELECT cr.gross_amount
+    FROM commission_records cr
+    JOIN contributors c ON c.id = cr.contributor_id
+    WHERE cr.org_id = $1
+      AND c.producer_id = $2
+      AND cr.status IN ('Accrued', 'PendingApproval', 'Approved', 'Payable')
+      ${periodFilter}
+    `,
+    periodEnd ? [orgId, producerId, periodStart, periodEnd] : [orgId, producerId, periodStart],
+  );
+
+  // Step 3: decrypt and sum gross_amount values.
+  let currentPeriodProduction = 0;
+  if (recordRows && recordRows.length > 0) {
+    const rows = recordRows as unknown as TierProgressRawRow[];
+    for (const row of rows) {
+      if (row.gross_amount != null) {
+        const buf = Buffer.isBuffer(row.gross_amount)
+          ? row.gross_amount
+          : Buffer.from(row.gross_amount);
+        const decrypted = await encryptor.decrypt('commission_records', 'gross_amount', buf);
+        currentPeriodProduction += parseFloat(decrypted) || 0;
+      }
+    }
+  }
+
+  // Step 4: compute tier rate and remaining-to-next-tier using the pure core helper.
+  const tierCalc = computeTierProgress({
+    currentPeriodProduction,
+    tiers: rules.tiers ?? [],
+    baseRate: rules.base_rate ?? 0,
+  });
+
+  return {
+    plan_version_id: planVersionId,
+    period_start: periodStart,
+    period_end: periodEnd,
+    ...tierCalc,
+  };
 }
 
 // ---------------------------------------------------------------------------

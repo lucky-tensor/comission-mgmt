@@ -32,6 +32,7 @@ export default defineConfig({
         replacement: resolve(root, 'packages/core/contributor-role.ts'),
       },
       { find: 'core/types', replacement: resolve(root, 'packages/core/types.ts') },
+      { find: 'core/tier-progress', replacement: resolve(root, 'packages/core/tier-progress.ts') },
       { find: 'core', replacement: resolve(root, 'packages/core/index.ts') },
       // db/* — individual subpaths before catch-all
       { find: 'db/revocation', replacement: resolve(root, 'packages/db/revocation.ts') },
