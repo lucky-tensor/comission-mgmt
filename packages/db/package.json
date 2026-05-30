@@ -24,6 +24,7 @@
     "./plans": "./src/plans.ts",
     "./commission-records": "./src/commission-records.ts",
     "./commission-runs": "./src/commission-runs.ts",
+    "./exceptions": "./src/exceptions.ts",
     "./invoices": "./src/invoices.ts"
   },
   "scripts": {
