@@ -834,3 +834,65 @@ ALTER TABLE guarantee_periods ADD COLUMN IF NOT EXISTS expired_at TIMESTAMPTZ;
 CREATE INDEX IF NOT EXISTS idx_guarantee_periods_expiry_scan
   ON guarantee_periods (guarantee_ends)
   WHERE status = 'Active';
+
+-- =============================================================================
+-- Clawback and holdback event handling (issue #20).
+-- Finance Admins record a candidate departure or refund event that triggers
+-- the applicable clawback rule for a placement inside its guarantee window.
+-- Canonical: docs/prd.md §5.6, docs/architecture/phase-post-placement-risk.md
+-- =============================================================================
+
+-- clawback_events: one row per trigger event recorded by a Finance Admin.
+CREATE TABLE IF NOT EXISTS clawback_events (
+  id               UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id           UUID        NOT NULL,
+  placement_id     UUID        NOT NULL REFERENCES placements(id),
+  guarantee_period_id UUID     NOT NULL REFERENCES guarantee_periods(id),
+  event_type       TEXT        NOT NULL,   -- candidate_departure | refund
+  rule             TEXT        NOT NULL,   -- clawback | holdback | refund_credit | replacement_search
+  occurred_at      TIMESTAMPTZ NOT NULL,
+  triggered_by     UUID        NOT NULL,   -- Finance Admin actor
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_clawback_events_org ON clawback_events (org_id);
+CREATE INDEX IF NOT EXISTS idx_clawback_events_placement ON clawback_events (org_id, placement_id);
+
+-- commission_record_adjustments: additive ledger entries for clawback / holdback / exception
+-- adjustments. net_payable is re-derived from SUM of all adjustment rows rather than
+-- destructively overwritten. Shared with exception-workflow adjustments (phase-finance-close.md §Seam 3).
+CREATE TABLE IF NOT EXISTS commission_record_adjustments (
+  id                   UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id               UUID        NOT NULL,
+  commission_record_id UUID        NOT NULL REFERENCES commission_records(id),
+  clawback_event_id    UUID        REFERENCES clawback_events(id),
+  amount_delta         NUMERIC(15,2) NOT NULL,  -- negative for clawback/holdback deductions
+  reason_code          TEXT        NOT NULL,     -- clawback | holdback | refund_credit | exception_adjustment
+  adjusted_by          UUID        NOT NULL,
+  adjusted_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  recovered            BOOLEAN     NOT NULL DEFAULT false
+);
+
+CREATE INDEX IF NOT EXISTS idx_cra_org ON commission_record_adjustments (org_id);
+CREATE INDEX IF NOT EXISTS idx_cra_commission_record ON commission_record_adjustments (commission_record_id);
+CREATE INDEX IF NOT EXISTS idx_cra_clawback_event ON commission_record_adjustments (clawback_event_id);
+CREATE INDEX IF NOT EXISTS idx_cra_producer_exposure
+  ON commission_record_adjustments (commission_record_id)
+  WHERE recovered = false;
+
+-- clawback_recovery_schedules: payroll deduction schedule for clawback rule.
+-- One row per clawback event (schedule header). Installments are derived
+-- from installment_count × installment_amount.
+CREATE TABLE IF NOT EXISTS clawback_recovery_schedules (
+  id                   UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id               UUID        NOT NULL,
+  clawback_event_id    UUID        NOT NULL REFERENCES clawback_events(id),
+  commission_record_id UUID        NOT NULL REFERENCES commission_records(id),
+  clawback_amount      NUMERIC(15,2) NOT NULL,
+  installment_count    INTEGER     NOT NULL DEFAULT 1,
+  installment_amount   NUMERIC(15,2) NOT NULL,
+  created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_crs_org ON clawback_recovery_schedules (org_id);
+CREATE INDEX IF NOT EXISTS idx_crs_clawback_event ON clawback_recovery_schedules (clawback_event_id);

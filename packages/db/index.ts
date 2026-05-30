@@ -211,6 +211,26 @@ export {
 } from './src/guarantee-periods.js';
 export type { GuaranteePeriodRow, CreateGuaranteePeriodInput } from './src/guarantee-periods.js';
 
+export {
+  createClawbackEvent,
+  triggerGuaranteePeriod,
+  holdCommissionRecordsForClawback,
+  listCommissionRecordIdsForPlacement,
+  createCommissionRecordAdjustment,
+  createClawbackRecoverySchedule,
+  getClawbackStatusForPlacement,
+  getProducerClawbackExposure,
+} from './src/clawback.js';
+export type {
+  ClawbackEventRow,
+  CommissionRecordAdjustmentRow,
+  ClawbackRecoveryScheduleRow,
+  CreateClawbackEventInput,
+  CreateAdjustmentInput,
+  CreateRecoveryScheduleInput,
+  ClawbackStatus,
+} from './src/clawback.js';
+
 const DEFAULT_DATABASE_URLS = {
   app: 'postgres://app_rw:app_rw_password@localhost:5432/commission_app',
   audit: 'postgres://audit_w:audit_w_password@localhost:5432/commission_audit',

@@ -27,6 +27,7 @@
       "db/payroll-exports": ["packages/db/src/payroll-exports.ts"],
       "db/billing-phases": ["packages/db/src/billing-phases.ts"],
       "db/guarantee-periods": ["packages/db/src/guarantee-periods.ts"],
+      "db/clawback": ["packages/db/src/clawback.ts"],
       "db/*": ["packages/db/*.ts"]
     }
   },
