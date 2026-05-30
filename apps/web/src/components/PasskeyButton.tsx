@@ -15,10 +15,7 @@
  */
 
 import { useState } from 'react';
-import {
-  startRegistration,
-  startAuthentication,
-} from '@simplewebauthn/browser';
+import { startRegistration, startAuthentication } from '@simplewebauthn/browser';
 import type {
   PublicKeyCredentialCreationOptionsJSON,
   PublicKeyCredentialRequestOptionsJSON,

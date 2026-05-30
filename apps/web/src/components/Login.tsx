@@ -1,16 +1,10 @@
 /**
- * Login page component.
+ * Login page component — two-tab layout (Register / Sign In) with optional
+ * demo section when GET /api/demo/users returns a non-empty list.
  *
- * Renders two tabs: Register (username input + RegisterPasskeyButton) and
- * Sign In (PasskeyLoginButton using discoverable credentials).
- *
- * When the server returns demo users from GET /api/demo/users, a third section
- * appears below with:
- *   - One-click sign-in buttons labelled by human role name (one per persona)
- *   - A text input + 'Create' button for ephemeral account creation
- *
- * Error states: red-bordered box with the error message.
- * Redirect after sign-in: navigates to / on successful session cookie issuance.
+ * Register tab: username input + RegisterPasskeyButton (WebAuthn registration ceremony).
+ * Sign In tab:  PasskeyLoginButton (WebAuthn assertion using discoverable credentials).
+ * Demo section: one-click persona buttons + free-form Create input (DEMO_MODE only).
  *
  * Canonical docs: docs/prd.md
  * Issue: feat: sign-in page and WebAuthn passkey UX with demo bypass
@@ -23,6 +17,8 @@ import { RegisterPasskeyButton, PasskeyLoginButton } from './PasskeyButton';
 // Types
 // ---------------------------------------------------------------------------
 
+type Tab = 'register' | 'signin';
+
 interface DemoUser {
   id: string;
   username: string;
@@ -30,33 +26,47 @@ interface DemoUser {
   label: string;
 }
 
-type Tab = 'register' | 'signin';
-
 // ---------------------------------------------------------------------------
-// Styles
+// Style helpers (inline — no Tailwind dependency)
 // ---------------------------------------------------------------------------
 
 const containerStyle: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
   minHeight: '100vh',
   background: '#f9fafb',
-  fontFamily: 'system-ui, -apple-system, sans-serif',
-  color: '#111827',
+  display: 'flex',
+  flexDirection: 'column',
+  justifyContent: 'center',
+  alignItems: 'center',
+  fontFamily: 'system-ui, sans-serif',
   padding: '1rem',
 };
 
 const cardStyle: React.CSSProperties = {
   background: '#ffffff',
-  borderRadius: '0.75rem',
-  boxShadow: '0 1px 3px 0 rgba(0,0,0,0.1), 0 1px 2px -1px rgba(0,0,0,0.1)',
   padding: '2rem',
+  borderRadius: '1rem',
+  boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+  border: '1px solid #e5e7eb',
   width: '100%',
-  maxWidth: '400px',
+  maxWidth: '420px',
 };
 
-const tabBarStyle: React.CSSProperties = {
+const headingStyle: React.CSSProperties = {
+  fontSize: '1.75rem',
+  fontWeight: 700,
+  color: '#111827',
+  textAlign: 'center',
+  marginBottom: '0.25rem',
+};
+
+const subheadingStyle: React.CSSProperties = {
+  fontSize: '0.875rem',
+  color: '#6b7280',
+  textAlign: 'center',
+  marginBottom: '1.5rem',
+};
+
+const tabRowStyle: React.CSSProperties = {
   display: 'flex',
   borderBottom: '1px solid #e5e7eb',
   marginBottom: '1.5rem',
@@ -69,127 +79,165 @@ function tabStyle(active: boolean): React.CSSProperties {
     background: 'none',
     border: 'none',
     borderBottom: active ? '2px solid #111827' : '2px solid transparent',
-    color: active ? '#111827' : '#6b7280',
     fontWeight: active ? 600 : 400,
-    fontSize: '0.875rem',
+    color: active ? '#111827' : '#6b7280',
     cursor: 'pointer',
+    fontSize: '0.875rem',
+    transition: 'color 0.15s',
   };
 }
 
+const inputWrapStyle: React.CSSProperties = {
+  marginBottom: '1rem',
+};
+
+const labelStyle: React.CSSProperties = {
+  display: 'block',
+  fontSize: '0.8125rem',
+  fontWeight: 500,
+  color: '#374151',
+  marginBottom: '0.375rem',
+};
+
 const inputStyle: React.CSSProperties = {
   width: '100%',
-  padding: '0.5rem 0.75rem',
-  borderRadius: '0.375rem',
+  padding: '0.625rem 0.875rem',
   border: '1px solid #d1d5db',
+  borderRadius: '0.5rem',
   fontSize: '0.875rem',
+  outline: 'none',
   boxSizing: 'border-box',
-  marginBottom: '0.75rem',
 };
 
 const errorBoxStyle: React.CSSProperties = {
-  padding: '0.75rem',
-  borderRadius: '0.375rem',
-  border: '1px solid #f87171',
+  marginBottom: '1rem',
   background: '#fef2f2',
+  border: '1px solid #fca5a5',
+  borderRadius: '0.5rem',
+  padding: '0.75rem 1rem',
+  fontSize: '0.8125rem',
   color: '#b91c1c',
-  fontSize: '0.875rem',
-  marginBottom: '0.75rem',
-};
-
-const sectionTitleStyle: React.CSSProperties = {
-  fontSize: '0.75rem',
-  fontWeight: 600,
-  color: '#6b7280',
-  textTransform: 'uppercase',
-  letterSpacing: '0.05em',
-  marginBottom: '0.75rem',
 };
 
 const dividerStyle: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '0.75rem',
+  margin: '1.25rem 0',
+};
+
+const dividerLineStyle: React.CSSProperties = {
+  flex: 1,
   borderTop: '1px solid #e5e7eb',
+};
+
+const dividerTextStyle: React.CSSProperties = {
+  fontSize: '0.6875rem',
+  color: '#9ca3af',
+  textTransform: 'uppercase',
+  letterSpacing: '0.05em',
+  fontWeight: 500,
+};
+
+const demoSectionStyle: React.CSSProperties = {
   marginTop: '1.5rem',
-  marginBottom: '1.5rem',
+  paddingTop: '1.5rem',
+  borderTop: '1px solid #e5e7eb',
 };
 
-const demoButtonStyle: React.CSSProperties = {
-  display: 'block',
-  width: '100%',
-  padding: '0.5rem 0.75rem',
-  marginBottom: '0.5rem',
-  borderRadius: '0.375rem',
-  border: '1px solid #d1d5db',
-  background: '#f9fafb',
-  color: '#374151',
-  fontSize: '0.875rem',
-  cursor: 'pointer',
-  textAlign: 'left',
+const demoHeadingStyle: React.CSSProperties = {
+  fontSize: '0.75rem',
+  color: '#9ca3af',
+  textAlign: 'center',
+  marginBottom: '0.75rem',
+  textTransform: 'uppercase',
+  letterSpacing: '0.05em',
 };
 
-const demoCreateRowStyle: React.CSSProperties = {
+const demoGridStyle: React.CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(2, 1fr)',
+  gap: '0.5rem',
+  marginBottom: '1rem',
+};
+
+function demoButtonStyle(loading: boolean): React.CSSProperties {
+  return {
+    padding: '0.5rem 0.75rem',
+    background: loading ? '#f3f4f6' : '#f9fafb',
+    border: '1px solid #e5e7eb',
+    borderRadius: '0.5rem',
+    cursor: loading ? 'not-allowed' : 'pointer',
+    fontSize: '0.8125rem',
+    fontWeight: 500,
+    color: '#374151',
+    transition: 'background 0.15s',
+  };
+}
+
+const createRowStyle: React.CSSProperties = {
   display: 'flex',
   gap: '0.5rem',
   marginTop: '0.75rem',
 };
 
-const demoCreateInputStyle: React.CSSProperties = {
+const createInputStyle: React.CSSProperties = {
   ...inputStyle,
-  marginBottom: 0,
   flex: 1,
+  marginBottom: 0,
 };
 
-const demoCreateButtonStyle: React.CSSProperties = {
-  padding: '0.5rem 1rem',
-  borderRadius: '0.375rem',
-  border: '1px solid #d1d5db',
+const createBtnStyle: React.CSSProperties = {
+  padding: '0.625rem 1rem',
   background: '#374151',
   color: '#ffffff',
-  fontSize: '0.875rem',
+  border: 'none',
+  borderRadius: '0.5rem',
+  fontSize: '0.8125rem',
+  fontWeight: 500,
   cursor: 'pointer',
   whiteSpace: 'nowrap',
 };
 
+const createBtnDisabledStyle: React.CSSProperties = {
+  ...createBtnStyle,
+  background: '#9ca3af',
+  cursor: 'not-allowed',
+};
+
 // ---------------------------------------------------------------------------
-// Login component
+// Component
 // ---------------------------------------------------------------------------
 
 export default function Login() {
   const [tab, setTab] = useState<Tab>('signin');
   const [username, setUsername] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [demoUsers, setDemoUsers] = useState<DemoUser[] | null>(null);
-  const [ephemeralUsername, setEphemeralUsername] = useState('');
-  const [demoLoading, setDemoLoading] = useState<string | null>(null);
+  const [error, setError] = useState('');
+  const [demoUsers, setDemoUsers] = useState<DemoUser[]>([]);
+  const [demoLoading, setDemoLoading] = useState(false);
+  const [createUsername, setCreateUsername] = useState('');
 
-  // Attempt to load demo users on mount
+  // Fetch demo users once on mount — if endpoint returns 404 demo section stays hidden
   useEffect(() => {
-    let cancelled = false;
     fetch('/api/demo/users')
-      .then((res) => {
-        if (!res.ok) return null;
-        return res.json() as Promise<DemoUser[]>;
-      })
-      .then((data) => {
-        if (!cancelled && data) setDemoUsers(data);
-      })
+      .then((res) => (res.ok ? (res.json() as Promise<DemoUser[]>) : []))
+      .then((users) => setDemoUsers(Array.isArray(users) ? users : []))
       .catch(() => {
-        // Demo mode not active — section stays hidden
+        // Demo mode not active — ignore
       });
-    return () => {
-      cancelled = true;
-    };
   }, []);
 
   function handleSuccess() {
     window.location.href = '/';
   }
 
-  function handleError(message: string) {
-    setError(message);
+  function handleError(msg: string) {
+    setError(msg);
   }
 
   async function handleDemoSignIn(userId: string) {
-    setDemoLoading(userId);
-    setError(null);
+    setError('');
+    setDemoLoading(true);
     try {
       const res = await fetch('/api/demo/session', {
         method: 'POST',
@@ -204,49 +252,59 @@ export default function Login() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Demo sign-in failed');
     } finally {
-      setDemoLoading(null);
+      setDemoLoading(false);
     }
   }
 
   async function handleDemoCreate() {
-    if (!ephemeralUsername.trim()) {
-      setError('Username is required');
-      return;
-    }
-    setDemoLoading('create');
-    setError(null);
+    if (!createUsername.trim()) return;
+    setError('');
+    setDemoLoading(true);
     try {
       const res = await fetch('/api/demo/session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: ephemeralUsername.trim() }),
+        body: JSON.stringify({ username: createUsername.trim() }),
       });
       if (!res.ok) {
         const data = (await res.json()) as { error?: string };
-        throw new Error(data.error ?? 'Demo account creation failed');
+        throw new Error(data.error ?? 'Demo create failed');
       }
       window.location.href = '/';
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Demo account creation failed');
+      setError(err instanceof Error ? err.message : 'Demo create failed');
     } finally {
-      setDemoLoading(null);
+      setDemoLoading(false);
     }
   }
 
   return (
     <div style={containerStyle}>
       <div style={cardStyle}>
-        <h1 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '1.5rem', textAlign: 'center' }}>
-          Commission Management
-        </h1>
+        <h1 style={headingStyle}>Commission Management</h1>
+        <p style={subheadingStyle}>Sign in to your account</p>
 
         {/* Tab bar */}
-        <div style={tabBarStyle}>
-          <button style={tabStyle(tab === 'signin')} onClick={() => { setTab('signin'); setError(null); }}>
-            Sign In
-          </button>
-          <button style={tabStyle(tab === 'register')} onClick={() => { setTab('register'); setError(null); }}>
+        <div style={tabRowStyle}>
+          <button
+            type="button"
+            style={tabStyle(tab === 'register')}
+            onClick={() => {
+              setTab('register');
+              setError('');
+            }}
+          >
             Register
+          </button>
+          <button
+            type="button"
+            style={tabStyle(tab === 'signin')}
+            onClick={() => {
+              setTab('signin');
+              setError('');
+            }}
+          >
+            Sign In
           </button>
         </div>
 
@@ -256,14 +314,20 @@ export default function Login() {
         {/* Register tab */}
         {tab === 'register' && (
           <div>
-            <input
-              type="email"
-              placeholder="Email address"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              style={inputStyle}
-              autoComplete="email"
-            />
+            <div style={inputWrapStyle}>
+              <label style={labelStyle} htmlFor="register-username">
+                Email / Username
+              </label>
+              <input
+                id="register-username"
+                type="text"
+                style={inputStyle}
+                placeholder="you@example.com"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                autoComplete="username webauthn"
+              />
+            </div>
             <RegisterPasskeyButton
               username={username}
               onSuccess={handleSuccess}
@@ -275,44 +339,58 @@ export default function Login() {
         {/* Sign In tab */}
         {tab === 'signin' && (
           <div>
+            <p style={{ fontSize: '0.8125rem', color: '#6b7280', marginBottom: '1rem' }}>
+              Use a passkey registered on this device. No username required.
+            </p>
             <PasskeyLoginButton onSuccess={handleSuccess} onError={handleError} />
           </div>
         )}
 
-        {/* Demo section — only rendered when DEMO_MODE is active */}
-        {demoUsers && demoUsers.length > 0 && (
-          <>
-            <div style={dividerStyle} />
-            <div>
-              <p style={sectionTitleStyle}>Demo — one-click sign in</p>
-              {demoUsers.map((u) => (
+        {/* Demo section — visible only when demo users are available */}
+        {demoUsers.length > 0 && (
+          <div style={demoSectionStyle}>
+            <p style={demoHeadingStyle}>Demo — one-click sign in</p>
+            <div style={demoGridStyle}>
+              {demoUsers.map((user) => (
                 <button
-                  key={u.id}
-                  style={demoButtonStyle}
-                  disabled={demoLoading === u.id}
-                  onClick={() => handleDemoSignIn(u.id)}
+                  key={user.id}
+                  type="button"
+                  style={demoButtonStyle(demoLoading)}
+                  disabled={demoLoading}
+                  onClick={() => handleDemoSignIn(user.id)}
                 >
-                  {demoLoading === u.id ? 'Signing in…' : u.label}
+                  {user.label}
                 </button>
               ))}
-              <div style={demoCreateRowStyle}>
-                <input
-                  type="text"
-                  placeholder="Create ephemeral user…"
-                  value={ephemeralUsername}
-                  onChange={(e) => setEphemeralUsername(e.target.value)}
-                  style={demoCreateInputStyle}
-                />
-                <button
-                  style={demoCreateButtonStyle}
-                  disabled={demoLoading === 'create'}
-                  onClick={handleDemoCreate}
-                >
-                  {demoLoading === 'create' ? '…' : 'Create'}
-                </button>
-              </div>
             </div>
-          </>
+
+            <div style={dividerStyle}>
+              <div style={dividerLineStyle} />
+              <span style={dividerTextStyle}>or create</span>
+              <div style={dividerLineStyle} />
+            </div>
+
+            <div style={createRowStyle}>
+              <input
+                type="text"
+                style={createInputStyle}
+                placeholder="username or email"
+                value={createUsername}
+                onChange={(e) => setCreateUsername(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleDemoCreate();
+                }}
+              />
+              <button
+                type="button"
+                style={demoLoading ? createBtnDisabledStyle : createBtnStyle}
+                disabled={demoLoading || !createUsername.trim()}
+                onClick={handleDemoCreate}
+              >
+                Create
+              </button>
+            </div>
+          </div>
         )}
       </div>
     </div>

@@ -85,7 +85,7 @@ describe('passkeyRegisterBegin — PublicKeyCredentialCreationOptions JSON schem
         displayName: email,
       },
       pubKeyCredParams: [
-        { type: 'public-key', alg: -7 },  // ES256
+        { type: 'public-key', alg: -7 }, // ES256
         { type: 'public-key', alg: -257 }, // RS256
       ],
       timeout: 60000,

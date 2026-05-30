@@ -141,12 +141,14 @@ describe('GET /demo/users — DEMO_MODE=true', () => {
     process.env.DEMO_MODE = 'true';
 
     // Execute the same query logic as handleDemoUsers but with injected pool
-    const rows = await testSql<{
-      id: string;
-      email: string;
-      display_name: string | null;
-      role: string;
-    }[]>`
+    const rows = await testSql<
+      {
+        id: string;
+        email: string;
+        display_name: string | null;
+        role: string;
+      }[]
+    >`
       SELECT DISTINCT ON (om.role) u.id, u.email, u.display_name, om.role
       FROM users u
       JOIN org_memberships om ON om.user_id = u.id

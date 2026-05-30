@@ -77,7 +77,9 @@ export async function handleDemoUsers(): Promise<Response> {
 
   try {
     // Query users that have org memberships (seeded demo personas)
-    const rows = await sql<{ id: string; email: string; display_name: string | null; role: string }[]>`
+    const rows = await sql<
+      { id: string; email: string; display_name: string | null; role: string }[]
+    >`
       SELECT DISTINCT ON (om.role) u.id, u.email, u.display_name, om.role
       FROM users u
       JOIN org_memberships om ON om.user_id = u.id
@@ -161,9 +163,7 @@ export async function handleDemoSession(req: Request): Promise<Response> {
       SELECT id FROM orgs ORDER BY created_at ASC LIMIT 1
     `;
     orgId =
-      defaultOrgRows.length > 0
-        ? defaultOrgRows[0].id
-        : '00000000-0000-0000-0000-000000000001';
+      defaultOrgRows.length > 0 ? defaultOrgRows[0].id : '00000000-0000-0000-0000-000000000001';
     role = 'Producer';
   }
 
