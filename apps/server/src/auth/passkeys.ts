@@ -31,11 +31,12 @@ import {
 // Base64URL helpers (shared with jwt.ts but reproduced here to avoid import cycles)
 // ---------------------------------------------------------------------------
 
-function base64UrlDecode(str: string): Uint8Array {
+function base64UrlDecode(str: string): Uint8Array<ArrayBuffer> {
   let base64 = str.replace(/-/g, '+').replace(/_/g, '/');
   while (base64.length % 4) base64 += '=';
   const binary = atob(base64);
-  const buf = new Uint8Array(binary.length);
+  const ab = new ArrayBuffer(binary.length);
+  const buf = new Uint8Array(ab);
   for (let i = 0; i < binary.length; i++) buf[i] = binary.charCodeAt(i);
   return buf;
 }
