@@ -154,34 +154,40 @@ export async function createPlacement(sql: Sql, input: CreatePlacementInput): Pr
   );
   const feeAmountBuf = await enc.encrypt('placements', 'fee_amount', input.feeAmount);
 
-  const idClause = input.id ? `'${input.id}',` : '';
-  const idColClause = input.id ? 'id,' : '';
-  const startDateClause = input.startDate != null ? `'${input.startDate}',` : 'NULL,';
-  const guaranteeDaysClause = input.guaranteeDays != null ? String(input.guaranteeDays) : 'NULL';
-  const guaranteeExpiryDateClause =
-    input.guaranteeExpiryDate != null ? `'${input.guaranteeExpiryDate}'` : 'NULL';
-  const statusClause = input.status ?? 'Created';
-  const isConfidentialClause = input.isConfidential === true ? 'true' : 'false';
+  // Every caller-supplied value is passed as a bound $n parameter — no value is
+  // ever interpolated into the SQL string (DATA-C-005 injection defense).
+  const cols: string[] = [];
+  const valuePlaceholders: string[] = [];
+  const params: unknown[] = [];
+  const bind = (col: string, value: unknown): void => {
+    cols.push(col);
+    params.push(value);
+    valuePlaceholders.push(`$${params.length}`);
+  };
+
+  if (input.id) bind('id', input.id);
+  bind('org_id', input.orgId);
+  bind('candidate_id', input.candidateId);
+  bind('client_entity_id', input.clientEntityId);
+  bind('job_title', input.jobTitle);
+  bind('compensation_base', compensationBaseBuf);
+  bind('fee_amount', feeAmountBuf);
+  bind('status', input.status ?? 'Created');
+  bind('start_date', input.startDate ?? null);
+  bind('guarantee_days', input.guaranteeDays ?? null);
+  bind('guarantee_expiry_date', input.guaranteeExpiryDate ?? null);
+  bind('is_confidential', input.isConfidential === true);
 
   const rows = await sql.unsafe(
     `
-    INSERT INTO placements (
-      ${idColClause}
-      org_id, candidate_id, client_entity_id, job_title,
-      compensation_base, fee_amount, status, start_date, guarantee_days,
-      guarantee_expiry_date, is_confidential
-    ) VALUES (
-      ${idClause}
-      '${input.orgId}', '${input.candidateId}', '${input.clientEntityId}', '${input.jobTitle}',
-      $1, $2, '${statusClause}', ${startDateClause} ${guaranteeDaysClause},
-      ${guaranteeExpiryDateClause}, ${isConfidentialClause}
-    )
+    INSERT INTO placements (${cols.join(', ')})
+    VALUES (${valuePlaceholders.join(', ')})
     RETURNING id, org_id, candidate_id, client_entity_id, job_title,
               compensation_base, fee_amount, status, start_date, guarantee_days,
               guarantee_expiry_date, is_confidential,
               created_at, updated_at
     `,
-    [compensationBaseBuf, feeAmountBuf],
+    params as unknown[] as (string | Buffer)[],
   );
 
   return decryptPlacementRow(enc, rows[0] as unknown as PlacementRawRow);
@@ -262,56 +268,49 @@ export async function updatePlacement(
   sql: Sql,
   id: string,
   input: UpdatePlacementInput,
+  orgId?: string,
 ): Promise<Placement | null> {
   const enc = await getEncryptor();
 
   const setClauses: string[] = [];
   const params: unknown[] = [];
-  let paramIdx = 1;
+  // Every value flows through a bound $n parameter — never interpolated.
+  const bind = (value: unknown): string => {
+    params.push(value);
+    return `$${params.length}`;
+  };
 
   if (input.candidateId !== undefined) {
-    setClauses.push(`candidate_id = '${input.candidateId}'`);
+    setClauses.push(`candidate_id = ${bind(input.candidateId)}`);
   }
   if (input.clientEntityId !== undefined) {
-    setClauses.push(`client_entity_id = '${input.clientEntityId}'`);
+    setClauses.push(`client_entity_id = ${bind(input.clientEntityId)}`);
   }
   if (input.jobTitle !== undefined) {
-    setClauses.push(`job_title = '${input.jobTitle.replace(/'/g, "''")}'`);
+    setClauses.push(`job_title = ${bind(input.jobTitle)}`);
   }
   if (input.compensationBase !== undefined) {
     const buf = await enc.encrypt('placements', 'compensation_base', input.compensationBase);
-    setClauses.push(`compensation_base = $${paramIdx++}`);
-    params.push(buf);
+    setClauses.push(`compensation_base = ${bind(buf)}`);
   }
   if (input.feeAmount !== undefined) {
     const buf = await enc.encrypt('placements', 'fee_amount', input.feeAmount);
-    setClauses.push(`fee_amount = $${paramIdx++}`);
-    params.push(buf);
+    setClauses.push(`fee_amount = ${bind(buf)}`);
   }
   if (input.status !== undefined) {
-    setClauses.push(`status = '${input.status}'`);
+    setClauses.push(`status = ${bind(input.status)}`);
   }
   if ('startDate' in input) {
-    setClauses.push(
-      input.startDate != null ? `start_date = '${input.startDate}'` : `start_date = NULL`,
-    );
+    setClauses.push(`start_date = ${bind(input.startDate ?? null)}`);
   }
   if ('guaranteeDays' in input) {
-    setClauses.push(
-      input.guaranteeDays != null
-        ? `guarantee_days = ${input.guaranteeDays}`
-        : `guarantee_days = NULL`,
-    );
+    setClauses.push(`guarantee_days = ${bind(input.guaranteeDays ?? null)}`);
   }
   if ('guaranteeExpiryDate' in input) {
-    setClauses.push(
-      input.guaranteeExpiryDate != null
-        ? `guarantee_expiry_date = '${input.guaranteeExpiryDate}'`
-        : `guarantee_expiry_date = NULL`,
-    );
+    setClauses.push(`guarantee_expiry_date = ${bind(input.guaranteeExpiryDate ?? null)}`);
   }
   if (input.isConfidential !== undefined) {
-    setClauses.push(`is_confidential = ${input.isConfidential === true ? 'true' : 'false'}`);
+    setClauses.push(`is_confidential = ${bind(input.isConfidential === true)}`);
   }
 
   if (setClauses.length === 0) {
@@ -320,20 +319,23 @@ export async function updatePlacement(
   }
 
   setClauses.push(`updated_at = NOW()`);
-  params.push(id);
+
+  // Tenancy: when orgId is supplied, scope the write so a guessed cross-tenant
+  // id cannot be mutated (DATA tenancy isolation).
+  const idPlaceholder = bind(id);
+  const orgClause = orgId !== undefined ? ` AND org_id = ${bind(orgId)}` : '';
 
   const query = `
     UPDATE placements
     SET ${setClauses.join(', ')}
-    WHERE id = $${paramIdx}
+    WHERE id = ${idPlaceholder}${orgClause}
     RETURNING id, org_id, candidate_id, client_entity_id, job_title,
               compensation_base, fee_amount, status, start_date, guarantee_days,
               guarantee_expiry_date, is_confidential,
               created_at, updated_at
   `;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const rows = await sql.unsafe(query, params as any[]);
+  const rows = await sql.unsafe(query, params as (string | Buffer)[]);
   if (!rows || rows.length === 0) return null;
   return decryptPlacementRow(enc, rows[0] as unknown as PlacementRawRow);
 }

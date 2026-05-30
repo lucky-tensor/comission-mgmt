@@ -161,15 +161,23 @@ export async function processGuaranteeExpiredRecalc(
       guarantee_state: 'ExpiredClean',
       commission_records_released: releasedCount,
       placement_advanced: placementAdvanced,
-    }).replace(/'/g, "''");
+    });
 
     await adb.unsafe(
       `
       INSERT INTO audit_log_entries (
         org_id, actor_id, actor_type, action, entity_type, entity_id, before_json, after_json
-      ) VALUES ($1, $2, $3, $4, $5, $6, '{}', '${afterJson}'::jsonb)
+      ) VALUES ($1, $2, $3, $4, $5, $6, '{}'::jsonb, $7::jsonb)
       `,
-      [org_id, SYSTEM_ACTOR_ID, 'System', 'guarantee.expired_clean', 'guarantee_period', period.id],
+      [
+        org_id,
+        SYSTEM_ACTOR_ID,
+        'System',
+        'guarantee.expired_clean',
+        'guarantee_period',
+        period.id,
+        afterJson,
+      ],
     );
   } catch (auditErr: unknown) {
     // Audit log failure is non-fatal — log but do not fail the task

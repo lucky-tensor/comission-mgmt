@@ -144,31 +144,33 @@ export async function createCommissionRecord(
   const grossAmountBuf = await enc.encrypt('commission_records', 'gross_amount', grossAmountStr);
   const netPayableBuf = await enc.encrypt('commission_records', 'net_payable', netPayableStr);
 
-  const tierRateClause = input.tierRate != null ? `${input.tierRate}` : 'NULL';
-
-  // Explanation is stored as plain text (not encrypted — it contains no PII, only amounts and IDs).
-  const explanationClause =
-    input.explanation != null ? `'${input.explanation.replace(/'/g, "''")}'` : 'NULL';
-
-  const holdReasonClause =
-    input.holdReason != null ? `'${input.holdReason.replace(/'/g, "''")}'` : 'NULL';
-
-  const billingPhaseClause = input.billingPhaseId != null ? `'${input.billingPhaseId}'` : 'NULL';
-
+  // Every caller-supplied value is bound as a $n parameter (DATA-C-005).
   const rows = await sql.unsafe(
     `
     INSERT INTO commission_records (
       org_id, placement_id, contributor_id, plan_version_id,
       gross_amount, net_payable, tier_rate, status, explanation, hold_reason, billing_phase_id
     ) VALUES (
-      '${input.orgId}', '${input.placementId}', '${input.contributorId}', '${input.planVersionId}',
-      $1, $2, ${tierRateClause}, '${input.status}', ${explanationClause}, ${holdReasonClause}, ${billingPhaseClause}
+      $1, $2, $3, $4,
+      $5, $6, $7, $8, $9, $10, $11
     )
     RETURNING id, org_id, placement_id, contributor_id, plan_version_id,
               gross_amount, net_payable, tier_rate, status,
               approval_actor, approval_at, created_at, explanation, hold_reason, billing_phase_id
     `,
-    [grossAmountBuf, netPayableBuf],
+    [
+      input.orgId,
+      input.placementId,
+      input.contributorId,
+      input.planVersionId,
+      grossAmountBuf,
+      netPayableBuf,
+      input.tierRate ?? null,
+      input.status,
+      input.explanation ?? null,
+      input.holdReason ?? null,
+      input.billingPhaseId ?? null,
+    ] as (string | Buffer | number | null)[],
   );
 
   if (!rows || rows.length === 0) {
@@ -332,10 +334,10 @@ export async function listCommissionRecordsByContributor(
     JOIN contributors c ON c.id = cr.contributor_id
     WHERE cr.org_id = $1
       AND c.producer_id = $2
-      ${statusFilter ? `AND cr.status = '${statusFilter.replace(/'/g, "''")}'` : ''}
+      ${statusFilter ? `AND cr.status = $3` : ''}
     ORDER BY cr.created_at DESC
     `,
-    [orgId, producerId],
+    statusFilter ? [orgId, producerId, statusFilter] : [orgId, producerId],
   );
 
   if (!rows || rows.length === 0) return [];

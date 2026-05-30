@@ -107,18 +107,22 @@ async function writeInvoiceAuditLog(
     const beforeJsonStr = opts.beforeJson != null ? JSON.stringify(opts.beforeJson) : null;
     const afterJsonStr = JSON.stringify(opts.afterJson);
 
-    // Use inline JSON literals for JSONB columns to avoid driver type-cast issues.
-    // This is the same pattern used by attribution.ts and contributors.ts.
-    const beforeJsonClause =
-      beforeJsonStr !== null ? `'${beforeJsonStr.replace(/'/g, "''")}'::jsonb` : 'NULL';
-    const afterJsonClause = `'${afterJsonStr.replace(/'/g, "''")}'::jsonb`;
     await auditSql.unsafe(
       `
       INSERT INTO audit_log_entries (
         org_id, actor_id, actor_type, action, entity_type, entity_id, before_json, after_json
-      ) VALUES ($1, $2, $3, $4, $5, $6, ${beforeJsonClause}, ${afterJsonClause})
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8::jsonb)
       `,
-      [opts.orgId, opts.actorId, 'User', opts.action, 'invoice', opts.entityId],
+      [
+        opts.orgId,
+        opts.actorId,
+        'User',
+        opts.action,
+        'invoice',
+        opts.entityId,
+        beforeJsonStr,
+        afterJsonStr,
+      ],
     );
   } catch (err: unknown) {
     console.error('[invoices] audit log write error (non-fatal):', err);

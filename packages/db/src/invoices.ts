@@ -104,19 +104,19 @@ export async function createInvoice(sql: Sql, input: CreateInvoiceInput): Promis
 
   const status = input.status ?? 'Issued';
   const issuedAt = input.issuedAt ? new Date(input.issuedAt) : new Date();
-  const dueAtSql = input.dueAt ? `'${new Date(input.dueAt).toISOString()}'` : 'NULL';
+  const dueAt = input.dueAt ? new Date(input.dueAt) : null;
 
   const rows = await sql.unsafe(
     `
     INSERT INTO invoices (
       org_id, placement_id, invoice_number, amount_billed, status, issued_at, due_at
     ) VALUES (
-      $1, $2, $3, $4, $5, $6, ${dueAtSql}
+      $1, $2, $3, $4, $5, $6, $7
     )
     RETURNING id, org_id, placement_id, invoice_number,
               amount_billed, amount_collected, status, issued_at, due_at, collected_at
     `,
-    [input.orgId, input.placementId, input.invoiceNumber, amountBilledBuf, status, issuedAt],
+    [input.orgId, input.placementId, input.invoiceNumber, amountBilledBuf, status, issuedAt, dueAt],
   );
 
   if (!rows || rows.length === 0) {
@@ -323,19 +323,17 @@ export async function upsertInvoiceByNumber(
     );
   }
 
-  const collectedAtSql = status === 'Paid' ? 'NOW()' : 'NULL';
-  const amountCollectedParam = amountCollectedBuf !== null ? '$6' : 'NULL';
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const baseParams: any[] = [
+  // collected_at is derived from the (bound) status value via a CASE; the
+  // amount_collected blob is bound nullable. No caller value is interpolated.
+  const baseParams: (string | Buffer | Date | null)[] = [
     orgId,
     input.placementId,
     input.invoiceNumber,
     amountBilledBuf,
     status,
     issuedAt,
+    amountCollectedBuf,
   ];
-  if (amountCollectedBuf !== null) baseParams.push(amountCollectedBuf);
 
   const rows = await sql.unsafe(
     `
@@ -344,7 +342,7 @@ export async function upsertInvoiceByNumber(
       amount_collected, collected_at
     ) VALUES (
       $1, $2, $3, $4, $5, $6,
-      ${amountCollectedParam}, ${collectedAtSql}
+      $7, CASE WHEN $5 = 'Paid' THEN NOW() ELSE NULL END
     )
     ON CONFLICT (org_id, invoice_number)
     DO UPDATE SET
