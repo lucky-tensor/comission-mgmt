@@ -8,7 +8,7 @@
   "scripts": {
     "build": "bun run --filter '*' build",
     "test": "bun run test:unit",
-    "test:unit": "bun --bun vitest run packages/core/tests apps/server/tests/unit",
+    "test:unit": "bun --bun vitest run packages/core/tests apps/server/tests/unit apps/worker/tests",
     "test:db": "bun --bun vitest run packages/db/tests",
     "test:migration": "bun --bun vitest run --config vitest.migration.config.ts",
     "test:api": "bun --bun vitest run --config vitest.auth.config.ts",

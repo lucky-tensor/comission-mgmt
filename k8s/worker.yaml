@@ -3,9 +3,12 @@
 # Processes guarantee-expiry, clawback-trigger, and related commission tasks.
 # Architecture constraints:
 #   - Distroless worker image (WORKER-C-001 — no shell in runtime)
-#   - Network-isolated: no direct DB write grants; all mutations via the API (WORKER-C-006)
-#   - Reads task queue via app_rw (SELECT only on task view)
-#   - Writes delegated via API_BASE_URL (HTTP to commission-app)
+#   - Network-isolated: no DB credential at all; all reads and writes go through
+#     the application API (WORKER-X-009, WORKER-C-006). The worker holds NO
+#     DATABASE_URL and NO ENCRYPTION_MASTER_KEY — the startup guard aborts boot
+#     if either is present (apps/worker/src/startup-guard.ts).
+#   - Claims and submits tasks via API_BASE_URL (HTTP to commission-app) using
+#     single-use, task-scoped delegated tokens.
 #
 # Apply order:
 #   kubectl apply -f k8s/namespaces.yaml
@@ -36,21 +39,20 @@ spec:
           # Image tag is set via deploy.sh:
           #   kubectl set image deployment/commission-worker worker=ghcr.io/<owner>/commission-mgmt-worker:<tag>
           image: ghcr.io/<owner>/commission-mgmt-worker:latest
+          # No DB credential is injected. The worker reads and writes ONLY through
+          # the application API; it has no DATABASE_URL and no ENCRYPTION_MASTER_KEY.
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
           env:
-            # READ-ONLY queue access — worker must not write directly to the DB
-            - name: DATABASE_URL
-              valueFrom:
-                secretKeyRef:
-                  name: superfield-api-secrets
-                  key: DATABASE_URL
-            # Write channel — delegated tokens submitted to the local app server
+            # Write/read channel — delegated tokens submitted to the local app server.
             - name: API_BASE_URL
               value: 'http://commission-app'
-            - name: ENCRYPTION_MASTER_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: superfield-api-secrets
-                  key: ENCRYPTION_MASTER_KEY
           resources:
             requests:
               cpu: '50m'
