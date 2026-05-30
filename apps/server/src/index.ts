@@ -38,6 +38,7 @@ import {
   handleGetPlacement,
   handleListIncompletePlacements,
   handleUpdatePlacement,
+  handleGetPartnerPlacement,
 } from './api/placements';
 import {
   handleAddContributor,
@@ -233,6 +234,12 @@ async function fetchHandler(req: Request): Promise<Response> {
   const placementPatchMatch = pathname.match(/^\/placements\/([^/]+)$/);
   if (req.method === 'PATCH' && placementPatchMatch) {
     return handleUpdatePlacement(placementPatchMatch[1], req, authResult.claims);
+  }
+
+  // External Partner placement view — GET /partner/placements/:id (masked if confidential)
+  const partnerPlacementGetMatch = pathname.match(/^\/partner\/placements\/([^/]+)$/);
+  if (req.method === 'GET' && partnerPlacementGetMatch) {
+    return handleGetPartnerPlacement(partnerPlacementGetMatch[1], authResult.claims);
   }
 
   // Commission run routes — Finance Admin commission close workflow

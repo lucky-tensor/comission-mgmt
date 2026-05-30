@@ -21,10 +21,16 @@ export {
   createPlacement,
   getPlacement,
   listPlacements,
+  updatePlacement,
   _setEncryptorForTest,
   _resetEncryptorForTest,
 } from './src/placements.js';
-export type { Placement, CreatePlacementInput, PlacementStatus } from './src/placements.js';
+export type {
+  Placement,
+  CreatePlacementInput,
+  UpdatePlacementInput,
+  PlacementStatus,
+} from './src/placements.js';
 
 export {
   createContributor,

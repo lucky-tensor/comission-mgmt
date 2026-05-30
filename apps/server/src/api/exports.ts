@@ -26,6 +26,7 @@ import type { Sql } from 'postgres';
 import { sql as defaultSql } from 'db/index';
 import { getCommissionRun, getCommissionRunRecords } from 'db/commission-runs';
 import { getCommissionRecord } from 'db/commission-records';
+import { getPlacement } from 'db/placements';
 import { createOrGetPayrollExport, listPayrollExports } from 'db/payroll-exports';
 import type { SessionClaims } from 'core/auth';
 
@@ -51,11 +52,13 @@ function errorResponse(message: string, status: number): Response {
 // ---------------------------------------------------------------------------
 
 const CSV_HEADER =
-  'employee_id,name,gross_commission,draw_recovery,clawback_recovery,net_payroll,pay_period';
+  'employee_id,name,position_title,client_name,gross_commission,draw_recovery,clawback_recovery,net_payroll,pay_period';
 
 interface ProducerRow {
   employee_id: string;
   name: string;
+  position_title: string;
+  client_name: string;
   gross_commission: string;
   draw_recovery: string;
   clawback_recovery: string;
@@ -78,6 +81,8 @@ function buildCsvContent(rows: ProducerRow[]): string {
       [
         csvField(row.employee_id),
         csvField(row.name),
+        csvField(row.position_title),
+        csvField(row.client_name),
         csvField(row.gross_commission),
         csvField(row.draw_recovery),
         csvField(row.clawback_recovery),
@@ -147,9 +152,16 @@ export async function handleCreatePayrollExport(
   // commission_records.contributor_id references contributors.id (the junction table's PK),
   // not contributors.producer_id. We resolve the external producer_id via a lookup below.
   // draw_recovery and clawback_recovery are 0.00 in MVP (no draw/clawback ledger yet).
+  // position_title and client_name are masked when the placement is_confidential=true.
   const producerTotals = new Map<
     string,
-    { producerId: string; grossCommission: number; netPayable: number }
+    {
+      producerId: string;
+      grossCommission: number;
+      netPayable: number;
+      positionTitle: string;
+      clientName: string;
+    }
   >();
 
   for (const rr of runRecords) {
@@ -162,6 +174,24 @@ export async function handleCreatePayrollExport(
     }
 
     if (!cr) continue;
+
+    // Look up placement for position_title / confidential masking
+    let positionTitle = '';
+    let clientName = '';
+    try {
+      const placement = await getPlacement(db, cr.placementId);
+      if (placement) {
+        if (placement.isConfidential) {
+          positionTitle = 'Confidential';
+          clientName = 'Confidential';
+        } else {
+          positionTitle = placement.jobTitle;
+          clientName = placement.clientEntityId; // MVP: use entity ID as client name
+        }
+      }
+    } catch (err: unknown) {
+      console.error('[exports] placement lookup error (non-fatal):', err);
+    }
 
     // Resolve producer_id from the contributors table using cr.contributorId (= contributors.id).
     let producerId: string;
@@ -185,11 +215,16 @@ export async function handleCreatePayrollExport(
       producerId,
       grossCommission: 0,
       netPayable: 0,
+      positionTitle,
+      clientName,
     };
     producerTotals.set(producerId, {
       producerId,
       grossCommission: existing.grossCommission + parseFloat(cr.grossAmount),
       netPayable: existing.netPayable + parseFloat(cr.netPayable),
+      // Use the most recent record's placement data (last record wins for multi-placement producers)
+      positionTitle,
+      clientName,
     });
   }
 
@@ -206,6 +241,8 @@ export async function handleCreatePayrollExport(
     csvRows.push({
       employee_id: totals.producerId,
       name: totals.producerId, // MVP: no separate name lookup; use producer UUID as name
+      position_title: totals.positionTitle,
+      client_name: totals.clientName,
       gross_commission: grossCommission.toFixed(2),
       draw_recovery: drawRecovery.toFixed(2),
       clawback_recovery: clawbackRecovery.toFixed(2),

@@ -8,6 +8,7 @@
  *   GET    /placements/incomplete   — list placements with missing commission-required fields
  *   GET    /placements/:id          — get a single placement by ID
  *   PATCH  /placements/:id          — update a placement (fill in missing fields)
+ *   GET    /partner/placements/:id  — External Partner view of a placement (masked if confidential)
  *   POST   /commission-runs         — pre-flight check: reject if any included placement is incomplete
  *
  * Multi-tenant isolation: all queries are scoped to the session org_id.
@@ -15,13 +16,19 @@
  * are stored as BYTEA via FieldEncryptor; all handlers receive/return
  * plaintext string values.
  *
+ * Confidential flag:
+ *   Finance Admin can set is_confidential=true on a placement via PATCH /placements/:id.
+ *   When set, position_title and client_entity_id are masked ("Confidential" / null) in
+ *   responses to Producer and ExternalPartner roles. Finance Admin and Manager see unmasked data.
+ *
  * Injectable sql (for testing):
  *   All handler functions accept an optional SqlClient so tests can inject
  *   an ephemeral Postgres connection without touching the module-level pool.
  *
- * Canonical docs: docs/prd.md §5.1, docs/architecture.md — Phase 2 Domain
+ * Canonical docs: docs/prd.md §5.1, §9, docs/architecture.md §4
  * Issues: feat: placement record creation — manual entry and CSV import (#5)
  *         feat: placement completeness validation and blocking queue (#6)
+ *         feat: placement confidential flag and field masking (#64)
  */
 
 import {
@@ -32,7 +39,7 @@ import {
   listIncompletePlacements,
   checkPlacementsComplete,
 } from 'db/placements';
-import { sql as defaultSql } from 'db/index';
+import { sql as defaultSql, auditSql as defaultAuditSql } from 'db/index';
 import type { SessionClaims } from 'core/auth';
 import type { Sql } from 'postgres';
 
@@ -57,6 +64,61 @@ function jsonResponse(body: unknown, status = 200): Response {
 
 function errorResponse(message: string, status: number, fields?: Record<string, string>): Response {
   return jsonResponse({ error: message, ...(fields ? { fields } : {}) }, status);
+}
+
+// ---------------------------------------------------------------------------
+// Confidential flag helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Roles that see unmasked placement data even when is_confidential=true.
+ * All other roles (Producer, ExternalPartner, HR, Executive) receive masked output.
+ */
+const UNMASKED_ROLES = new Set(['FinanceAdmin', 'Manager']);
+
+/**
+ * Returns true when the caller's role must receive masked fields on a confidential placement.
+ */
+function shouldMask(claims: SessionClaims, isConfidential: boolean): boolean {
+  return isConfidential && !UNMASKED_ROLES.has(claims.role);
+}
+
+/**
+ * Write an AuditLogEntry for a placement is_confidential change.
+ * Non-fatal — errors are logged but do not fail the update.
+ */
+async function writePlacementConfidentialAuditLog(
+  auditSqlClient: Sql,
+  opts: {
+    orgId: string;
+    actorId: string;
+    placementId: string;
+    before: boolean;
+    after: boolean;
+  },
+): Promise<void> {
+  try {
+    const beforeJsonStr = JSON.stringify({ is_confidential: opts.before }).replace(/'/g, "''");
+    const afterJsonStr = JSON.stringify({ is_confidential: opts.after }).replace(/'/g, "''");
+
+    await auditSqlClient.unsafe(
+      `
+      INSERT INTO audit_log_entries (
+        org_id, actor_id, actor_type, action, entity_type, entity_id, before_json, after_json
+      ) VALUES ($1, $2, $3, $4, $5, $6, '${beforeJsonStr}'::jsonb, '${afterJsonStr}'::jsonb)
+      `,
+      [
+        opts.orgId,
+        opts.actorId,
+        'User',
+        'placement.confidential_flag_changed',
+        'placement',
+        opts.placementId,
+      ],
+    );
+  } catch (err: unknown) {
+    console.error('[placements] audit log write error (non-fatal):', err);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -251,6 +313,7 @@ export async function handleCreatePlacement(
         status: placement.status,
         start_date: formatDate(placement.startDate),
         guarantee_days: placement.guaranteeDays,
+        is_confidential: placement.isConfidential,
         created_at: placement.createdAt,
         updated_at: placement.updatedAt,
       },
@@ -401,20 +464,24 @@ export async function handleListPlacements(
   try {
     const placements = await listPlacements(db, claims.org_id);
     return jsonResponse(
-      placements.map((p) => ({
-        id: p.id,
-        org_id: p.orgId,
-        candidate_id: p.candidateId,
-        client_entity_id: p.clientEntityId,
-        job_title: p.jobTitle,
-        compensation_base: p.compensationBase,
-        fee_amount: p.feeAmount,
-        status: p.status,
-        start_date: formatDate(p.startDate),
-        guarantee_days: p.guaranteeDays,
-        created_at: p.createdAt,
-        updated_at: p.updatedAt,
-      })),
+      placements.map((p) => {
+        const masked = shouldMask(claims, p.isConfidential);
+        return {
+          id: p.id,
+          org_id: p.orgId,
+          candidate_id: p.candidateId,
+          client_entity_id: masked ? null : p.clientEntityId,
+          job_title: masked ? 'Confidential' : p.jobTitle,
+          compensation_base: p.compensationBase,
+          fee_amount: p.feeAmount,
+          status: p.status,
+          start_date: formatDate(p.startDate),
+          guarantee_days: p.guaranteeDays,
+          is_confidential: p.isConfidential,
+          created_at: p.createdAt,
+          updated_at: p.updatedAt,
+        };
+      }),
     );
   } catch (err: unknown) {
     console.error('[placements] list error:', err);
@@ -452,17 +519,20 @@ export async function handleGetPlacement(
       return errorResponse('Placement not found', 404);
     }
 
+    const masked = shouldMask(claims, placement.isConfidential);
+
     return jsonResponse({
       id: placement.id,
       org_id: placement.orgId,
       candidate_id: placement.candidateId,
-      client_entity_id: placement.clientEntityId,
-      job_title: placement.jobTitle,
+      client_entity_id: masked ? null : placement.clientEntityId,
+      job_title: masked ? 'Confidential' : placement.jobTitle,
       compensation_base: placement.compensationBase,
       fee_amount: placement.feeAmount,
       status: placement.status,
       start_date: formatDate(placement.startDate),
       guarantee_days: placement.guaranteeDays,
+      is_confidential: placement.isConfidential,
       created_at: placement.createdAt,
       updated_at: placement.updatedAt,
     });
@@ -514,6 +584,7 @@ export async function handleListIncompletePlacements(
         status: p.status,
         start_date: formatDate(p.startDate),
         guarantee_days: p.guaranteeDays,
+        is_confidential: p.isConfidential,
         created_at: p.createdAt,
         updated_at: p.updatedAt,
         missing_fields: p.missingFields,
@@ -539,6 +610,7 @@ export interface UpdatePlacementBody {
   compensation_base?: string;
   guarantee_days?: number | null;
   status?: string;
+  is_confidential?: boolean;
 }
 
 /**
@@ -557,6 +629,7 @@ export async function handleUpdatePlacement(
   req: Request,
   claims: SessionClaims,
   sqlClient?: SqlClient,
+  auditSqlClient?: SqlClient,
 ): Promise<Response> {
   let body: Partial<UpdatePlacementBody>;
   try {
@@ -565,11 +638,18 @@ export async function handleUpdatePlacement(
     return errorResponse('Invalid JSON body', 400);
   }
 
+  // RBAC: only FinanceAdmin may set the confidential flag
+  if ('is_confidential' in body && claims.role !== 'FinanceAdmin') {
+    return errorResponse('Only Finance Admin can set the confidential flag', 403);
+  }
+
   const db = sqlClient ?? defaultSql;
+  const adb = auditSqlClient ?? defaultAuditSql;
 
   // Verify the placement exists and belongs to this tenant
+  let existing: Awaited<ReturnType<typeof getPlacement>>;
   try {
-    const existing = await getPlacement(db, placementId);
+    existing = await getPlacement(db, placementId);
     if (!existing) {
       return errorResponse('Placement not found', 404);
     }
@@ -604,6 +684,10 @@ export async function handleUpdatePlacement(
     feeAmount = String(Math.round((base * pct) / 100));
   }
 
+  // Determine if is_confidential is changing (for audit log)
+  const confidentialChanging =
+    'is_confidential' in body && body.is_confidential !== existing.isConfidential;
+
   try {
     const updated = await updatePlacement(db, placementId, {
       candidateId: body.candidate_id,
@@ -613,10 +697,22 @@ export async function handleUpdatePlacement(
       feeAmount,
       startDate: 'start_date' in body ? body.start_date : undefined,
       guaranteeDays: 'guarantee_days' in body ? body.guarantee_days : undefined,
+      isConfidential: 'is_confidential' in body ? body.is_confidential : undefined,
     });
 
     if (!updated) {
       return errorResponse('Placement not found', 404);
+    }
+
+    // Write AuditLogEntry when is_confidential flag changes
+    if (confidentialChanging) {
+      await writePlacementConfidentialAuditLog(adb, {
+        orgId: claims.org_id,
+        actorId: claims.user_id,
+        placementId,
+        before: existing.isConfidential,
+        after: updated.isConfidential,
+      });
     }
 
     return jsonResponse({
@@ -630,12 +726,69 @@ export async function handleUpdatePlacement(
       status: updated.status,
       start_date: formatDate(updated.startDate),
       guarantee_days: updated.guaranteeDays,
+      is_confidential: updated.isConfidential,
       created_at: updated.createdAt,
       updated_at: updated.updatedAt,
     });
   } catch (err: unknown) {
     console.error('[placements] update error:', err);
     return errorResponse('Failed to update placement', 500);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// GET /partner/placements/:id — External Partner view (masked if confidential)
+// ---------------------------------------------------------------------------
+
+/**
+ * GET /partner/placements/:id — returns a single placement for an External Partner.
+ *
+ * When is_confidential=true the position_title and client_entity_id are masked.
+ * Finance Admins and Managers always see unmasked data (enforced via shouldMask).
+ *
+ * Returns 404 if the placement does not exist or belongs to a different tenant.
+ *
+ * @param sqlClient - Optional injectable SQL client (for testing).
+ */
+export async function handleGetPartnerPlacement(
+  placementId: string,
+  claims: SessionClaims,
+  sqlClient?: SqlClient,
+): Promise<Response> {
+  const db = sqlClient ?? defaultSql;
+
+  try {
+    const placement = await getPlacement(db, placementId);
+
+    if (!placement) {
+      return errorResponse('Placement not found', 404);
+    }
+
+    // Tenant isolation
+    if (placement.orgId !== claims.org_id) {
+      return errorResponse('Placement not found', 404);
+    }
+
+    const masked = shouldMask(claims, placement.isConfidential);
+
+    return jsonResponse({
+      id: placement.id,
+      org_id: placement.orgId,
+      candidate_id: placement.candidateId,
+      client_entity_id: masked ? null : placement.clientEntityId,
+      job_title: masked ? 'Confidential' : placement.jobTitle,
+      compensation_base: placement.compensationBase,
+      fee_amount: placement.feeAmount,
+      status: placement.status,
+      start_date: formatDate(placement.startDate),
+      guarantee_days: placement.guaranteeDays,
+      is_confidential: placement.isConfidential,
+      created_at: placement.createdAt,
+      updated_at: placement.updatedAt,
+    });
+  } catch (err: unknown) {
+    console.error('[partner/placements] get error:', err);
+    return errorResponse('Failed to get placement', 500);
   }
 }
 
