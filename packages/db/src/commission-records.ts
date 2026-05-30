@@ -51,6 +51,12 @@ export interface CommissionRecordRow {
    * Null for records created before issue #11 landed.
    */
   explanation: string | null;
+  /**
+   * Hold reason for Held records.
+   * Values: 'collection_gate' | 'guarantee_hold' | null.
+   * Issue: feat: invoice and collection tracking (#12)
+   */
+  holdReason: string | null;
 }
 
 export interface CreateCommissionRecordInput {
@@ -70,6 +76,12 @@ export interface CreateCommissionRecordInput {
    * When provided, stored in the explanation column for retrieval by GET /commission-records/:id.
    */
   explanation?: string | null;
+  /**
+   * Hold reason for Held records.
+   * Values: 'collection_gate' | 'guarantee_hold' | null.
+   * Issue: feat: invoice and collection tracking (#12)
+   */
+  holdReason?: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -123,18 +135,21 @@ export async function createCommissionRecord(
   const explanationClause =
     input.explanation != null ? `'${input.explanation.replace(/'/g, "''")}'` : 'NULL';
 
+  const holdReasonClause =
+    input.holdReason != null ? `'${input.holdReason.replace(/'/g, "''")}'` : 'NULL';
+
   const rows = await sql.unsafe(
     `
     INSERT INTO commission_records (
       org_id, placement_id, contributor_id, plan_version_id,
-      gross_amount, net_payable, tier_rate, status, explanation
+      gross_amount, net_payable, tier_rate, status, explanation, hold_reason
     ) VALUES (
       '${input.orgId}', '${input.placementId}', '${input.contributorId}', '${input.planVersionId}',
-      $1, $2, ${tierRateClause}, '${input.status}', ${explanationClause}
+      $1, $2, ${tierRateClause}, '${input.status}', ${explanationClause}, ${holdReasonClause}
     )
     RETURNING id, org_id, placement_id, contributor_id, plan_version_id,
               gross_amount, net_payable, tier_rate, status,
-              approval_actor, approval_at, created_at, explanation
+              approval_actor, approval_at, created_at, explanation, hold_reason
     `,
     [grossAmountBuf, netPayableBuf],
   );
@@ -165,7 +180,7 @@ export async function listCommissionRecords(
     `
     SELECT id, org_id, placement_id, contributor_id, plan_version_id,
            gross_amount, net_payable, tier_rate, status,
-           approval_actor, approval_at, created_at, explanation
+           approval_actor, approval_at, created_at, explanation, hold_reason
     FROM commission_records
     WHERE org_id = $1 AND placement_id = $2
     ORDER BY created_at DESC
@@ -198,7 +213,7 @@ export async function getCommissionRecord(
     `
     SELECT id, org_id, placement_id, contributor_id, plan_version_id,
            gross_amount, net_payable, tier_rate, status,
-           approval_actor, approval_at, created_at, explanation
+           approval_actor, approval_at, created_at, explanation, hold_reason
     FROM commission_records
     WHERE id = $1 AND org_id = $2
     LIMIT 1
@@ -228,6 +243,7 @@ interface CommissionRecordRawRow {
   approval_at: Date | null;
   created_at: Date;
   explanation: string | null;
+  hold_reason: string | null;
 }
 
 async function decryptRecordRow(
@@ -259,5 +275,6 @@ async function decryptRecordRow(
     approvalAt: row.approval_at ?? null,
     createdAt: row.created_at,
     explanation: row.explanation ?? null,
+    holdReason: row.hold_reason ?? null,
   };
 }
