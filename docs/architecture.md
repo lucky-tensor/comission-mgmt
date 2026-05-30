@@ -28,10 +28,10 @@ policy, deterministic CI gates), never by convention. The stack mirrors the refe
 | Layer | Choice | Rationale | Blueprint rules |
 |-------|--------|-----------|-----------------|
 | Runtime / language | **TypeScript** (strict, no `any` in contracts) on **Bun** (runtime, bundler, test runner, package manager) | Single type system across web/server/worker/packages protects money-bearing contracts; single binary keeps the distroless build simple. No Node/npm/webpack/jest. | IMPL-ARCH-001/002, IMPL-ENV-004/010, ARCH-C-012 |
-| Repository | **Multi-app Bun workspace monorepo** — `apps/{server,web,worker}`, `packages/{core,db,ui}` — strict physical runtime separation, single versioning | Multiple independently deployable apps over shared typed packages; client builds fail on any server import. | ARCH-A-002, ARCH-D-001/D-003, ARCH-P-001 |
+| Repository | **Multi-app Bun workspace monorepo**, blueprint canonical layout — `apps/{web,server,worker}` + `packages/{core,ui,auth,data,services,integrations}`; strict physical runtime separation, single versioning | Each app independently deployable over shared typed packages; client builds fail on any server import. `apps/worker` is blueprint-justified by network isolation (ARCH-X-004), not premature decomposition. Supersedes the Plan's 3-package set (see §5.2). | ARCH-A-002, ARCH-D-001/D-003, IMPL-ARCH-009/017/018/020, IMPL-DATA-027, IMPL-AUTH-021 |
 | Web framework / UI | **React** (latest stable) + **vanilla Tailwind CSS**; React hooks + minimal context for state; native `useState` forms; thin (<50-line) typed `fetch` wrapper | Data-dense role-scoped surfaces (portal, review queue, dashboards); no CSS-in-JS, no Redux/MobX/Zustand, no form/HTTP-client libraries. | IMPL-ARCH-003/004/005, IMPL-UX-008/009/011/013 |
 | API style | **REST** with versioned, type-checked contracts defined once in `packages/core` | No sub-second/real-time requirement; "continuously updated" payouts are recalculation-on-event over REST, not WebSockets. No GraphQL/WS/Protobuf. | IMPL-ARCH-008/013/015/016, ARCH-D-004, UX-A-001 |
-| Database (primary) | **PostgreSQL 16** `commission_app` — transactional ledger with `org_id` tenancy; `postgres` npm client with tagged-template parameterized queries, **no ORM** | One engine across all tiers; JSONB + recursive CTEs for variable plan structures and attribution timelines; parameterization is the multi-tenant injection defense. | DATA-P-004, IMPL-DATA-001/009/033/035, DATA-A-001 |
+| Database (primary) | **PostgreSQL 16** `commission_app` — transactional ledger with `org_id` tenancy; **property-graph schema** (`entities`/`relations`/`entity_types` registry) + a **dedicated relational append-only business journal**; `postgres` npm client with tagged-template parameterized queries, **no ORM** | Property graph absorbs variable per-customer plan structures, contributor roles, and split types without DDL; the relational journal carries integrity-critical commission/clawback transitions; recursive CTEs for attribution timelines; parameterization is the multi-tenant injection defense. | DATA-P-003/P-004, DATA-D-002/D-004, IMPL-DATA-001/002/009/033/035 |
 | Database (analytics) | **PostgreSQL 16** `commission_analytics` — insert-only, pseudonymized, aggregated events; no FK path to `commission_app` | Powers leadership dashboards without querying raw payouts; structural isolation, not a schema. | DATA-P-001, DATA-D-006, IMPL-DATA-015/044 |
 | Database (audit) | **PostgreSQL 16** `commission_audit` — append-only, separate encryption key, independent backup | Implements PRD §9 "never silently overwritten"; audit-log-first ordering on every sensitive read. | DATA-D-004/D-010, IMPL-DATA-021/022/023/026 |
 | Encryption / key mgmt | **Field-level AES-256-GCM via Web Crypto** (FieldEncryptor interceptor), **per-entity-type GCP Cloud KMS keys**, ciphertext envelope `base64url(keyVersion‖IV‖ct+tag)`, ≤5-min DEK cache, background key rotation | Protects compensation PII against DB-credential and backup theft; per-type keys bound blast radius; keyVersion enables zero-downtime rotation. | DATA-P-002/P-007/D-005, IMPL-DATA-010/011/012/013/014 |
@@ -59,7 +59,7 @@ policy, deterministic CI gates), never by convention. The stack mirrors the refe
 | **Cloudflare (`cloudflared`)** | Tunnel for local k3d demo preview | ENV-X-011 | Must expose the released frontend **container**, not a raw dev server. |
 | **`@simplewebauthn/server`** | FIDO2 protocol handling | IMPL-AUTH-025 | Only bought auth dependency; no Bun-incompatible native deps. |
 | **`postgres` (npm)** | PostgreSQL client | IMPL-DATA-033 | Tagged-template parameterization by default; one client for three pools. |
-| **`@scure/bip39`** | BIP-39 mnemonic for recovery shard | IMPL-AUTH-027 | **Conditional** — only when the passkey-recovery flow is scheduled (see §5). |
+| **`@scure/bip39`** | BIP-39 mnemonic for recovery shard | IMPL-AUTH-027 | **Committed** — passkey account-recovery flow adopted per blueprint (see §5.3). |
 | **Vitest / Playwright / ESLint / Prettier** | Test + quality tooling | IMPL-TEST-001/002/021/022 | Vitest single driver; Playwright as headless-Chromium provider only. |
 | **React / Tailwind CSS** | UI framework + styling | IMPL-ARCH-003/004, IMPL-UX-008/009 | Design tokens are a DIY JSON file; component docs are static build output (no Storybook). |
 
@@ -78,8 +78,8 @@ email/SMS provider is later required it will be `[unanchored]` until a rule moti
 Mandatory patterns and prohibitions, each traceable to a blueprint rule:
 
 - **Physical runtime separation.** `apps/web` (browser bundle) must never resolve an import into
-  `apps/server`, `apps/worker`, or `packages/db`; separate Bun build configs, CI fails on violation.
-  Shared types only flow through `packages/core`; calculation logic stays server/worker-side.
+  `apps/server`, `apps/worker`, `packages/data`, or `packages/auth`; separate Bun build configs, CI fails on
+  violation. Shared types only flow through `packages/core`; calculation logic stays server/worker-side.
   (ARCH-D-001, ARCH-P-001/P-004, IMPL-ARCH-010/011/026, IMPL-AUTH-032, IMPL-DATA-040)
 - **Single source of truth for domain types.** Placement, contribution, commission, plan-version, invoice,
   draw, exception, and payroll-export-row types are defined once in `packages/core`; no duplicated shapes.
@@ -115,53 +115,79 @@ Mandatory patterns and prohibitions, each traceable to a blueprint rule:
   role-gated action emits a usage event to `commission_analytics`; cross-phase foundational code (clawback worker,
   external-partner guards, team-pool config) carries a `DORMANT_BY_DESIGN` annotation naming its dependent phase.
   (PRUNE-P-006/P-002, PRUNE-C-001/C-003)
+- **Property-graph schema + relational journal.** Configurable plan structures, contributor roles, and split types
+  live in the `entity_types` registry (JSON Schema + sensitive-field + `kms_key_id` metadata) and evolve as data,
+  not DDL; consequential commission/clawback/refund transitions are appended to a dedicated relational journal with
+  deterministic replay. (DATA-D-002/D-004, IMPL-DATA-002)
+- **Differential privacy on analytics-tier exports.** Aggregate exports from the pseudonymous `commission_analytics`
+  tier (esp. low-cardinality profitability-by-recruiter and any external-trust-boundary aggregate) carry Laplace
+  noise with per-query-class epsilon budgets, atomic check-and-decrement, and structured rejection on exhaustion;
+  exact internal finance figures are served from the audit-controlled transactional path, never noised. (DATA-D-008, IMPL-DATA-018)
+- **M-of-N for catastrophic operations.** Signing-key rotation and bulk compensation export require Shamir M-of-N
+  operator approval (3-of-5 target, 2-of-3 minimum) with logged, time-bounded, single-use shard assembly — layered
+  on top of, not replacing, the per-run single-actor payroll approval. (AUTH-D-006/P-007, AUTH-X-006)
+- **Passkey recovery without email.** A BIP-39 recovery shard (AES-256-GCM/HKDF) gated by a second factor (Argon2id
+  backup code or hardware key) re-enrolls a new passkey with device notifications; no email-based reset path exists.
+  (AUTH-D-007, IMPL-AUTH-004/024, AUTH-X-008)
 
-## 5. Open Decisions
+## 5. Resolved Decisions
 
-1. **Schema modeling — property graph vs domain-relational.** The blueprint baseline is a generic
-   three-table property graph (`entities`/`relations`/`entity_types`, DATA-D-002, IMPL-DATA-002); the Plan
-   describes "all placement-lifecycle entity tables" (relational). The complex commission calculations (tiers,
-   pools, splits, draw offsets) favor explicit relational tables, while per-customer plan configurability
-   (PRD Open Q4) favors the registry/JSONB approach. *Recommended default:* hybrid — relational tables for the
-   integrity-critical commission/clawback journal and lifecycle entities, plus an `entity_types` registry
-   (sensitive-field + `kms_key_id` metadata, plan-version schemas) for configurable, data-driven evolution.
-   Resolve explicitly in the Phase 1 **Dev-scout** task. (DATA-P-003, IMPL-DATA-002/006/007)
+Each previously-open decision is resolved by **preferring the blueprint recommendation**. Where a resolution
+changes a stated choice, §2–§4 and §6 already reflect it.
 
-2. **Monorepo package layout reconciliation.** Three blueprints name packages the Plan does not: IMPL-ARCH
-   wants `packages/services` + `packages/integrations`; IMPL-DATA wants `packages/data` (db/crypto/kms/analytics/audit).
-   The Plan uses `apps/worker` + `packages/db`. *Recommended default:* keep the Plan's `apps/worker`; map data-layer
-   submodules (db/crypto/kms/analytics/audit) under `packages/db`; place ATS/AR/payroll/storage clients in a
-   `packages/integrations` (or a clearly-bounded subdir) so Buy/DIY integration boundaries stay explicit. Document
-   each package's non-overlapping responsibility here once chosen. (ARCH-T-007/C-014/C-017, IMPL-ARCH-009, IMPL-DATA-027)
+1. **Schema modeling → property graph + relational journal (blueprint baseline).** Adopt the blueprint's
+   property-graph-on-PostgreSQL model — `entities` / `relations` / `entity_types` with JSON Schema validation and
+   sensitive-field + `kms_key_id` metadata — as the **primary** schema, so variable per-customer plan structures,
+   contributor roles, and split types evolve as registry data rather than DDL (directly serving PRD Open Q4
+   configurability). Keep a **dedicated relational append-only business journal** for the integrity-critical
+   commission/clawback/refund transitions, plus nonce stores and replay checkpoints — the carve-out the blueprint
+   itself prescribes. The Dev-scout (Plan issue #2) implements this split rather than choosing one or the other.
+   (DATA-D-002/D-004/P-003, IMPL-DATA-002/006/007)
 
-3. **Passkey account-recovery flow (gap).** Passkey-only login makes recovery essential, but neither the PRD nor
-   the Plan lists one — a Finance Admin losing all devices would be locked out mid-close. *Recommended default:*
-   schedule a BIP-39 recovery-shard flow (`@scure/bip39` + AES-256-GCM/HKDF, second factor via Argon2id backup code
-   or hardware key, re-enrolls a new passkey, device notifications, **no email reset**). Confirm before Phase 1
-   closes. (AUTH-D-007/C-016, IMPL-AUTH-004/024/027)
+2. **Package layout → blueprint canonical set.** Adopt `apps/{web,server,worker}` plus
+   `packages/{core, ui, auth, data, services, integrations}`:
+   - `packages/core` — shared domain types + the commission rules engine / explainability (server/worker-side; never in the browser runtime). (IMPL-ARCH-014/018)
+   - `packages/ui` — design system + shared React components. (IMPL-ARCH-019)
+   - `packages/auth` — passkey, JWT (ES256), agent-auth, auth middleware. (IMPL-AUTH-021)
+   - `packages/data` — `db` / `crypto` / `kms` / `analytics` / `audit` submodules; supersedes the Plan's `packages/db`. (IMPL-DATA-027)
+   - `packages/services` — capability/service layer + ATS/CRM and AR ingestion clients. (IMPL-ARCH-017)
+   - `packages/integrations` — third-party SDK wrappers + payroll-export adapters + document/object storage. (IMPL-ARCH-020)
 
-4. **Hot-reload dev path (rule tension).** The Plan's `scripts/local-demo.ts` mentions a "hot-reload watch loop,"
-   which conflicts with no-hot-reload-dev-server rules. *Recommended default:* the watch loop rebuilds and
-   redeploys the **container image** into k3d (preserving environment parity) rather than running a long-lived
-   in-process dev server, and `cloudflared` exposes the released frontend container. (DEPLOY-P-002/X-001,
-   IMPL-DEPLOY-024, ENV-X-005/X-011)
+   `apps/worker` is retained — the blueprint blesses the worker split for network isolation (ARCH-X-004), not
+   premature microservices. Each package has a documented, non-overlapping responsibility (ARCH-C-014/C-017). The
+   Plan's `docs/plan.md` package list (`packages/{core,db,ui}`) should be reconciled to this layout.
 
-5. **Differential privacy scope.** DP is prescribed for low-cardinality analytics exports (DATA-D-008), but the
-   PRD's executive dashboards are *internal, authorized* views of the firm's own data — exact figures are required
-   for payroll. *Recommended default:* apply DP only where an aggregate crosses an external trust boundary (e.g.
-   the External Partner view, PRD §5.10) and to pseudonymous cohort/trend metrics; do not noise internal exact
-   finance numbers. Decide per export in the Dev-scout. (DATA-D-007/D-008, IMPL-DATA-018/036)
+3. **Passkey recovery → BIP-39 recovery shard (adopted into Foundation auth).** Implement the blueprint recovery
+   flow: a BIP-39 mnemonic encrypting a server-held recovery shard (AES-256-GCM via HKDF), gated by a second factor
+   (Argon2id backup code or hardware-key credential-ID lookup), re-enrolling a new passkey, with device
+   notifications and **no email reset**. `@scure/bip39` is a committed dependency. Closes the lost-all-devices
+   lockout gap for Finance/Executive roles. (AUTH-D-007/C-016/C-017, IMPL-AUTH-004/024/027, AUTH-X-008)
 
-6. **M-of-N for catastrophic operations.** Signing-key rotation and bulk compensation export warrant Shamir M-of-N
-   (3-of-5 target, 2-of-3 min) operator approval; this is distinct from the per-run single-actor payroll approval
-   the PRD already mandates. *Recommended default:* implement M-of-N for key rotation and bulk export as a
-   production-hardening item, not MVP. (AUTH-P-007/D-006/C-019, AUTH-X-006)
+4. **Local dev → containerized build, no hot-reload dev server.** The `scripts/local-demo.ts` watch loop rebuilds
+   and redeploys the **container image** into k3d on change; no long-lived in-process hot-reload dev server runs in
+   any environment, and `cloudflared` exposes the released frontend container — preserving prototype==production
+   parity. (DEPLOY-P-002/X-001, IMPL-DEPLOY-024, ENV-P-001/X-005/X-011)
 
-7. **KMS stance conflict (resolved, noted for traceability).** IMPL-DATA-037 suggests "no KMS SDK needed
-   (k3s encrypts Secrets, read keys from env)"; the Plan mandates GCP Cloud KMS. *Resolution:* the Plan wins — GCP
-   Cloud KMS via the `KMSClient` interface manages envelope DEKs and rotation; the env-var/k8s-Secret path applies
-   only to the dev stub and master/wrapping-key delivery. The k3s `EncryptionConfiguration` KMS (for k8s Secrets at
-   rest) is a **distinct, complementary** layer from field-level GCP Cloud KMS. (IMPL-DATA-028/037, DEPLOY-P-013)
+5. **Differential privacy → applied to the analytics tier (production / Phase 7+).** Apply DP (Laplace noise,
+   per-query-class epsilon budgets in `commission_app`, atomic check-and-decrement, structured rejection on
+   exhaustion) to aggregate exports from the pseudonymous `commission_analytics` tier — in particular
+   low-cardinality profitability-by-recruiter slices and any aggregate crossing an external trust boundary
+   (External Partner view, PRD §5.10). Exact internal finance figures (payroll amounts, a producer's own payout)
+   are served from the audit-controlled transactional path, never the analytics tier, so DP never noises numbers
+   that must be exact. Built DIY (~120 lines), as production-maturity work. (DATA-D-006/D-007/D-008, IMPL-DATA-018/036, DATA-A-002)
+
+6. **M-of-N → adopted for catastrophic operations.** Signing-key rotation and bulk compensation export require
+   Shamir M-of-N operator approval (3-of-5 target, 2-of-3 minimum) with logged, time-bounded, single-use shard
+   assembly and out-of-band notification — distinct from, and layered on top of, the per-run single-actor
+   Finance-Admin payroll approval the PRD already mandates. Scheduled as production hardening. (AUTH-P-007/D-006/C-019/C-020, AUTH-X-006)
+
+7. **KMS → GCP Cloud KMS, HSM-backed (dominant blueprint recommendation).** The DATA and AUTH blueprints' KMS rules
+   govern: keys live in an HSM-backed KMS, separate from data, with versioned per-entity-type keys and automated
+   rotation (DATA-P-007, DATA-C-023/C-024, IMPL-AUTH-016). IMPL-DATA-037's lighter "secrets-as-env-vars, no SDK"
+   stance is the exception for projects without an HSM/separation requirement and does not apply to a multi-tenant
+   financial platform; it survives only for the local dev stub and master/wrapping-key delivery. The k3s
+   `EncryptionConfiguration` KMS (k8s Secrets at rest) is a distinct, complementary layer. This also matches the
+   Plan. (DATA-P-007, DATA-C-023/C-024, IMPL-AUTH-016, IMPL-DATA-028/037, DEPLOY-P-013)
 
 ## 6. Blueprint Coverage
 
@@ -169,7 +195,7 @@ Mandatory patterns and prohibitions, each traceable to a blueprint rule:
 |---------------|---------------|----------------------|
 | `blueprints/arch.yaml` | 37 of 38 (runtime separation, monorepo boundaries, type-safe contracts, Buy/DIY, dependency hygiene) | ARCH-A-003 (polyrepo) |
 | `blueprints/auth.yaml` | Passkeys, pinned alg, HTTP-only cookies, JTI revocation, agent gateway, dual attribution, immutable auth audit | Sandbox/twin credentials (AUTH-D-005/C-013); federated SSO (AUTH-A-002/C-031) deferred |
-| `blueprints/data.yaml` | Three-DB/three-role, property-graph+journal, field encryption, audit-log-first, analytics tier, per-tenant keys | Signed-at-edge analytics (DATA-D-009); full DP/twins partial |
+| `blueprints/data.yaml` | Three-DB/three-role, property-graph+journal, field encryption, audit-log-first, analytics tier + DP (§5.5), per-tenant keys | Signed-at-edge analytics (DATA-D-009); digital twins partial (operational previews only) |
 | `blueprints/deploy.yaml` | Distroless, k3s, KMS secrets, health-gated forward-only rollout, image signing, deploy audit, trace IDs | — (all applicable) |
 | `blueprints/env.yaml` | k3s/k3d, distroless, three-container separation, ephemeral test DBs, agent-provisioned cluster, remote IDE | Multi-node replication (ENV-C-021/022) deferred to scale-out |
 | `blueprints/process.yaml` | GitHub ruleset, required checks, Depends-on, merge queue, three-doc loop, infra-first | Calypso multi-agent orchestration partial (solo-agent loop is the default) |
@@ -178,9 +204,9 @@ Mandatory patterns and prohibitions, each traceable to a blueprint rule:
 | `blueprints/test.yaml` | Real-systems, k8s integration, headless Playwright, per-suite CI, ledger replay/recovery, golden fixtures | Digital-twin lifecycle partial (maps to DEMO_MODE isolation) |
 | `blueprints/ux.yaml` | Unified service layer, single design system, per-actor surfaces, single-path nav, progressive disclosure, headless verify | Agent-account UX rules partial (worker is the only automated actor) |
 | `blueprints/worker.yaml` | Read-only DB, write-through-API, atomic claim, delegated single-use tokens, dual attribution, distroless, network policy | Digital-twin (P-007/D-006), AI-vendor-API/CLI rules (no vendor calls in scope) |
-| `implementations/ts/arch-ts.yaml` | TS/Bun/React/Tailwind/REST stack, shared `packages/core` types, Buy/DIY, versioned contracts | Layout deviation flagged (services/integrations vs worker/db — see §5) |
-| `implementations/ts/auth-ts.yaml` | Passkeys+`@simplewebauthn`, DIY ES256 JWT, HTTP-only cookies, JTI table, scope middleware, agent tokens | Recovery shard (IMPL-AUTH-004/024/027) partial — Plan gap (see §5) |
-| `implementations/ts/data-ts.yaml` | PG16 from commit zero, three roles/pools, `postgres` client/no-ORM, FieldEncryptor, audit-log-first | DP/HMAC/pseudonym rules partial; KMS-stance conflict resolved (see §5) |
+| `implementations/ts/arch-ts.yaml` | TS/Bun/React/Tailwind/REST stack, shared `packages/core` types, Buy/DIY, versioned contracts, canonical package layout (§5.2) | — |
+| `implementations/ts/auth-ts.yaml` | Passkeys+`@simplewebauthn`, DIY ES256 JWT, HTTP-only cookies, JTI table, scope middleware, agent tokens, BIP-39 recovery shard (§5.3) | — |
+| `implementations/ts/data-ts.yaml` | PG16 from commit zero, property graph (§5.1), three roles/pools, `postgres` client/no-ORM, FieldEncryptor, audit-log-first, DP on analytics tier (§5.5), GCP KMS (§5.7) | Edge HMAC signing (IMPL-DATA-019) — server-emitted events |
 | `implementations/ts/deploy-ts.yaml` | Multi-stage distroless Bun, frozen lockfile, k3s, kubectl-apply, KMS Secrets, trace-ID chain, browser error capture | Uniques log partial (not yet named in Plan); hot-reload tension (see §5) |
 | `implementations/ts/env-ts.yaml` | Bun/git/gh/Playwright/tmux host toolchain, port-31415 preview convention | Agent-CLI/agent-context rules partial (dev-environment governance) |
 | `implementations/ts/process-ts.yaml` | GitHub-Issues planning, gh surface, worktrees, scaffold-first, PRD state machines, `.gitattributes` | Calypso workflow YAML / task-catalog partial; `rust-quality`→TS substitution; IMPL-PROCESS-015 deprecated |
