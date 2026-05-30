@@ -31,6 +31,12 @@ import {
   handleMintAgentCredential,
   handleClaimTask,
 } from './api/tasks';
+import {
+  handleCreatePlacement,
+  handleImportPlacements,
+  handleListPlacements,
+  handleGetPlacement,
+} from './api/placements';
 import { handleDemoUsers, handleDemoSession, isDemoMode } from './api/demo-session';
 import { requireAuth } from './middleware/auth';
 
@@ -143,6 +149,21 @@ async function fetchHandler(req: Request): Promise<Response> {
   // Agent credential issuance — Finance Admin only
   if (req.method === 'POST' && pathname === '/agents/credentials') {
     return handleMintAgentCredential(req, authResult.claims);
+  }
+
+  // Placement routes — authenticated (session cookie), scoped to tenant
+  if (req.method === 'POST' && pathname === '/placements/import') {
+    return handleImportPlacements(req, authResult.claims);
+  }
+  if (req.method === 'POST' && pathname === '/placements') {
+    return handleCreatePlacement(req, authResult.claims);
+  }
+  if (req.method === 'GET' && pathname === '/placements') {
+    return handleListPlacements(req, authResult.claims);
+  }
+  const placementGetMatch = pathname.match(/^\/placements\/([^/]+)$/);
+  if (req.method === 'GET' && placementGetMatch) {
+    return handleGetPlacement(placementGetMatch[1], authResult.claims);
   }
 
   // 404 for all other paths
