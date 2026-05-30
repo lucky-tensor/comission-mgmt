@@ -764,3 +764,40 @@ CREATE TABLE IF NOT EXISTS reconciliation_discrepancies (
 CREATE INDEX IF NOT EXISTS idx_reconciliation_discrepancies_org ON reconciliation_discrepancies (org_id);
 CREATE INDEX IF NOT EXISTS idx_reconciliation_discrepancies_period ON reconciliation_discrepancies (org_id, period_start, period_end);
 CREATE INDEX IF NOT EXISTS idx_reconciliation_discrepancies_ack ON reconciliation_discrepancies (org_id, acknowledged);
+
+-- =============================================================================
+-- Disputes: Producer-submitted payout disputes and questions.
+-- Producers link a dispute to a specific CommissionRecord. Finance Admins review
+-- and resolve disputes, optionally linking to a resulting exception or adjustment.
+-- State lifecycle: Submitted → UnderReview → Resolved
+-- Canonical: docs/prd.md §5.8, §4 — Producer user stories
+-- Issue: feat: payout dispute and question submission (#18)
+-- =============================================================================
+
+DO $$ BEGIN
+  CREATE TYPE dispute_state AS ENUM (
+    'Submitted',
+    'UnderReview',
+    'Resolved'
+  );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+CREATE TABLE IF NOT EXISTS disputes (
+  id                   UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id               UUID          NOT NULL,
+  commission_record_id UUID          NOT NULL REFERENCES commission_records(id),
+  submitted_by         UUID          NOT NULL,
+  description          TEXT          NOT NULL,
+  state                dispute_state NOT NULL DEFAULT 'Submitted',
+  resolved_by          UUID,
+  resolved_at          TIMESTAMPTZ,
+  resolution_note      TEXT,
+  exception_id         UUID          REFERENCES exceptions(id),
+  created_at           TIMESTAMPTZ   NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_disputes_org ON disputes (org_id);
+CREATE INDEX IF NOT EXISTS idx_disputes_submitted_by ON disputes (org_id, submitted_by);
+CREATE INDEX IF NOT EXISTS idx_disputes_state ON disputes (org_id, state);
+CREATE INDEX IF NOT EXISTS idx_disputes_commission_record ON disputes (commission_record_id);

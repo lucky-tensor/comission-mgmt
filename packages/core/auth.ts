@@ -80,6 +80,9 @@ export const ROLE_PERMISSIONS: Record<AppRole, Permission[]> = {
     // Producer Portal: own payout data
     { method: 'GET', pathPrefix: '/me' },
     { method: 'POST', pathPrefix: '/me/disputes' },
+    // Disputes: submit and view own disputes (issue #18)
+    { method: 'POST', pathPrefix: '/disputes' },
+    { method: 'GET', pathPrefix: '/disputes' },
     { method: 'POST', pathPrefix: '/auth/logout' },
     { method: 'GET', pathPrefix: '/healthz' },
     { method: 'GET', pathPrefix: '/readyz' },
