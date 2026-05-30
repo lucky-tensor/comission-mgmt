@@ -49,6 +49,10 @@ export default defineConfig({
       },
       { find: 'core', replacement: resolve(root, 'packages/core/index.ts') },
       // db/* — individual subpaths before catch-all
+      {
+        find: 'db/analytics-executive',
+        replacement: resolve(root, 'packages/db/src/analytics-executive.ts'),
+      },
       { find: 'db/index', replacement: resolve(root, 'packages/db/index.ts') },
       { find: 'db', replacement: resolve(root, 'packages/db/index.ts') },
     ],

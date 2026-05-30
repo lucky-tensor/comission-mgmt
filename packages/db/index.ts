@@ -231,6 +231,17 @@ export type {
   ClawbackStatus,
 } from './src/clawback.js';
 
+export {
+  getExecutiveAnalytics,
+  _setEncryptorForTest as _setAnalyticsExecutiveEncryptorForTest,
+  _resetEncryptorForTest as _resetAnalyticsExecutiveEncryptorForTest,
+} from './src/analytics-executive.js';
+export type {
+  ExecutiveAnalytics,
+  ProfitabilityByClient,
+  ProfitabilityByProducer,
+} from './src/analytics-executive.js';
+
 const DEFAULT_DATABASE_URLS = {
   app: 'postgres://app_rw:app_rw_password@localhost:5432/commission_app',
   audit: 'postgres://audit_w:audit_w_password@localhost:5432/commission_audit',

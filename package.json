@@ -26,6 +26,7 @@
     "test:reconciliation": "bun --bun vitest run --config vitest.reconciliation.config.ts",
     "test:guarantee-tracking": "bun --bun vitest run --config vitest.guarantee-tracking.config.ts",
     "test:clawback": "bun --bun vitest run --config vitest.clawback.config.ts",
+    "test:executive-analytics": "bun --bun vitest run --config vitest.executive-analytics.config.ts",
     "migrate": "bun run packages/db/migrate.ts",
     "demo:seed": "bun run scripts/demo-seed.ts",
     "typecheck": "bun tsc --noEmit",
