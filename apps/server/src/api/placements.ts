@@ -46,6 +46,7 @@ import {
 import { sql as defaultSql, auditSql as defaultAuditSql } from 'db/index';
 import type { SessionClaims } from 'core/auth';
 import type { Sql } from 'postgres';
+import { sensitiveRead } from '../audit/sensitive-read';
 
 type SqlClient = Sql;
 
@@ -492,13 +493,26 @@ export async function handleListPlacements(
   req: Request,
   claims: SessionClaims,
   sqlClient?: SqlClient,
+  auditSqlClient?: SqlClient,
 ): Promise<Response> {
   const db = sqlClient ?? defaultSql;
+  const adb = auditSqlClient ?? defaultAuditSql;
   const url = new URL(req.url);
   const guaranteeFilter = url.searchParams.get('guarantee');
 
   try {
-    let placements = await listPlacements(db, claims.org_id);
+    // Audit-before-read: a failed audit write denies the read (DATA-D-010).
+    let placements = await sensitiveRead(
+      adb,
+      {
+        orgId: claims.org_id,
+        actorId: claims.user_id,
+        action: 'placement.list',
+        entityType: 'placement',
+        entityId: claims.org_id,
+      },
+      () => listPlacements(db, claims.org_id),
+    );
 
     // Apply guarantee=active filter when requested
     if (guaranteeFilter === 'active') {
@@ -548,11 +562,24 @@ export async function handleGetPlacement(
   placementId: string,
   claims: SessionClaims,
   sqlClient?: SqlClient,
+  auditSqlClient?: SqlClient,
 ): Promise<Response> {
   const db = sqlClient ?? defaultSql;
+  const adb = auditSqlClient ?? defaultAuditSql;
 
   try {
-    const placement = await getPlacement(db, placementId);
+    // Audit-before-read: a failed audit write denies the read (DATA-D-010).
+    const placement = await sensitiveRead(
+      adb,
+      {
+        orgId: claims.org_id,
+        actorId: claims.user_id,
+        action: 'placement.read',
+        entityType: 'placement',
+        entityId: placementId,
+      },
+      () => getPlacement(db, placementId),
+    );
 
     if (!placement) {
       return errorResponse('Placement not found', 404);

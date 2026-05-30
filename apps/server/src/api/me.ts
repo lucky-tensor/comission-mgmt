@@ -28,6 +28,7 @@ import type { SessionClaims } from 'core/auth';
 import type { Sql } from 'postgres';
 import {
   sql as defaultSql,
+  auditSql as defaultAuditSql,
   listCommissionRecordsByContributor,
   listApprovedPayoutsByContributor,
   getPlacement,
@@ -35,6 +36,7 @@ import {
 } from 'db/index';
 import { getBillingPhase } from 'db/billing-phases';
 import { handleCreateDispute } from './disputes';
+import { sensitiveRead } from '../audit/sensitive-read';
 
 // Roles that see unmasked placement data even when is_confidential=true.
 const UNMASKED_ROLES = new Set(['FinanceAdmin', 'Manager']);
@@ -113,17 +115,26 @@ export async function handleGetMyCommissionRecords(
   req: Request,
   claims: SessionClaims,
   sqlClient?: SqlClient,
+  auditSqlClient?: SqlClient,
 ): Promise<Response> {
   const db = sqlClient ?? defaultSql;
+  const adb = auditSqlClient ?? defaultAuditSql;
   const url = new URL(req.url);
   const statusFilter = url.searchParams.get('status') ?? undefined;
 
   try {
-    const records = await listCommissionRecordsByContributor(
-      db,
-      claims.org_id,
-      claims.user_id,
-      statusFilter,
+    // Audit-before-read: a failed audit write denies the read (DATA-D-010).
+    const records = await sensitiveRead(
+      adb,
+      {
+        orgId: claims.org_id,
+        actorId: claims.user_id,
+        action: 'commission_record.list',
+        entityType: 'commission_record',
+        entityId: claims.user_id,
+      },
+      () =>
+        listCommissionRecordsByContributor(db, claims.org_id, claims.user_id, statusFilter),
     );
     // For phase-blocked records, enrich with phase info so producers can see
     // which phase is blocking their payout and why.
@@ -193,11 +204,24 @@ export async function handleGetMyPayouts(
   _req: Request,
   claims: SessionClaims,
   sqlClient?: SqlClient,
+  auditSqlClient?: SqlClient,
 ): Promise<Response> {
   const db = sqlClient ?? defaultSql;
+  const adb = auditSqlClient ?? defaultAuditSql;
 
   try {
-    const records = await listApprovedPayoutsByContributor(db, claims.org_id, claims.user_id);
+    // Audit-before-read: a failed audit write denies the read (DATA-D-010).
+    const records = await sensitiveRead(
+      adb,
+      {
+        orgId: claims.org_id,
+        actorId: claims.user_id,
+        action: 'payout.list',
+        entityType: 'commission_record',
+        entityId: claims.user_id,
+      },
+      () => listApprovedPayoutsByContributor(db, claims.org_id, claims.user_id),
+    );
 
     // Build a placement cache to avoid repeated lookups
     const placementCache = new Map<string, { isConfidential: boolean; jobTitle: string }>();

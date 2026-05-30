@@ -37,6 +37,7 @@ import {
 } from 'db/reconciliation';
 import type { SessionClaims } from 'core/auth';
 import type { ReconciliationDiscrepancy, ArIngestedRecord } from 'db/reconciliation';
+import { sensitiveRead } from '../audit/sensitive-read';
 
 type SqlClient = Sql;
 
@@ -139,7 +140,7 @@ export async function handleGetReconciliationReport(
   req: Request,
   claims: SessionClaims,
   sqlClient?: SqlClient,
-  _auditSqlClient?: SqlClient,
+  auditSqlClient?: SqlClient,
 ): Promise<Response> {
   // RBAC: Finance Admin only
   if (claims.role !== 'FinanceAdmin') {
@@ -158,6 +159,26 @@ export async function handleGetReconciliationReport(
   }
 
   const db = sqlClient ?? defaultSql;
+  const adb = auditSqlClient ?? defaultAuditSql;
+
+  // Audit-before-read: record this reconciliation report access before any
+  // ledger/AR data is loaded. A failed audit write denies the read (DATA-D-010).
+  try {
+    await sensitiveRead(
+      adb,
+      {
+        orgId: claims.org_id,
+        actorId: claims.user_id,
+        action: 'reconciliation.read',
+        entityType: 'reconciliation_report',
+        entityId: `${periodStart!}:${periodEnd!}`,
+      },
+      async () => undefined,
+    );
+  } catch (err: unknown) {
+    console.error('[reconciliation] audit-before-read failed; denying read:', err);
+    return errorResponse('Failed to record audit entry for read', 500);
+  }
 
   // 1. Load ledger invoices
   let ledgerInvoices;

@@ -48,6 +48,7 @@ import {
   type ClawbackRule,
 } from 'core/clawback-ledger';
 import type { SessionClaims } from 'core/auth';
+import { sensitiveRead } from '../audit/sensitive-read';
 
 type SqlClient = Sql;
 
@@ -379,23 +380,41 @@ export async function handleGetPlacementClawback(
   placementId: string,
   claims: SessionClaims,
   sqlClient?: SqlClient,
+  auditSqlClient?: SqlClient,
 ): Promise<Response> {
   if (claims.role !== 'FinanceAdmin' && claims.role !== 'Manager') {
     return errorResponse('Forbidden: Finance Admin or Manager role required', 403);
   }
 
   const db = sqlClient ?? defaultSql;
+  const adb = auditSqlClient ?? defaultAuditSql;
 
   try {
-    const placement = await getPlacement(db, placementId);
+    // Audit-before-read: a failed audit write denies the read (DATA-D-010).
+    const { placement, status } = await sensitiveRead(
+      adb,
+      {
+        orgId: claims.org_id,
+        actorId: claims.user_id,
+        action: 'clawback.read',
+        entityType: 'placement',
+        entityId: placementId,
+      },
+      async () => {
+        const pl = await getPlacement(db, placementId);
+        if (!pl || pl.orgId !== claims.org_id) {
+          return { placement: pl, status: null };
+        }
+        const st = await getClawbackStatusForPlacement(db, claims.org_id, placementId);
+        return { placement: pl, status: st };
+      },
+    );
     if (!placement) {
       return errorResponse('Placement not found', 404);
     }
-    if (placement.orgId !== claims.org_id) {
+    if (placement.orgId !== claims.org_id || !status) {
       return errorResponse('Placement not found', 404);
     }
-
-    const status = await getClawbackStatusForPlacement(db, claims.org_id, placementId);
 
     return jsonResponse({
       placement_id: placementId,
@@ -455,15 +474,28 @@ export async function handleGetPlacementClawback(
 export async function handleGetMyClawbackExposure(
   claims: SessionClaims,
   sqlClient?: SqlClient,
+  auditSqlClient?: SqlClient,
 ): Promise<Response> {
   if (claims.role !== 'Producer') {
     return errorResponse('Forbidden: Producer role required', 403);
   }
 
   const db = sqlClient ?? defaultSql;
+  const adb = auditSqlClient ?? defaultAuditSql;
 
   try {
-    const totalExposure = await getProducerClawbackExposure(db, claims.org_id, claims.user_id);
+    // Audit-before-read: a failed audit write denies the read (DATA-D-010).
+    const totalExposure = await sensitiveRead(
+      adb,
+      {
+        orgId: claims.org_id,
+        actorId: claims.user_id,
+        action: 'clawback_exposure.read',
+        entityType: 'producer',
+        entityId: claims.user_id,
+      },
+      () => getProducerClawbackExposure(db, claims.org_id, claims.user_id),
+    );
 
     return jsonResponse({
       producer_id: claims.user_id,
