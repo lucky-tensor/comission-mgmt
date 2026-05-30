@@ -1,4 +1,11 @@
-import { sql } from './index';
+import { sql as defaultSql } from './index';
+import type postgres from 'postgres';
+
+/**
+ * Minimal sql-tagged-template type accepted by all exported functions.
+ * Matches the postgres.js Sql type used in worker-tokens.ts.
+ */
+export type SqlClient = postgres.Sql;
 
 /**
  * Records a token JTI as revoked. Called on logout.
@@ -6,8 +13,14 @@ import { sql } from './index';
  * @param jti - The JWT ID claim to revoke.
  * @param expiresAt - The token's original expiry time. Rows are cleaned up
  *                    after this time passes so the table does not grow unbounded.
+ * @param sqlClient - Optional injectable SQL client (for testing).
  */
-export async function revokeToken(jti: string, expiresAt: Date): Promise<void> {
+export async function revokeToken(
+  jti: string,
+  expiresAt: Date,
+  sqlClient?: SqlClient,
+): Promise<void> {
+  const sql = sqlClient ?? defaultSql;
   await sql`
     INSERT INTO revoked_tokens (jti, expires_at)
     VALUES (${jti}, ${expiresAt})
@@ -20,8 +33,10 @@ export async function revokeToken(jti: string, expiresAt: Date): Promise<void> {
  * Uses a primary-key point lookup (O(log n)).
  *
  * @param jti - The JWT ID claim to test.
+ * @param sqlClient - Optional injectable SQL client (for testing).
  */
-export async function isRevoked(jti: string): Promise<boolean> {
+export async function isRevoked(jti: string, sqlClient?: SqlClient): Promise<boolean> {
+  const sql = sqlClient ?? defaultSql;
   const rows = await sql`
     SELECT 1 FROM revoked_tokens WHERE jti = ${jti} LIMIT 1
   `;
@@ -31,8 +46,11 @@ export async function isRevoked(jti: string): Promise<boolean> {
 /**
  * Deletes all rows whose token has already expired.
  * Called at server startup and every 24 hours.
+ *
+ * @param sqlClient - Optional injectable SQL client (for testing).
  */
-export async function cleanupExpiredRevocations(): Promise<void> {
+export async function cleanupExpiredRevocations(sqlClient?: SqlClient): Promise<void> {
+  const sql = sqlClient ?? defaultSql;
   await sql`DELETE FROM revoked_tokens WHERE expires_at < NOW()`;
 }
 

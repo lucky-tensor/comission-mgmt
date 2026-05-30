@@ -17,6 +17,14 @@ import postgres from 'postgres';
 import { log } from 'core/logger';
 import { withTraceId, getCurrentTraceId } from './middleware/trace';
 import { handleHealthz, handleReadyz } from './api/health';
+import {
+  handlePasskeyRegisterBegin,
+  handlePasskeyRegisterComplete,
+  handlePasskeyLoginBegin,
+  handlePasskeyLoginComplete,
+  handleLogout,
+} from './api/auth';
+import { requireAuth } from './middleware/auth';
 
 // Re-export foundation modules so they continue to be verified at compile time.
 export * from './auth/jwt';
@@ -24,6 +32,7 @@ export * from './auth/csrf';
 export * from './auth/cookie-config';
 export * from './security/rate-limiter';
 export * from './lib/response';
+export * from './middleware/auth';
 
 const PORT = Number(process.env.PORT ?? 31415);
 const DATABASE_URL =
@@ -68,6 +77,29 @@ async function fetchHandler(req: Request): Promise<Response> {
   if (req.method === 'GET' && pathname === '/readyz') {
     return handleReadyz(sql);
   }
+
+  // Auth routes — unauthenticated
+  if (req.method === 'POST' && pathname === '/auth/passkey/register/begin') {
+    return handlePasskeyRegisterBegin(req);
+  }
+  if (req.method === 'POST' && pathname === '/auth/passkey/register/complete') {
+    return handlePasskeyRegisterComplete(req);
+  }
+  if (req.method === 'POST' && pathname === '/auth/passkey/login/begin') {
+    return handlePasskeyLoginBegin(req);
+  }
+  if (req.method === 'POST' && pathname === '/auth/passkey/login/complete') {
+    return handlePasskeyLoginComplete(req);
+  }
+
+  // Auth routes — authenticated
+  if (req.method === 'POST' && pathname === '/auth/logout') {
+    return handleLogout(req);
+  }
+
+  // All other routes require authentication
+  const authResult = await requireAuth(req);
+  if (authResult instanceof Response) return authResult;
 
   // 404 for all other paths
   log('info', 'not_found', { trace_id: traceId, path: pathname });

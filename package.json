@@ -11,6 +11,7 @@
     "test:unit": "bun --bun vitest run packages/core/tests apps/server/tests/unit",
     "test:db": "bun --bun vitest run packages/db/tests",
     "test:migration": "bun --bun vitest run --config vitest.migration.config.ts",
+    "test:api": "bun --bun vitest run --config vitest.auth.config.ts",
     "migrate": "bun run packages/db/migrate.ts",
     "typecheck": "bun tsc --noEmit",
     "lint": "bunx eslint .",
