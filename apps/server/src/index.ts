@@ -89,11 +89,7 @@ import {
   handleRejectException,
 } from './api/exceptions';
 import { handleCreatePayrollExport, handleListPayrollExports } from './api/exports';
-import {
-  handleCreateDispute,
-  handleListDisputes,
-  handleResolveDispute,
-} from './api/disputes';
+import { handleCreateDispute, handleListDisputes, handleResolveDispute } from './api/disputes';
 import { handleDemoUsers, handleDemoSession, isDemoMode } from './api/demo-session';
 import { requireAuth } from './middleware/auth';
 // Producer Portal /me routes — issue #16

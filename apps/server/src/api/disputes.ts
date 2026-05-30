@@ -151,7 +151,8 @@ export async function handleCreateDispute(
   }
 
   const errors: Record<string, string> = {};
-  if (!body.commission_record_id) errors['commission_record_id'] = 'commission_record_id is required';
+  if (!body.commission_record_id)
+    errors['commission_record_id'] = 'commission_record_id is required';
   if (!body.description || String(body.description).trim() === '')
     errors['description'] = 'description is required';
 
@@ -271,7 +272,9 @@ export async function handleResolveDispute(
   }
 
   if (!body.resolution_note || String(body.resolution_note).trim() === '') {
-    return errorResponse('Validation failed', 422, { resolution_note: 'resolution_note is required' });
+    return errorResponse('Validation failed', 422, {
+      resolution_note: 'resolution_note is required',
+    });
   }
 
   const db = sqlClient ?? defaultSql;

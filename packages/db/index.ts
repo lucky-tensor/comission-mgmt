@@ -188,11 +188,7 @@ export {
   listDisputesByProducer,
   resolveDispute,
 } from './src/disputes.js';
-export type {
-  DisputeRow,
-  DisputeState,
-  CreateDisputeInput,
-} from './src/disputes.js';
+export type { DisputeRow, DisputeState, CreateDisputeInput } from './src/disputes.js';
 
 const DEFAULT_DATABASE_URLS = {
   app: 'postgres://app_rw:app_rw_password@localhost:5432/commission_app',

@@ -48,10 +48,7 @@ export interface CreateDisputeInput {
  * Creates a new dispute with state=Submitted.
  * Returns the newly created row.
  */
-export async function createDispute(
-  sql: Sql,
-  input: CreateDisputeInput,
-): Promise<DisputeRow> {
+export async function createDispute(sql: Sql, input: CreateDisputeInput): Promise<DisputeRow> {
   const rows = await sql.unsafe(
     `
     INSERT INTO disputes (org_id, commission_record_id, submitted_by, description)
@@ -105,10 +102,7 @@ export async function getDispute(
  * Lists all disputes for the org, ordered by created_at DESC.
  * Finance Admin view — sees all disputes.
  */
-export async function listDisputes(
-  sql: Sql,
-  orgId: string,
-): Promise<DisputeRow[]> {
+export async function listDisputes(sql: Sql, orgId: string): Promise<DisputeRow[]> {
   const rows = await sql.unsafe(
     `
     SELECT id, org_id, commission_record_id, submitted_by, description,

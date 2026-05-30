@@ -301,7 +301,7 @@ describe('POST /disputes — create dispute (AC#1)', () => {
 // ---------------------------------------------------------------------------
 
 describe('GET /disputes — producer scoping (AC#2)', () => {
-  test('Producer sees only their own disputes, not other producers\'', async () => {
+  test("Producer sees only their own disputes, not other producers'", async () => {
     const producerAId = crypto.randomUUID();
     const producerBId = crypto.randomUUID();
 
@@ -465,9 +465,17 @@ describe('POST /disputes/:id/resolve — Finance Admin resolves (AC#4)', () => {
     const resolveReq = makeRequest({
       path: `/disputes/${disputeId}/resolve`,
       method: 'POST',
-      body: { resolution_note: 'Rate was applied correctly per your commission plan. See attached.' },
+      body: {
+        resolution_note: 'Rate was applied correctly per your commission plan. See attached.',
+      },
     });
-    const resolveRes = await handleResolveDispute(disputeId, resolveReq, financeAdminA, testSql, testAuditSql);
+    const resolveRes = await handleResolveDispute(
+      disputeId,
+      resolveReq,
+      financeAdminA,
+      testSql,
+      testAuditSql,
+    );
     expect(resolveRes.status).toBe(200);
 
     const body = (await jsonBody(resolveRes)) as {
@@ -532,7 +540,13 @@ describe('POST /disputes/:id/resolve — Finance Admin resolves (AC#4)', () => {
       method: 'POST',
       body: { resolution_note: 'Second resolution attempt.' },
     });
-    const resolveRes2 = await handleResolveDispute(disputeId, resolveReq2, financeAdminA, testSql, testAuditSql);
+    const resolveRes2 = await handleResolveDispute(
+      disputeId,
+      resolveReq2,
+      financeAdminA,
+      testSql,
+      testAuditSql,
+    );
     expect(resolveRes2.status).toBe(409);
   });
 
@@ -569,7 +583,10 @@ describe('POST /disputes/:id/resolve — Finance Admin resolves (AC#4)', () => {
     const createReq = makeRequest({
       path: '/disputes',
       method: 'POST',
-      body: { commission_record_id: commissionRecordId, description: 'Missing resolution note test.' },
+      body: {
+        commission_record_id: commissionRecordId,
+        description: 'Missing resolution note test.',
+      },
     });
     const createRes = await handleCreateDispute(createReq, producerClaims, testSql, testAuditSql);
     expect(createRes.status).toBe(201);
@@ -580,7 +597,13 @@ describe('POST /disputes/:id/resolve — Finance Admin resolves (AC#4)', () => {
       method: 'POST',
       body: {},
     });
-    const res = await handleResolveDispute(disputeId, resolveReq, financeAdminA, testSql, testAuditSql);
+    const res = await handleResolveDispute(
+      disputeId,
+      resolveReq,
+      financeAdminA,
+      testSql,
+      testAuditSql,
+    );
     expect(res.status).toBe(422);
   });
 });
