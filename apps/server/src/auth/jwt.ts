@@ -184,7 +184,9 @@ export async function signJwt(payload: object, expiresInHours = 24 * 7): Promise
   const keyPair = await getCurrentKeyPair();
   const header = { alg: 'ES256', typ: 'JWT', kid: keyPair.kid };
   const exp = Math.floor(Date.now() / 1000) + expiresInHours * 60 * 60;
-  const jti = crypto.randomUUID();
+  // Use the payload's jti if already set (e.g. worker tokens that need to be
+  // persisted before signing). Otherwise generate a fresh UUID.
+  const jti = (payload as Record<string, unknown>).jti ?? crypto.randomUUID();
 
   const encodedHeader = base64UrlEncode(JSON.stringify(header));
   const encodedPayload = base64UrlEncode(JSON.stringify({ ...payload, exp, jti }));
@@ -194,6 +196,52 @@ export async function signJwt(payload: object, expiresInHours = 24 * 7): Promise
   const encodedSignature = base64UrlEncode(new Uint8Array(signatureBuffer));
 
   return `${encodedHeader}.${encodedPayload}.${encodedSignature}`;
+}
+
+/**
+ * Verifies and decodes a JWT token signed with ES256 — signature and expiry only.
+ * Does NOT check the revocation store (caller must handle revocation separately).
+ *
+ * Use this for worker tokens where validity is determined by the worker_tokens
+ * table (consumeWorkerToken), not by the session revocation store.
+ */
+export async function verifyJwtSignatureOnly<T>(token: string): Promise<T> {
+  const parts = token.split('.');
+  if (parts.length !== 3) {
+    throw new Error('Invalid token format');
+  }
+
+  const [encodedHeader, encodedPayload, encodedSignature] = parts;
+  const dataToVerify = ENCODER.encode(`${encodedHeader}.${encodedPayload}`);
+  const signatureBytes = base64UrlDecodeBytes(encodedSignature);
+
+  const keyPairs = await getVerificationKeyPairs();
+  let verified = false;
+
+  for (const { publicKey } of keyPairs) {
+    try {
+      const ok = await crypto.subtle.verify(SIGN_ALGORITHM, publicKey, signatureBytes, dataToVerify);
+      if (ok) {
+        verified = true;
+        break;
+      }
+    } catch {
+      // Key mismatch — try next key
+    }
+  }
+
+  if (!verified) {
+    throw new Error('Invalid signature');
+  }
+
+  const payloadStr = base64UrlDecode(encodedPayload);
+  const payload = JSON.parse(payloadStr);
+
+  if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
+    throw new Error('Token expired');
+  }
+
+  return payload as T;
 }
 
 /**

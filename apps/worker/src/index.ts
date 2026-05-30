@@ -1,44 +1,218 @@
 /**
  * Commission Management Worker — entry point.
  *
- * Phase 1 Foundation: worker entry point stub for background jobs
- * (guarantee expiry, clawback triggers). Full task-queue integration
- * is implemented in the task-queue Foundation issue.
+ * Implements the claim-execute-submit loop for background commission tasks.
+ * The worker operates under strict network isolation constraints:
  *
- * Architecture constraints:
- *   - Network-isolated: zero DB write grants; all mutations go via the API
- *     using single-use, ≤24h, task-scoped delegated tokens. (WORKER-X-001)
- *   - SELECT-only DB access via the task_queue view (WORKER-P-001/P-002)
- *   - Single-replica to start (WORKER-A-001)
+ * Security model (WORKER-X-001):
+ *   - No direct DB connection to domain tables. All mutations go via the
+ *     application API using single-use, ≤24h, task-scoped delegated tokens.
+ *   - The worker claims tasks via POST /tasks/claim (app-side DB write).
+ *   - Results are submitted via POST /tasks/:id/result with a Bearer token.
+ *
+ * Agents implemented:
+ *   - ping: no-op round-trip that proves the full claim-execute-submit loop.
+ *
+ * Future agents (added in later phases):
+ *   - guarantee-expire: Post-Placement Risk phase
+ *   - clawback-trigger: Post-Placement Risk phase
  *
  * Canonical docs: docs/architecture.md — Phase 1 Foundation, Worker section
  */
 
 import { log } from 'core/logger';
+import { runPingAgent } from './agents/ping';
 
 const POLL_INTERVAL_MS = Number(process.env.POLL_INTERVAL_MS ?? '5000');
+const API_BASE_URL = process.env.API_BASE_URL ?? 'http://server:31415';
+/** Worker pod identifier — in k8s this is the pod name injected via HOSTNAME env. */
+const POD_ID = process.env.HOSTNAME ?? `worker-${crypto.randomUUID()}`;
+/** Agent type this worker instance handles. */
+const AGENT_TYPE = process.env.AGENT_TYPE ?? 'ping';
+/** Delegated worker token issued at pod startup for task:submit scope. */
+const WORKER_TOKEN = process.env.WORKER_TOKEN ?? '';
+
+/** Agent handlers keyed by agent_type. */
+const AGENT_HANDLERS: Record<
+  string,
+  (payload: Record<string, unknown>) => Promise<Record<string, unknown>>
+> = {
+  ping: runPingAgent,
+};
 
 /**
- * Main worker loop. Polls the task queue for pending guarantee/clawback
- * tasks and delegates execution to the appropriate handler.
- *
- * Phase 1 stub: no tasks are processed yet — the queue schema and claim
- * logic land in the task-queue Foundation issue.
+ * Claims the next available task of AGENT_TYPE from the application API.
+ * Returns null when no task is available (204 from server).
+ */
+async function claimTask(): Promise<{
+  id: string;
+  agent_type: string;
+  job_type: string;
+  payload: Record<string, unknown>;
+} | null> {
+  const res = await fetch(`${API_BASE_URL}/tasks/claim`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${WORKER_TOKEN}`,
+    },
+    body: JSON.stringify({ agent_type: AGENT_TYPE, pod_id: POD_ID }),
+  });
+
+  if (res.status === 204) return null;
+  if (!res.ok) {
+    log('warn', 'claim_task_failed', {
+      trace_id: '',
+      status: res.status,
+      agent_type: AGENT_TYPE,
+    });
+    return null;
+  }
+
+  return (await res.json()) as {
+    id: string;
+    agent_type: string;
+    job_type: string;
+    payload: Record<string, unknown>;
+  };
+}
+
+/**
+ * Submits the result of a completed task via POST /tasks/:id/result.
+ * Uses the delegated WORKER_TOKEN for authentication.
+ */
+async function submitResult(taskId: string, result: Record<string, unknown>): Promise<boolean> {
+  const res = await fetch(`${API_BASE_URL}/tasks/${taskId}/result`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${WORKER_TOKEN}`,
+    },
+    body: JSON.stringify({ result }),
+  });
+
+  if (!res.ok) {
+    log('warn', 'submit_result_failed', {
+      trace_id: '',
+      task_id: taskId,
+      status: res.status,
+    });
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Processes one task: claim → execute → submit.
+ * Returns true when a task was processed, false when no task was available.
+ */
+export async function processOnce(
+  overrides: {
+    apiBaseUrl?: string;
+    workerToken?: string;
+    podId?: string;
+    agentType?: string;
+  } = {},
+): Promise<boolean> {
+  const apiBase = overrides.apiBaseUrl ?? API_BASE_URL;
+  const token = overrides.workerToken ?? WORKER_TOKEN;
+  const podId = overrides.podId ?? POD_ID;
+  const agentType = overrides.agentType ?? AGENT_TYPE;
+
+  // Claim via API
+  const claimRes = await fetch(`${apiBase}/tasks/claim`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ agent_type: agentType, pod_id: podId }),
+  });
+
+  if (claimRes.status === 204) return false;
+  if (!claimRes.ok) {
+    log('warn', 'claim_task_failed', { trace_id: '', status: claimRes.status, agent_type: agentType });
+    return false;
+  }
+
+  const task = (await claimRes.json()) as {
+    id: string;
+    agent_type: string;
+    job_type: string;
+    payload: Record<string, unknown>;
+  };
+
+  const traceId = crypto.randomUUID();
+  log('info', 'task_claimed', {
+    trace_id: traceId,
+    task_id: task.id,
+    agent_type: task.agent_type,
+    job_type: task.job_type,
+  });
+
+  const handler = AGENT_HANDLERS[task.agent_type];
+  if (!handler) {
+    log('warn', 'unknown_agent_type', { trace_id: traceId, task_id: task.id, agent_type: task.agent_type });
+    return true;
+  }
+
+  let result: Record<string, unknown>;
+  try {
+    result = await handler(task.payload);
+  } catch (err: unknown) {
+    log('error', 'agent_handler_failed', {
+      trace_id: traceId,
+      task_id: task.id,
+      agent_type: task.agent_type,
+      error: String(err),
+    });
+    return true;
+  }
+
+  // Submit result via API
+  const submitRes = await fetch(`${apiBase}/tasks/${task.id}/result`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ result }),
+  });
+
+  const submitted = submitRes.ok;
+  log('info', 'task_processed', {
+    trace_id: traceId,
+    task_id: task.id,
+    agent_type: task.agent_type,
+    submitted,
+  });
+
+  return true;
+}
+
+/**
+ * Main worker loop. Polls the task queue for pending tasks and processes them
+ * one at a time. Sleeps between polls when no task is available.
  */
 async function run(): Promise<never> {
-  log('info', 'Commission worker starting', {
-    trace_id: crypto.randomUUID(),
+  log('info', 'worker_starting', {
+    trace_id: '',
+    pod_id: POD_ID,
+    agent_type: AGENT_TYPE,
     poll_interval_ms: POLL_INTERVAL_MS,
+    api_base_url: API_BASE_URL,
   });
 
   for (;;) {
-    // Phase 1 stub: real task claim logic lands in the task-queue issue.
-    // When implemented, this loop will:
-    //   1. SELECT one pending task from the queue (SELECT-only role)
-    //   2. Dispatch to a handler (guarantee-expiry, clawback-trigger, etc.)
-    //   3. POST the result to the API using a single-use delegated token
-    //   4. Mark the task as complete via the API
-    await Bun.sleep(POLL_INTERVAL_MS);
+    try {
+      const processed = await processOnce();
+      if (!processed) {
+        await Bun.sleep(POLL_INTERVAL_MS);
+      }
+    } catch (err: unknown) {
+      log('error', 'worker_loop_error', { trace_id: '', error: String(err) });
+      await Bun.sleep(POLL_INTERVAL_MS);
+    }
   }
 }
 
