@@ -469,3 +469,24 @@ CREATE TABLE IF NOT EXISTS exceptions (
 CREATE INDEX IF NOT EXISTS idx_exceptions_org ON exceptions (org_id);
 CREATE INDEX IF NOT EXISTS idx_exceptions_placement ON exceptions (placement_id);
 CREATE INDEX IF NOT EXISTS idx_exceptions_status ON exceptions (org_id, status);
+
+-- =============================================================================
+-- Attribution Events: immutable timeline of contribution assignment lifecycle events.
+-- Records submit, approve, and reject events for the manager split-approval workflow.
+-- Canonical: docs/prd.md §5.2, issue #8 feat: manager split approval workflow
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS attribution_events (
+  id               UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id           UUID        NOT NULL,
+  placement_id     UUID        NOT NULL REFERENCES placements(id),
+  event_type       TEXT        NOT NULL
+                   CHECK (event_type IN ('Submitted', 'Approved', 'Rejected')),
+  actor_id         UUID        NOT NULL,
+  reason           TEXT,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_attribution_events_org ON attribution_events (org_id);
+CREATE INDEX IF NOT EXISTS idx_attribution_events_placement ON attribution_events (placement_id);
+CREATE INDEX IF NOT EXISTS idx_attribution_events_created ON attribution_events (placement_id, created_at);
