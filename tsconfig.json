@@ -10,7 +10,14 @@
     "noEmit": true,
     "types": ["bun-types"],
     "jsx": "react-jsx",
-    "lib": ["ESNext", "DOM"]
+    "lib": ["ESNext", "DOM"],
+    "baseUrl": ".",
+    "paths": {
+      "core": ["packages/core/index.ts"],
+      "core/*": ["packages/core/*.ts"],
+      "db": ["packages/db/index.ts"],
+      "db/*": ["packages/db/*.ts"]
+    }
   },
   "exclude": ["node_modules"]
 }
