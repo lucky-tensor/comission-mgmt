@@ -21,6 +21,7 @@
     "test:commission-runs": "bun --bun vitest run --config vitest.commission-runs.config.ts",
     "test:exceptions": "bun --bun vitest run --config vitest.exceptions.config.ts",
     "test:exports": "bun --bun vitest run --config vitest.exports.config.ts",
+    "test:producer-portal": "bun --bun vitest run --config vitest.producer-portal.config.ts",
     "migrate": "bun run packages/db/migrate.ts",
     "demo:seed": "bun run scripts/demo-seed.ts",
     "typecheck": "bun tsc --noEmit",

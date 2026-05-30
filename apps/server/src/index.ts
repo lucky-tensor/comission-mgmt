@@ -89,11 +89,12 @@ import {
 import { handleCreatePayrollExport, handleListPayrollExports } from './api/exports';
 import { handleDemoUsers, handleDemoSession, isDemoMode } from './api/demo-session';
 import { requireAuth } from './middleware/auth';
-// Producer Portal /me stubs — dev-scout #26
+// Producer Portal /me routes — issue #16
 // See docs/architecture/phase-producer-portal.md for integration seam decisions.
 import {
   handleGetMe,
   handleGetMyCommissionRecords,
+  handleGetMyPayouts,
   handleGetMyTierProgress,
   handleCreateMyDispute,
 } from './api/me';
@@ -402,13 +403,16 @@ async function fetchHandler(req: Request): Promise<Response> {
     return handleGetException(exceptionGetMatch[1], authResult.claims);
   }
 
-  // Producer Portal /me routes — stubs (dev-scout #26, all return 501)
+  // Producer Portal /me routes — issue #16
   // See docs/architecture/phase-producer-portal.md for integration seam decisions.
   if (req.method === 'GET' && pathname === '/me') {
     return handleGetMe(authResult.claims);
   }
   if (req.method === 'GET' && pathname === '/me/commission-records') {
     return handleGetMyCommissionRecords(req, authResult.claims);
+  }
+  if (req.method === 'GET' && pathname === '/me/payouts') {
+    return handleGetMyPayouts(req, authResult.claims);
   }
   if (req.method === 'GET' && pathname === '/me/tier-progress') {
     return handleGetMyTierProgress(authResult.claims);

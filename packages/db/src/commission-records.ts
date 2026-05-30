@@ -282,6 +282,97 @@ export async function adjustNetPayable(
 }
 
 // ---------------------------------------------------------------------------
+// listCommissionRecordsByContributor — SELECT records for a contributor (producer portal)
+// ---------------------------------------------------------------------------
+
+/**
+ * Lists all commission records for a given producer (by producer_id / user_id), scoped to org.
+ *
+ * Joins through the contributors table because commission_records.contributor_id is
+ * a foreign key to contributors.id, while the session user is identified by
+ * contributors.producer_id (= SessionClaims.user_id).
+ *
+ * Supports optional status filter (e.g. 'Held').
+ *
+ * Used by GET /me/commission-records to give producers visibility into their own records.
+ *
+ * Issue: feat: producer payout statement and deal visibility (#16)
+ */
+export async function listCommissionRecordsByContributor(
+  sql: Sql,
+  orgId: string,
+  producerId: string,
+  statusFilter?: string,
+): Promise<CommissionRecordRow[]> {
+  const enc = await getEncryptor();
+
+  const rows = await sql.unsafe(
+    `
+    SELECT cr.id, cr.org_id, cr.placement_id, cr.contributor_id, cr.plan_version_id,
+           cr.gross_amount, cr.net_payable, cr.tier_rate, cr.status,
+           cr.approval_actor, cr.approval_at, cr.created_at, cr.explanation, cr.hold_reason
+    FROM commission_records cr
+    JOIN contributors c ON c.id = cr.contributor_id
+    WHERE cr.org_id = $1
+      AND c.producer_id = $2
+      ${statusFilter ? `AND cr.status = '${statusFilter.replace(/'/g, "''")}'` : ''}
+    ORDER BY cr.created_at DESC
+    `,
+    [orgId, producerId],
+  );
+
+  if (!rows || rows.length === 0) return [];
+  return Promise.all(
+    (rows as unknown as CommissionRecordRawRow[]).map((row) => decryptRecordRow(enc, row)),
+  );
+}
+
+// ---------------------------------------------------------------------------
+// listApprovedPayoutsByContributor — SELECT Approved records in Approved runs (producer portal)
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns commission records for a producer (by producer_id / user_id) that are part
+ * of Approved commission runs. Used by GET /me/payouts to show historical approved payouts.
+ *
+ * Joins through contributors (via contributor_id → contributors.id → producer_id)
+ * so the caller can pass SessionClaims.user_id directly.
+ *
+ * Only records associated with an Approved run are returned (not merely Accrued/Held).
+ *
+ * Issue: feat: producer payout statement and deal visibility (#16)
+ */
+export async function listApprovedPayoutsByContributor(
+  sql: Sql,
+  orgId: string,
+  producerId: string,
+): Promise<CommissionRecordRow[]> {
+  const enc = await getEncryptor();
+
+  const rows = await sql.unsafe(
+    `
+    SELECT cr.id, cr.org_id, cr.placement_id, cr.contributor_id, cr.plan_version_id,
+           cr.gross_amount, cr.net_payable, cr.tier_rate, cr.status,
+           cr.approval_actor, cr.approval_at, cr.created_at, cr.explanation, cr.hold_reason
+    FROM commission_records cr
+    JOIN contributors c ON c.id = cr.contributor_id
+    JOIN commission_run_records crr ON crr.commission_record_id = cr.id
+    JOIN commission_runs run ON run.id = crr.run_id
+    WHERE cr.org_id = $1
+      AND c.producer_id = $2
+      AND run.status = 'Approved'
+    ORDER BY run.approved_at DESC, cr.created_at DESC
+    `,
+    [orgId, producerId],
+  );
+
+  if (!rows || rows.length === 0) return [];
+  return Promise.all(
+    (rows as unknown as CommissionRecordRawRow[]).map((row) => decryptRecordRow(enc, row)),
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Internal types and helper — decrypt a raw DB row
 // ---------------------------------------------------------------------------
 
