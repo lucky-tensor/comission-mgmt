@@ -479,6 +479,16 @@ CREATE INDEX IF NOT EXISTS idx_exceptions_org ON exceptions (org_id);
 CREATE INDEX IF NOT EXISTS idx_exceptions_placement ON exceptions (placement_id);
 CREATE INDEX IF NOT EXISTS idx_exceptions_status ON exceptions (org_id, status);
 
+-- Exception workflow additional columns (issue #14: exception request and approval workflow).
+-- commission_record_id: optional link to the affected CommissionRecord.
+-- impact_amount: Finance Admin-entered monetary impact of the exception.
+-- rejection_reason: reason supplied when Finance Admin rejects the request.
+-- attachment_url: URL/key to uploaded supporting documentation.
+ALTER TABLE exceptions ADD COLUMN IF NOT EXISTS commission_record_id UUID REFERENCES commission_records(id);
+ALTER TABLE exceptions ADD COLUMN IF NOT EXISTS impact_amount NUMERIC(15,2);
+ALTER TABLE exceptions ADD COLUMN IF NOT EXISTS rejection_reason TEXT;
+ALTER TABLE exceptions ADD COLUMN IF NOT EXISTS attachment_url TEXT;
+
 -- =============================================================================
 -- Attribution Events: immutable timeline of contribution assignment lifecycle events.
 -- Records submit, approve, and reject events for the manager split-approval workflow.
