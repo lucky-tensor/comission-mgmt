@@ -46,18 +46,26 @@ describe('Producer Portal — full user story', () => {
     // Payout statement renders the seeded payout. The placement is
     // collection-gated, so the record is Held at $5,000.00 gross (20000 × 25%)
     // with $0 net released — assert the gross figure and tier rate render.
+    // Scope to the payout table cell — "$5,000.00" also appears in the
+    // explanation paragraph, so an unscoped query is ambiguous.
     await expect.element(page.getByTestId('payout-table')).toBeInTheDocument();
-    await expect.element(page.getByText('$5,000.00')).toBeInTheDocument();
+    await expect
+      .element(page.getByTestId('payout-table').getByRole('cell', { name: '$5,000.00' }))
+      .toBeInTheDocument();
 
-    // Tier progress renders at the 25% tier rate (scoped to avoid the same
-    // text appearing in the payout table and the explanation).
+    // Tier progress renders.
     await expect.element(page.getByTestId('tier-progress')).toBeInTheDocument();
     await expect.element(page.getByTestId('tier-production')).toBeInTheDocument();
 
-    // Credited placements render the held record with its explanation.
+    // Credited placements render the held record with its explanation (scoped
+    // to the list to avoid colliding with the payout table).
     await expect.element(page.getByTestId('placements-list')).toBeInTheDocument();
     await expect
-      .element(page.getByText('Payment is pending client collection.', { exact: false }))
+      .element(
+        page
+          .getByTestId('placements-list')
+          .getByText('Payment is pending client collection.', { exact: false }),
+      )
       .toBeInTheDocument();
 
     // Submit a dispute against the producer's record.
