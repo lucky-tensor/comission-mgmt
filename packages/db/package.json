@@ -18,7 +18,9 @@
     "./encryption": "./src/encryption.ts",
     "./kms": "./src/kms.ts",
     "./kms-dev": "./src/kms-dev.ts",
-    "./placements": "./src/placements.ts"
+    "./placements": "./src/placements.ts",
+    "./contributors": "./src/contributors.ts",
+    "./attribution": "./src/attribution.ts"
   },
   "scripts": {
     "build": "tsc --noEmit --project tsconfig.json"

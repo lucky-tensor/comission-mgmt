@@ -6,6 +6,9 @@
       "core": ["../../packages/core/index.ts"],
       "core/*": ["../../packages/core/*.ts"],
       "db": ["../../packages/db/index.ts"],
+      "db/placements": ["../../packages/db/src/placements.ts"],
+      "db/contributors": ["../../packages/db/src/contributors.ts"],
+      "db/attribution": ["../../packages/db/src/attribution.ts"],
       "db/*": ["../../packages/db/*.ts"]
     },
     "noEmit": true
