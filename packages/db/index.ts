@@ -20,6 +20,7 @@ export { buildSslOptions } from './ssl';
 export {
   createPlacement,
   getPlacement,
+  listPlacements,
   _setEncryptorForTest,
   _resetEncryptorForTest,
 } from './src/placements.js';

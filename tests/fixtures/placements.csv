@@ -1,0 +1,4 @@
+client,job_order,candidate,start_date,fee_pct,compensation_base,gross_fee
+Acme Corp,Software Engineer,Alice Johnson,2025-03-01,20,150000,30000
+Globex Inc,Product Manager,Bob Smith,2025-04-15,18,180000,32400
+Initech LLC,Data Analyst,Carol White,2025-05-01,22,120000,26400

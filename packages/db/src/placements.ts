@@ -134,6 +134,37 @@ export async function createPlacement(sql: Sql, input: CreatePlacementInput): Pr
 }
 
 // ---------------------------------------------------------------------------
+// listPlacements — SELECT all for an org, then decrypt
+// ---------------------------------------------------------------------------
+
+/**
+ * Lists all placements for a given org, ordered by created_at descending.
+ * Decrypts the BYTEA columns transparently.
+ *
+ * @returns Array of decrypted Placement records (may be empty).
+ */
+export async function listPlacements(sql: Sql, orgId: string): Promise<Placement[]> {
+  const enc = await getEncryptor();
+
+  const rows = await sql.unsafe(
+    `
+    SELECT id, org_id, candidate_id, client_entity_id, job_title,
+           compensation_base, fee_amount, status, start_date, guarantee_days,
+           created_at, updated_at
+    FROM placements
+    WHERE org_id = $1
+    ORDER BY created_at DESC
+    `,
+    [orgId],
+  );
+
+  if (!rows || rows.length === 0) return [];
+  return Promise.all(
+    (rows as unknown as PlacementRawRow[]).map((row) => decryptPlacementRow(enc, row)),
+  );
+}
+
+// ---------------------------------------------------------------------------
 // getPlacement — SELECT then decrypt
 // ---------------------------------------------------------------------------
 
