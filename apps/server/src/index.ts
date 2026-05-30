@@ -39,6 +39,7 @@ import {
   handleListIncompletePlacements,
   handleUpdatePlacement,
   handleGetPartnerPlacement,
+  handleGetPlacementGuarantee,
 } from './api/placements';
 import {
   handleAddContributor,
@@ -357,6 +358,13 @@ async function fetchHandler(req: Request): Promise<Response> {
   }
   if (req.method === 'GET' && planAssignmentsMatch) {
     return handleListPlanAssignments(planAssignmentsMatch[1], authResult.claims);
+  }
+
+  // GET /placements/:id/guarantee — guarantee state and expiry (issue #19)
+  // Must be matched before the generic /placements/:id GET route.
+  const placementGuaranteeMatch = pathname.match(/^\/placements\/([^/]+)\/guarantee$/);
+  if (req.method === 'GET' && placementGuaranteeMatch) {
+    return handleGetPlacementGuarantee(placementGuaranteeMatch[1], authResult.claims);
   }
 
   // Commission calculation routes — POST /placements/:id/calculate

@@ -39,6 +39,10 @@ import {
   listIncompletePlacements,
   checkPlacementsComplete,
 } from 'db/placements';
+import {
+  getGuaranteePeriodForPlacement,
+  listPlacementIdsInsideGuaranteeWindow,
+} from 'db/guarantee-periods';
 import { sql as defaultSql, auditSql as defaultAuditSql } from 'db/index';
 import type { SessionClaims } from 'core/auth';
 import type { Sql } from 'postgres';
@@ -52,6 +56,24 @@ type SqlClient = Sql;
 function formatDate(value: Date | string | null | undefined): string | null {
   if (value == null) return null;
   const d = value instanceof Date ? value : new Date(value);
+  return d.toISOString().slice(0, 10);
+}
+
+/**
+ * Computes guarantee_expiry_date = start_date + guarantee_days.
+ * Returns null if either argument is absent.
+ *
+ * Uses UTC arithmetic to avoid timezone boundary issues.
+ * Issue: feat: guarantee period tracking and monitoring (#19)
+ */
+export function computeGuaranteeExpiryDate(
+  startDate: string | null | undefined,
+  guaranteeDays: number | null | undefined,
+): string | null {
+  if (!startDate || guaranteeDays == null || guaranteeDays < 0) return null;
+  const d = new Date(startDate + 'T00:00:00Z');
+  if (isNaN(d.getTime())) return null;
+  d.setUTCDate(d.getUTCDate() + guaranteeDays);
   return d.toISOString().slice(0, 10);
 }
 
@@ -289,6 +311,8 @@ export async function handleCreatePlacement(
   const db = sqlClient ?? defaultSql;
 
   try {
+    const guaranteeDays = typedBody.guarantee_days ?? null;
+    const startDate = typedBody.start_date ?? null;
     const placement = await createPlacement(db, {
       orgId: claims.org_id,
       candidateId: typedBody.candidate_id,
@@ -296,8 +320,9 @@ export async function handleCreatePlacement(
       jobTitle: typedBody.job_title,
       compensationBase: typedBody.compensation_base,
       feeAmount: resolveFeeAmount(typedBody),
-      startDate: typedBody.start_date ?? null,
-      guaranteeDays: typedBody.guarantee_days ?? null,
+      startDate,
+      guaranteeDays,
+      guaranteeExpiryDate: computeGuaranteeExpiryDate(startDate, guaranteeDays),
       status: 'Created',
     });
 
@@ -313,6 +338,7 @@ export async function handleCreatePlacement(
         status: placement.status,
         start_date: formatDate(placement.startDate),
         guarantee_days: placement.guaranteeDays,
+        guarantee_expiry_date: placement.guaranteeExpiryDate,
         is_confidential: placement.isConfidential,
         created_at: placement.createdAt,
         updated_at: placement.updatedAt,
@@ -450,7 +476,13 @@ export async function handleImportPlacements(
 /**
  * GET /placements — lists all placements for the authenticated tenant (org_id).
  *
+ * Supports optional query parameter:
+ *   ?guarantee=active — returns only placements currently inside an active guarantee window
+ *                        (today < guarantee_expiry_date AND guarantee_periods.status = 'Active').
+ *
  * Multi-tenant isolation: only placements with org_id === session org_id are returned.
+ *
+ * Issue: feat: guarantee period tracking and monitoring (#19)
  *
  * @param sqlClient - Optional injectable SQL client (for testing).
  */
@@ -460,9 +492,18 @@ export async function handleListPlacements(
   sqlClient?: SqlClient,
 ): Promise<Response> {
   const db = sqlClient ?? defaultSql;
+  const url = new URL(req.url);
+  const guaranteeFilter = url.searchParams.get('guarantee');
 
   try {
-    const placements = await listPlacements(db, claims.org_id);
+    let placements = await listPlacements(db, claims.org_id);
+
+    // Apply guarantee=active filter when requested
+    if (guaranteeFilter === 'active') {
+      const activeIds = await listPlacementIdsInsideGuaranteeWindow(db, claims.org_id);
+      placements = placements.filter((p) => activeIds.has(p.id));
+    }
+
     return jsonResponse(
       placements.map((p) => {
         const masked = shouldMask(claims, p.isConfidential);
@@ -477,6 +518,7 @@ export async function handleListPlacements(
           status: p.status,
           start_date: formatDate(p.startDate),
           guarantee_days: p.guaranteeDays,
+          guarantee_expiry_date: p.guaranteeExpiryDate,
           is_confidential: p.isConfidential,
           created_at: p.createdAt,
           updated_at: p.updatedAt,
@@ -532,6 +574,7 @@ export async function handleGetPlacement(
       status: placement.status,
       start_date: formatDate(placement.startDate),
       guarantee_days: placement.guaranteeDays,
+      guarantee_expiry_date: placement.guaranteeExpiryDate,
       is_confidential: placement.isConfidential,
       created_at: placement.createdAt,
       updated_at: placement.updatedAt,
@@ -688,6 +731,16 @@ export async function handleUpdatePlacement(
   const confidentialChanging =
     'is_confidential' in body && body.is_confidential !== existing.isConfidential;
 
+  // Recompute guarantee_expiry_date when start_date or guarantee_days changes.
+  // Use the incoming values if present, otherwise fall back to the existing record.
+  const newStartDate = 'start_date' in body ? (body.start_date ?? null) : existing.startDate;
+  const newGuaranteeDays =
+    'guarantee_days' in body ? (body.guarantee_days ?? null) : existing.guaranteeDays;
+  const newGuaranteeExpiryDate =
+    'start_date' in body || 'guarantee_days' in body
+      ? computeGuaranteeExpiryDate(newStartDate, newGuaranteeDays)
+      : undefined; // no change
+
   try {
     const updated = await updatePlacement(db, placementId, {
       candidateId: body.candidate_id,
@@ -697,6 +750,7 @@ export async function handleUpdatePlacement(
       feeAmount,
       startDate: 'start_date' in body ? body.start_date : undefined,
       guaranteeDays: 'guarantee_days' in body ? body.guarantee_days : undefined,
+      guaranteeExpiryDate: newGuaranteeExpiryDate,
       isConfidential: 'is_confidential' in body ? body.is_confidential : undefined,
     });
 
@@ -726,6 +780,7 @@ export async function handleUpdatePlacement(
       status: updated.status,
       start_date: formatDate(updated.startDate),
       guarantee_days: updated.guaranteeDays,
+      guarantee_expiry_date: updated.guaranteeExpiryDate,
       is_confidential: updated.isConfidential,
       created_at: updated.createdAt,
       updated_at: updated.updatedAt,
@@ -782,6 +837,7 @@ export async function handleGetPartnerPlacement(
       status: placement.status,
       start_date: formatDate(placement.startDate),
       guarantee_days: placement.guaranteeDays,
+      guarantee_expiry_date: placement.guaranteeExpiryDate,
       is_confidential: placement.isConfidential,
       created_at: placement.createdAt,
       updated_at: placement.updatedAt,
@@ -857,5 +913,59 @@ export async function handlePreflightCommissionRun(
   } catch (err: unknown) {
     console.error('[commission-runs] preflight error:', err);
     return errorResponse('Failed to validate commission run', 500);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// GET /placements/:id/guarantee — guarantee state and expiry for a placement
+// ---------------------------------------------------------------------------
+
+/**
+ * GET /placements/:id/guarantee — returns the current guarantee state and
+ * expiry date for a placement.
+ *
+ * Response body:
+ *   {
+ *     placement_id: string,
+ *     guarantee_expiry_date: string | null,   // from placements.guarantee_expiry_date
+ *     guarantee_state: GuaranteeState | null, // from guarantee_periods.status
+ *     guarantee_period_id: string | null      // guarantee_periods.id
+ *   }
+ *
+ * Returns 404 if the placement does not exist or belongs to a different tenant.
+ *
+ * Issue: feat: guarantee period tracking and monitoring (#19)
+ *
+ * @param sqlClient - Optional injectable SQL client (for testing).
+ */
+export async function handleGetPlacementGuarantee(
+  placementId: string,
+  claims: SessionClaims,
+  sqlClient?: SqlClient,
+): Promise<Response> {
+  const db = sqlClient ?? defaultSql;
+
+  try {
+    const placement = await getPlacement(db, placementId);
+
+    if (!placement) {
+      return errorResponse('Placement not found', 404);
+    }
+
+    if (placement.orgId !== claims.org_id) {
+      return errorResponse('Placement not found', 404);
+    }
+
+    const period = await getGuaranteePeriodForPlacement(db, claims.org_id, placementId);
+
+    return jsonResponse({
+      placement_id: placement.id,
+      guarantee_expiry_date: placement.guaranteeExpiryDate,
+      guarantee_state: period ? period.status : null,
+      guarantee_period_id: period ? period.id : null,
+    });
+  } catch (err: unknown) {
+    console.error('[placements] get guarantee error:', err);
+    return errorResponse('Failed to get guarantee status', 500);
   }
 }

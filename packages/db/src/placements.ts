@@ -44,6 +44,12 @@ export interface CreatePlacementInput {
   status?: PlacementStatus;
   startDate?: string | null;
   guaranteeDays?: number | null;
+  /**
+   * Pre-computed expiry date: start_date + guarantee_days.
+   * ISO date string (YYYY-MM-DD). NULL when start_date or guarantee_days is absent.
+   * Issue: feat: guarantee period tracking and monitoring (#19)
+   */
+  guaranteeExpiryDate?: string | null;
   isConfidential?: boolean;
 }
 
@@ -56,6 +62,11 @@ export interface UpdatePlacementInput {
   status?: PlacementStatus;
   startDate?: string | null;
   guaranteeDays?: number | null;
+  /**
+   * Pre-computed expiry date: start_date + guarantee_days.
+   * Issue: feat: guarantee period tracking and monitoring (#19)
+   */
+  guaranteeExpiryDate?: string | null;
   isConfidential?: boolean;
 }
 
@@ -89,6 +100,12 @@ export interface Placement {
   status: PlacementStatus;
   startDate: string | null;
   guaranteeDays: number | null;
+  /**
+   * Computed at write time: start_date + guarantee_days (ISO date string YYYY-MM-DD).
+   * NULL when start_date or guarantee_days is absent.
+   * Issue: feat: guarantee period tracking and monitoring (#19)
+   */
+  guaranteeExpiryDate: string | null;
   isConfidential: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -141,6 +158,8 @@ export async function createPlacement(sql: Sql, input: CreatePlacementInput): Pr
   const idColClause = input.id ? 'id,' : '';
   const startDateClause = input.startDate != null ? `'${input.startDate}',` : 'NULL,';
   const guaranteeDaysClause = input.guaranteeDays != null ? String(input.guaranteeDays) : 'NULL';
+  const guaranteeExpiryDateClause =
+    input.guaranteeExpiryDate != null ? `'${input.guaranteeExpiryDate}'` : 'NULL';
   const statusClause = input.status ?? 'Created';
   const isConfidentialClause = input.isConfidential === true ? 'true' : 'false';
 
@@ -149,14 +168,17 @@ export async function createPlacement(sql: Sql, input: CreatePlacementInput): Pr
     INSERT INTO placements (
       ${idColClause}
       org_id, candidate_id, client_entity_id, job_title,
-      compensation_base, fee_amount, status, start_date, guarantee_days, is_confidential
+      compensation_base, fee_amount, status, start_date, guarantee_days,
+      guarantee_expiry_date, is_confidential
     ) VALUES (
       ${idClause}
       '${input.orgId}', '${input.candidateId}', '${input.clientEntityId}', '${input.jobTitle}',
-      $1, $2, '${statusClause}', ${startDateClause} ${guaranteeDaysClause}, ${isConfidentialClause}
+      $1, $2, '${statusClause}', ${startDateClause} ${guaranteeDaysClause},
+      ${guaranteeExpiryDateClause}, ${isConfidentialClause}
     )
     RETURNING id, org_id, candidate_id, client_entity_id, job_title,
-              compensation_base, fee_amount, status, start_date, guarantee_days, is_confidential,
+              compensation_base, fee_amount, status, start_date, guarantee_days,
+              guarantee_expiry_date, is_confidential,
               created_at, updated_at
     `,
     [compensationBaseBuf, feeAmountBuf],
@@ -181,7 +203,8 @@ export async function listPlacements(sql: Sql, orgId: string): Promise<Placement
   const rows = await sql.unsafe(
     `
     SELECT id, org_id, candidate_id, client_entity_id, job_title,
-           compensation_base, fee_amount, status, start_date, guarantee_days, is_confidential,
+           compensation_base, fee_amount, status, start_date, guarantee_days,
+           guarantee_expiry_date, is_confidential,
            created_at, updated_at
     FROM placements
     WHERE org_id = $1
@@ -211,7 +234,8 @@ export async function getPlacement(sql: Sql, id: string): Promise<Placement | nu
   const rows = await sql.unsafe(
     `
     SELECT id, org_id, candidate_id, client_entity_id, job_title,
-           compensation_base, fee_amount, status, start_date, guarantee_days, is_confidential,
+           compensation_base, fee_amount, status, start_date, guarantee_days,
+           guarantee_expiry_date, is_confidential,
            created_at, updated_at
     FROM placements
     WHERE id = $1
@@ -279,6 +303,13 @@ export async function updatePlacement(
         : `guarantee_days = NULL`,
     );
   }
+  if ('guaranteeExpiryDate' in input) {
+    setClauses.push(
+      input.guaranteeExpiryDate != null
+        ? `guarantee_expiry_date = '${input.guaranteeExpiryDate}'`
+        : `guarantee_expiry_date = NULL`,
+    );
+  }
   if (input.isConfidential !== undefined) {
     setClauses.push(`is_confidential = ${input.isConfidential === true ? 'true' : 'false'}`);
   }
@@ -296,7 +327,8 @@ export async function updatePlacement(
     SET ${setClauses.join(', ')}
     WHERE id = $${paramIdx}
     RETURNING id, org_id, candidate_id, client_entity_id, job_title,
-              compensation_base, fee_amount, status, start_date, guarantee_days, is_confidential,
+              compensation_base, fee_amount, status, start_date, guarantee_days,
+              guarantee_expiry_date, is_confidential,
               created_at, updated_at
   `;
 
@@ -334,7 +366,7 @@ export async function listIncompletePlacements(
     `
     SELECT p.id, p.org_id, p.candidate_id, p.client_entity_id, p.job_title,
            p.compensation_base, p.fee_amount, p.status, p.start_date, p.guarantee_days,
-           p.is_confidential, p.created_at, p.updated_at,
+           p.guarantee_expiry_date, p.is_confidential, p.created_at, p.updated_at,
            COUNT(c.id) AS contributor_count
     FROM placements p
     LEFT JOIN contributors c ON c.placement_id = p.id AND c.org_id = $1
@@ -411,7 +443,7 @@ export async function checkPlacementsComplete(
     `
     SELECT p.id, p.org_id, p.candidate_id, p.client_entity_id, p.job_title,
            p.compensation_base, p.fee_amount, p.status, p.start_date, p.guarantee_days,
-           p.is_confidential, p.created_at, p.updated_at,
+           p.guarantee_expiry_date, p.is_confidential, p.created_at, p.updated_at,
            COUNT(c.id) AS contributor_count
     FROM placements p
     LEFT JOIN contributors c ON c.placement_id = p.id AND c.org_id = $1
@@ -468,6 +500,7 @@ interface PlacementRawRow {
   status: string;
   start_date: string | null;
   guarantee_days: number | null;
+  guarantee_expiry_date: Date | string | null;
   is_confidential: boolean;
   created_at: Date;
   updated_at: Date;
@@ -487,6 +520,15 @@ async function decryptPlacementRow(enc: FieldEncryptor, row: PlacementRawRow): P
     Buffer.isBuffer(row.fee_amount) ? row.fee_amount : Buffer.from(row.fee_amount),
   );
 
+  // guarantee_expiry_date may be a Date object from Postgres or a string
+  const rawExpiry = row.guarantee_expiry_date;
+  const guaranteeExpiryDate =
+    rawExpiry == null
+      ? null
+      : rawExpiry instanceof Date
+        ? rawExpiry.toISOString().slice(0, 10)
+        : String(rawExpiry).slice(0, 10);
+
   return {
     id: row.id,
     orgId: row.org_id,
@@ -498,6 +540,7 @@ async function decryptPlacementRow(enc: FieldEncryptor, row: PlacementRawRow): P
     status: row.status as PlacementStatus,
     startDate: row.start_date ?? null,
     guaranteeDays: row.guarantee_days ?? null,
+    guaranteeExpiryDate,
     isConfidential: row.is_confidential ?? false,
     createdAt: row.created_at,
     updatedAt: row.updated_at,

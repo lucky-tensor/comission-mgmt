@@ -24,6 +24,7 @@
     "test:producer-portal": "bun --bun vitest run --config vitest.producer-portal.config.ts",
     "test:tier-progress": "bun --bun vitest run --config vitest.tier-progress.config.ts",
     "test:reconciliation": "bun --bun vitest run --config vitest.reconciliation.config.ts",
+    "test:guarantee-tracking": "bun --bun vitest run --config vitest.guarantee-tracking.config.ts",
     "migrate": "bun run packages/db/migrate.ts",
     "demo:seed": "bun run scripts/demo-seed.ts",
     "typecheck": "bun tsc --noEmit",

@@ -13,7 +13,9 @@
     "./contributor-role": "./contributor-role.ts",
     "./placement-state": "./placement-state.ts",
     "./calculation-engine": "./calculation-engine.ts",
-    "./tier-progress": "./tier-progress.ts"
+    "./tier-progress": "./tier-progress.ts",
+    "./guarantee-state": "./guarantee-state.ts",
+    "./clawback-ledger": "./clawback-ledger.ts"
   },
   "scripts": {
     "build": "tsc --noEmit"

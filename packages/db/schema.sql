@@ -813,3 +813,24 @@ CREATE INDEX IF NOT EXISTS idx_disputes_commission_record ON disputes (commissio
 -- =============================================================================
 
 ALTER TABLE placements ADD COLUMN IF NOT EXISTS is_confidential BOOLEAN NOT NULL DEFAULT false;
+
+-- =============================================================================
+-- Guarantee period tracking — expiry date persisted on placement for efficient
+-- cron scans. guarantee_expiry_date = start_date + guarantee_days.
+-- Stored as a computed-at-write DATE to allow an index scan in the expiry cron.
+-- Canonical: docs/prd.md §5.6, docs/architecture/phase-post-placement-risk.md §Seam 2
+-- Issue: feat: guarantee period tracking and monitoring (#19)
+-- =============================================================================
+
+ALTER TABLE placements ADD COLUMN IF NOT EXISTS guarantee_expiry_date DATE;
+
+CREATE INDEX IF NOT EXISTS idx_placements_guarantee_expiry
+  ON placements (guarantee_expiry_date)
+  WHERE guarantee_expiry_date IS NOT NULL;
+
+-- guarantee_periods.expired_at: timestamp when the guarantee was expired by the cron.
+ALTER TABLE guarantee_periods ADD COLUMN IF NOT EXISTS expired_at TIMESTAMPTZ;
+
+CREATE INDEX IF NOT EXISTS idx_guarantee_periods_expiry_scan
+  ON guarantee_periods (guarantee_ends)
+  WHERE status = 'Active';
