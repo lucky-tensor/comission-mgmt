@@ -200,6 +200,17 @@ export {
 } from './src/disputes.js';
 export type { DisputeRow, DisputeState, CreateDisputeInput } from './src/disputes.js';
 
+export {
+  createGuaranteePeriod,
+  getGuaranteePeriodForPlacement,
+  listActiveExpiredGuaranteePeriods,
+  expireGuaranteePeriodClean,
+  releaseHeldCommissionRecordsForPlacement,
+  advancePlacementToGuaranteeExpired,
+  listPlacementIdsInsideGuaranteeWindow,
+} from './src/guarantee-periods.js';
+export type { GuaranteePeriodRow, CreateGuaranteePeriodInput } from './src/guarantee-periods.js';
+
 const DEFAULT_DATABASE_URLS = {
   app: 'postgres://app_rw:app_rw_password@localhost:5432/commission_app',
   audit: 'postgres://audit_w:audit_w_password@localhost:5432/commission_audit',
