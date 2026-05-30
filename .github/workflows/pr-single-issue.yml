@@ -1,0 +1,44 @@
+# pr-single-issue.yml — Required check: every PR must close exactly one issue.
+#
+# Blueprint: CI-C-001 (single-issue-per-pr)
+# The check parses the PR body for "closes #NNN" or "fixes #NNN" patterns.
+# It fails if zero or more than one closing reference is found.
+#
+# This workflow is a required status check enforced by the branch protection
+# ruleset. A PR without this passing cannot be merged.
+
+name: PR closes exactly one issue
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, edited, reopened, synchronize]
+
+permissions:
+  pull-requests: read
+
+jobs:
+  single-issue:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check PR body closes exactly one issue
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          COUNT=$(echo "$PR_BODY" | grep -oiE '(closes|fixes|resolves)[[:space:]]+#[0-9]+' | wc -l)
+
+          echo "Found $COUNT closing reference(s) in PR body."
+
+          if [[ "$COUNT" -eq 0 ]]; then
+            echo "::error::PR body contains no closing reference (e.g. 'Closes #123')."
+            echo "::error::Every PR must close exactly one tracked issue."
+            exit 1
+          fi
+
+          if [[ "$COUNT" -gt 1 ]]; then
+            echo "::error::PR body contains $COUNT closing references — expected exactly 1."
+            echo "::error::Split this PR into one PR per issue."
+            exit 1
+          fi
+
+          echo "OK: PR closes exactly one issue."

@@ -1,0 +1,35 @@
+name: Unit Tests
+
+on:
+  push:
+    branches: [main, 'feat/**', 'fix/**', 'chore/**']
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+      - '.agents/**'
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+      - '.agents/**'
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - name: Install dependencies
+        run: bun install --frozen-lockfile --ignore-scripts
+      - name: Run unit tests
+        run: |
+          if compgen -G "tests/unit/**/*.test.ts" > /dev/null 2>&1 || \
+             compgen -G "apps/*/tests/unit/**/*.test.ts" > /dev/null 2>&1 || \
+             compgen -G "packages/*/tests/unit/**/*.test.ts" > /dev/null 2>&1; then
+            bun --bun vitest run tests/unit apps/*/tests/unit packages/*/tests/unit
+          else
+            echo "::notice::No unit test files found — skipping (tests land with implementation issues)"
+          fi

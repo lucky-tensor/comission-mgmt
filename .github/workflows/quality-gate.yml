@@ -1,0 +1,85 @@
+name: Quality gate
+
+on:
+  push:
+    branches: [main, 'feat/**', 'fix/**', 'chore/**']
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+      - '.agents/**'
+      - 'CLAUDE.md'
+      - 'AGENTS.md'
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+      - '.agents/**'
+      - 'CLAUDE.md'
+      - 'AGENTS.md'
+  workflow_dispatch:
+
+concurrency:
+  group: quality-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - name: Install dependencies
+        run: bun install --frozen-lockfile --ignore-scripts
+      - name: Type check
+        run: bun run typecheck
+      - name: Lint check
+        run: bun run lint
+      - name: Format check
+        run: bun run format:check
+      - name: Build verification
+        run: bun run build
+      - name: CRM symbol ban — no smart-crm imports
+        # Blueprint: CI-C-002 — commission-mgmt must not import CRM-specific symbols
+        run: |
+          echo "=== CRM symbol ban: scanning for smart-crm / crm / annotation / ingestion ==="
+          HITS=$(grep -rn --include='*.ts' --include='*.tsx' \
+            'smart-crm\|from.*crm\|annotation\|ingestion' \
+            apps/ packages/ 2>/dev/null | grep -v node_modules | grep -v '.d.ts' || true)
+          if [[ -n "$HITS" ]]; then
+            echo "::error::CRM-specific symbols found in source:"
+            echo "$HITS"
+            exit 1
+          fi
+          echo "OK: no CRM symbols found."
+      - name: Mock-ban gate — no vi.fn / vi.mock / vi.spyOn in changed test files
+        # Blueprint: TEST-C-001 (no-mocks)
+        run: |
+          echo "=== Mock-ban gate: scanning changed test files for vi.fn|vi.mock|vi.spyOn|vi.stubGlobal ==="
+          CHANGED_TEST_FILES=$(git diff --name-only origin/main...HEAD -- \
+            'tests/**/*.ts' 'tests/**/*.tsx' \
+            'apps/*/tests/**/*.ts' 'apps/*/tests/**/*.tsx' \
+            'packages/*/tests/**/*.ts' 'packages/*/tests/**/*.tsx' \
+            2>/dev/null || true)
+          if [[ -z "$CHANGED_TEST_FILES" ]]; then
+            echo "No test files changed — mock-ban gate skipped."
+            exit 0
+          fi
+          echo "Scanning changed test files:"
+          echo "$CHANGED_TEST_FILES"
+          FAIL=0
+          while IFS= read -r file; do
+            [[ -f "$file" ]] || continue
+            MATCHES=$(grep -n 'vi\.fn\b\|vi\.mock\b\|vi\.spyOn\b\|vi\.stubGlobal\b' "$file" \
+              | grep -v '^\s*//' || true)
+            if [[ -n "$MATCHES" ]]; then
+              echo "::error file=$file::Mock usage detected (TEST-C-001 violation):"
+              echo "$MATCHES"
+              FAIL=1
+            fi
+          done <<< "$CHANGED_TEST_FILES"
+          if [[ $FAIL -ne 0 ]]; then
+            echo "Mock-ban gate FAILED. Replace vi.fn/vi.mock/vi.spyOn with real dependencies or MSW fixtures."
+            exit 1
+          fi
+          echo "OK: no mock usage in changed test files."
