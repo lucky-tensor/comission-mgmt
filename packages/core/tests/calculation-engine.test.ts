@@ -136,9 +136,7 @@ describe('NoOpCalculationEngine', () => {
     });
 
     it('does not throw for valid input', async () => {
-      await expect(
-        engine.applyGuaranteeHold(STUB_PAYABLE, STUB_INPUT),
-      ).resolves.not.toThrow();
+      await expect(engine.applyGuaranteeHold(STUB_PAYABLE, STUB_INPUT)).resolves.not.toThrow();
     });
   });
 });

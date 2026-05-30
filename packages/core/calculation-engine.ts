@@ -231,10 +231,7 @@ export class NoOpCalculationEngine implements CalculationEngine {
     return { tieredGross: 0, appliedRate: null };
   }
 
-  async recoverDraw(
-    _tiered: TieredResult,
-    _input: CalculationInput,
-  ): Promise<DrawRecoveryResult> {
+  async recoverDraw(_tiered: TieredResult, _input: CalculationInput): Promise<DrawRecoveryResult> {
     return { netAfterDraw: 0, drawDeducted: 0 };
   }
 
