@@ -32,11 +32,11 @@
 import { getPlacement } from 'db/placements';
 import { listContributors } from 'db/contributors';
 import {
+  sql as defaultSql,
   createCommissionRecord,
   listCommissionRecords,
   type CreateCommissionRecordInput,
-} from 'db/commission-records';
-import { sql as defaultSql } from 'db/index';
+} from 'db/index';
 import type { SessionClaims } from 'core/auth';
 import type { Sql } from 'postgres';
 import {
