@@ -6,22 +6,26 @@
  *   GET    /commission-runs/:id/queue                  — review queue: ready, held, exception-pending records
  *   POST   /commission-runs/:id/records/:rid/approve   — individually approve a commission record
  *   POST   /commission-runs/:id/approve                — approve entire run (requires all records approved)
+ *   POST   /commission-runs/:id/finalize               — finalize run (gate: zero unacknowledged reconciliation discrepancies)
  *
  * Business rules:
  *   - POST /commission-runs pre-flight: rejects with 422 if any placement in scope is incomplete.
  *   - POST /commission-runs/:id/approve: rejects with 422 if any record is not individually approved.
  *   - An approved run is immutable — PATCH on included CommissionRecords returns 409 Conflict.
+ *   - POST /commission-runs/:id/finalize: rejects with 422 if unacknowledged reconciliation
+ *     discrepancies exist unless an override_reason is supplied.
  *
  * Multi-tenant isolation: all queries are scoped to the session org_id.
  *
  * Injectable sql (for testing): all handler functions accept an optional SqlClient.
  *
- * Canonical docs: docs/prd.md §5.4, §9
+ * Canonical docs: docs/prd.md §5.4, §5.8, §9
  * Issue: feat: finance admin commission run and review queue (#13)
+ * Issue: feat: financial reconciliation report (#65)
  */
 
 import type { Sql } from 'postgres';
-import { sql as defaultSql } from 'db/index';
+import { sql as defaultSql, auditSql as defaultAuditSql } from 'db/index';
 import { checkPlacementsComplete } from 'db/placements';
 import { listCommissionRecords } from 'db/commission-records';
 import {
@@ -31,6 +35,7 @@ import {
   approveRunRecord,
   approveCommissionRun,
 } from 'db/commission-runs';
+import { countUnacknowledgedDiscrepancies } from 'db/reconciliation';
 import type { SessionClaims } from 'core/auth';
 
 type SqlClient = Sql;
@@ -432,5 +437,174 @@ export async function handleApproveCommissionRun(
   } catch (err: unknown) {
     console.error('[commission-runs] approve run error:', err);
     return errorResponse('Failed to approve commission run', 500);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// POST /commission-runs/:id/finalize — finalization gate with reconciliation check
+// ---------------------------------------------------------------------------
+
+export interface FinalizeCommissionRunBody {
+  /** If provided, bypasses the reconciliation gate with a documented reason. */
+  override_reason?: string;
+}
+
+/**
+ * POST /commission-runs/:id/finalize — Finance Admin finalizes a commission run.
+ *
+ * Pre-flight reconciliation gate:
+ *   If any unacknowledged reconciliation discrepancies exist for the run's period,
+ *   returns 422 with the unacknowledged count unless override_reason is supplied.
+ *
+ * On success, re-uses the approveCommissionRun logic to mark the run Approved
+ * (finalize is the reconciliation-gated path to the same Approved terminal state).
+ *
+ * Writes an AuditLogEntry to commission_audit when a finalization override is used.
+ *
+ * @param runId          - Commission run UUID.
+ * @param sqlClient      - Optional injectable SQL client (for testing).
+ * @param auditSqlClient - Optional injectable audit SQL client (for testing).
+ */
+export async function handleFinalizeCommissionRun(
+  runId: string,
+  req: Request,
+  claims: SessionClaims,
+  sqlClient?: SqlClient,
+  auditSqlClient?: SqlClient,
+): Promise<Response> {
+  const db = sqlClient ?? defaultSql;
+  const adb = auditSqlClient ?? defaultAuditSql;
+
+  let body: Partial<FinalizeCommissionRunBody> = {};
+  try {
+    const text = await req.text();
+    if (text.trim().length > 0) {
+      body = JSON.parse(text) as Partial<FinalizeCommissionRunBody>;
+    }
+  } catch {
+    return errorResponse('Invalid JSON body', 400);
+  }
+
+  // Verify run exists
+  let run;
+  try {
+    run = await getCommissionRun(db, claims.org_id, runId);
+  } catch (err: unknown) {
+    console.error('[commission-runs] finalize get run error:', err);
+    return errorResponse('Failed to retrieve commission run', 500);
+  }
+
+  if (!run) {
+    return errorResponse('Commission run not found', 404);
+  }
+
+  if (run.status === 'Approved') {
+    return errorResponse('Commission run is already finalized', 409);
+  }
+
+  // Reconciliation gate: check for unacknowledged discrepancies in the run period
+  let unacknowledgedCount = 0;
+  try {
+    unacknowledgedCount = await countUnacknowledgedDiscrepancies(
+      db,
+      claims.org_id,
+      run.periodStart,
+      run.periodEnd,
+    );
+  } catch (err: unknown) {
+    console.error('[commission-runs] finalize reconciliation check error:', err);
+    return errorResponse('Failed to check reconciliation discrepancies', 500);
+  }
+
+  const hasOverride =
+    typeof body.override_reason === 'string' && body.override_reason.trim().length > 0;
+
+  if (unacknowledgedCount > 0 && !hasOverride) {
+    return jsonResponse(
+      {
+        error:
+          'Cannot finalize run: unacknowledged reconciliation discrepancies exist for the run period',
+        unacknowledged_discrepancy_count: unacknowledgedCount,
+        hint: 'Acknowledge all discrepancies via POST /reconciliation/:id/acknowledge, or supply override_reason to bypass.',
+      },
+      422,
+    );
+  }
+
+  // Check all commission records are individually approved
+  let runRecords;
+  try {
+    runRecords = await getCommissionRunRecords(db, claims.org_id, runId);
+  } catch (err: unknown) {
+    console.error('[commission-runs] finalize get records error:', err);
+    return errorResponse('Failed to retrieve run records', 500);
+  }
+
+  const unapproved = runRecords.filter((r) => !r.individuallyApproved);
+  if (unapproved.length > 0) {
+    return jsonResponse(
+      {
+        error: 'Cannot finalize run: some records are not yet individually approved',
+        unapproved_record_ids: unapproved.map((r) => r.commissionRecordId),
+      },
+      422,
+    );
+  }
+
+  // Write override audit log if applicable
+  if (hasOverride) {
+    try {
+      const afterJsonStr = JSON.stringify({
+        run_id: runId,
+        period_start: run.periodStart,
+        period_end: run.periodEnd,
+        override_reason: body.override_reason!.trim(),
+        unacknowledged_discrepancy_count: unacknowledgedCount,
+        finalized_by: claims.user_id,
+      });
+      const afterJsonClause = `'${afterJsonStr.replace(/'/g, "''")}'::jsonb`;
+      await adb.unsafe(
+        `
+        INSERT INTO audit_log_entries (
+          org_id, actor_id, actor_type, action, entity_type, entity_id, before_json, after_json
+        ) VALUES ($1, $2, $3, $4, $5, $6, NULL, ${afterJsonClause})
+        `,
+        [
+          claims.org_id,
+          claims.user_id,
+          'User',
+          'commission_run.finalization.override',
+          'commission_run',
+          runId,
+        ],
+      );
+    } catch (err: unknown) {
+      console.error('[commission-runs] finalize override audit log error (non-fatal):', err);
+    }
+  }
+
+  // Finalize (same terminal state as approve)
+  try {
+    const finalized = await approveCommissionRun(db, claims.org_id, runId, claims.user_id);
+
+    if (!finalized) {
+      return errorResponse('Failed to finalize commission run', 500);
+    }
+
+    return jsonResponse({
+      id: finalized.id,
+      org_id: finalized.orgId,
+      period_start: finalized.periodStart,
+      period_end: finalized.periodEnd,
+      status: finalized.status,
+      created_by: finalized.createdBy,
+      approved_by: finalized.approvedBy,
+      approved_at: finalized.approvedAt,
+      created_at: finalized.createdAt,
+      override_reason: hasOverride ? body.override_reason!.trim() : null,
+    });
+  } catch (err: unknown) {
+    console.error('[commission-runs] finalize error:', err);
+    return errorResponse('Failed to finalize commission run', 500);
   }
 }
