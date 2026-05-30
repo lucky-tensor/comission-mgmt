@@ -32,6 +32,7 @@ import {
   listApprovedPayoutsByContributor,
 } from 'db/index';
 import { getBillingPhase } from 'db/billing-phases';
+import { handleCreateDispute } from './disputes';
 
 type SqlClient = Sql;
 
@@ -241,21 +242,29 @@ export function handleGetMyTierProgress(_claims: SessionClaims): Response {
 }
 
 // ---------------------------------------------------------------------------
-// POST /me/disputes (stub)
+// POST /me/disputes — delegate to handleCreateDispute (issue #18)
 // ---------------------------------------------------------------------------
 
 /**
  * POST /me/disputes
  *
  * Opens a dispute against one of the producer's commission records.
- * Scout stub — returns 501 Not Implemented.
+ * Delegates to the /disputes handler — the producer's user_id is automatically
+ * used as submitted_by from the session claims.
  *
- * Planned implementation notes:
- *   - Validates that the commission record belongs to claims.user_id and claims.org_id.
- *   - Reuses the existing exceptions table and workflow (handleCreateException).
- *   - Returns 201 with the created exception id on success.
- *   - No new storage required — disputes are exceptions with source='producer_dispute'.
+ * Required body: { commission_record_id, description }
+ * Returns 201 with the created dispute on success.
+ *
+ * @param req    - HTTP request with JSON body
+ * @param claims - Session claims (org_id, user_id)
+ * @param sqlClient      - Optional injectable SQL client (for testing)
+ * @param auditSqlClient - Optional injectable audit SQL client (for testing)
  */
-export function handleCreateMyDispute(_req: Request, _claims: SessionClaims): Response {
-  return notImplemented('Producer dispute submission — not yet implemented');
+export async function handleCreateMyDispute(
+  req: Request,
+  claims: SessionClaims,
+  sqlClient?: SqlClient,
+  auditSqlClient?: SqlClient,
+): Promise<Response> {
+  return handleCreateDispute(req, claims, sqlClient, auditSqlClient);
 }

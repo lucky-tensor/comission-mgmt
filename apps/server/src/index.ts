@@ -89,6 +89,11 @@ import {
   handleRejectException,
 } from './api/exceptions';
 import { handleCreatePayrollExport, handleListPayrollExports } from './api/exports';
+import {
+  handleCreateDispute,
+  handleListDisputes,
+  handleResolveDispute,
+} from './api/disputes';
 import { handleDemoUsers, handleDemoSession, isDemoMode } from './api/demo-session';
 import { requireAuth } from './middleware/auth';
 // Producer Portal /me routes — issue #16
@@ -418,6 +423,21 @@ async function fetchHandler(req: Request): Promise<Response> {
   const exceptionGetMatch = pathname.match(/^\/exceptions\/([^/]+)$/);
   if (req.method === 'GET' && exceptionGetMatch) {
     return handleGetException(exceptionGetMatch[1], authResult.claims);
+  }
+
+  // Disputes routes — issue #18
+  // POST /disputes — Producer submits a dispute
+  // GET  /disputes — role-scoped list (Finance Admin: all; Producer: own only)
+  // POST /disputes/:id/resolve — Finance Admin resolves a dispute
+  if (req.method === 'POST' && pathname === '/disputes') {
+    return handleCreateDispute(req, authResult.claims);
+  }
+  if (req.method === 'GET' && pathname === '/disputes') {
+    return handleListDisputes(req, authResult.claims);
+  }
+  const disputeResolveMatch = pathname.match(/^\/disputes\/([^/]+)\/resolve$/);
+  if (req.method === 'POST' && disputeResolveMatch) {
+    return handleResolveDispute(disputeResolveMatch[1], req, authResult.claims);
   }
 
   // Producer Portal /me routes — issue #16
