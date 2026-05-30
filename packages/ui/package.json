@@ -1,0 +1,15 @@
+{
+  "name": "ui",
+  "private": true,
+  "main": "index.ts",
+  "scripts": {
+    "build": "echo 'ui: no build step (imported directly by Vite)'"
+  },
+  "dependencies": {
+    "react": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "typescript": "^5.0.0"
+  }
+}
