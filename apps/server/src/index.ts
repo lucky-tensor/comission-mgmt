@@ -79,6 +79,13 @@ import {
   handleApproveRunRecord,
   handleApproveCommissionRun,
 } from './api/commission-runs';
+import {
+  handleCreateException,
+  handleListExceptions,
+  handleGetException,
+  handleApproveException,
+  handleRejectException,
+} from './api/exceptions';
 import { handleDemoUsers, handleDemoSession, isDemoMode } from './api/demo-session';
 import { requireAuth } from './middleware/auth';
 
@@ -354,6 +361,26 @@ async function fetchHandler(req: Request): Promise<Response> {
   const invoicePatchMatch = pathname.match(/^\/invoices\/([^/]+)$/);
   if (req.method === 'PATCH' && invoicePatchMatch) {
     return handleUpdateInvoice(invoicePatchMatch[1], req, authResult.claims);
+  }
+
+  // Exception workflow routes — authenticated (session cookie), scoped to tenant
+  if (req.method === 'POST' && pathname === '/exceptions') {
+    return handleCreateException(req, authResult.claims);
+  }
+  if (req.method === 'GET' && pathname === '/exceptions') {
+    return handleListExceptions(req, authResult.claims);
+  }
+  const exceptionApproveMatch = pathname.match(/^\/exceptions\/([^/]+)\/approve$/);
+  if (req.method === 'POST' && exceptionApproveMatch) {
+    return handleApproveException(exceptionApproveMatch[1], authResult.claims);
+  }
+  const exceptionRejectMatch = pathname.match(/^\/exceptions\/([^/]+)\/reject$/);
+  if (req.method === 'POST' && exceptionRejectMatch) {
+    return handleRejectException(exceptionRejectMatch[1], req, authResult.claims);
+  }
+  const exceptionGetMatch = pathname.match(/^\/exceptions\/([^/]+)$/);
+  if (req.method === 'GET' && exceptionGetMatch) {
+    return handleGetException(exceptionGetMatch[1], authResult.claims);
   }
 
   // 404 for all other paths

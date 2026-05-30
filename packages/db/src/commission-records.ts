@@ -226,6 +226,62 @@ export async function getCommissionRecord(
 }
 
 // ---------------------------------------------------------------------------
+// adjustNetPayable — apply a ledger adjustment to net_payable
+// ---------------------------------------------------------------------------
+
+/**
+ * Reads the current net_payable for a CommissionRecord, adds adjustmentAmount,
+ * and writes the re-encrypted value back.
+ *
+ * Used by the exception approval workflow to post a ledger adjustment when
+ * Finance Admin approves an exception with an impact_amount.
+ *
+ * Returns the new net_payable value as a string, or null if the record is not found.
+ *
+ * Issue: feat: exception request and approval workflow (#14)
+ */
+export async function adjustNetPayable(
+  sql: Sql,
+  orgId: string,
+  recordId: string,
+  adjustmentAmount: number,
+): Promise<string | null> {
+  const enc = await getEncryptor();
+
+  const rows = await sql.unsafe(
+    `
+    SELECT net_payable FROM commission_records
+    WHERE id = $1 AND org_id = $2
+    LIMIT 1
+    `,
+    [recordId, orgId],
+  );
+
+  if (!rows || rows.length === 0) return null;
+
+  const row = rows[0] as unknown as { net_payable: Buffer | Uint8Array };
+  const currentNetPayable = await enc.decrypt(
+    'commission_records',
+    'net_payable',
+    Buffer.isBuffer(row.net_payable) ? row.net_payable : Buffer.from(row.net_payable),
+  );
+
+  const newNetPayable = (parseFloat(currentNetPayable) + adjustmentAmount).toFixed(2);
+  const newNetPayableBytes = await enc.encrypt('commission_records', 'net_payable', newNetPayable);
+
+  await sql.unsafe(
+    `
+    UPDATE commission_records
+    SET net_payable = $1
+    WHERE id = $2 AND org_id = $3
+    `,
+    [newNetPayableBytes, recordId, orgId],
+  );
+
+  return newNetPayable;
+}
+
+// ---------------------------------------------------------------------------
 // Internal types and helper — decrypt a raw DB row
 // ---------------------------------------------------------------------------
 

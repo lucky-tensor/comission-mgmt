@@ -69,6 +69,7 @@ export {
   createCommissionRecord,
   listCommissionRecords,
   getCommissionRecord,
+  adjustNetPayable,
   _setEncryptorForTest as _setCommissionRecordEncryptorForTest,
   _resetEncryptorForTest as _resetCommissionRecordEncryptorForTest,
 } from './src/commission-records.js';
@@ -112,6 +113,21 @@ export type {
   CommissionRunStatus,
   CreateCommissionRunInput,
 } from './src/commission-runs.js';
+
+export {
+  createException,
+  getException,
+  listExceptions,
+  approveException,
+  rejectException,
+  EXCEPTION_TYPES,
+} from './src/exceptions.js';
+export type {
+  ExceptionRow,
+  ExceptionState,
+  ExceptionType,
+  CreateExceptionInput,
+} from './src/exceptions.js';
 
 const DEFAULT_DATABASE_URLS = {
   app: 'postgres://app_rw:app_rw_password@localhost:5432/commission_app',
