@@ -211,12 +211,19 @@ export async function handleGetCommissionRunQueue(
   }
 
   // Build the queue by fetching each commission record's status
-  // Group runRecords by commission_record_id for O(n) lookup
-  const runRecordMap = new Map(runRecords.map((r) => [r.commissionRecordId, r]));
-
   // Fetch all commission records for the placements referenced in this run
   // We need the commission record details. Since we only have run_records, we query directly.
-  const queueItems = [];
+  interface QueueItem {
+    commission_record_id: string;
+    run_record_id: string;
+    status: string;
+    hold_reason: string | null;
+    individually_approved: boolean;
+    individually_approved_by: string | null;
+    individually_approved_at: Date | null;
+    queue_category: string;
+  }
+  const queueItems: QueueItem[] = [];
   for (const rr of runRecords) {
     let crStatus = 'Accrued';
     let crHoldReason: string | null = null;
@@ -226,8 +233,9 @@ export async function handleGetCommissionRunQueue(
         [rr.commissionRecordId, claims.org_id],
       );
       if (rows && rows.length > 0) {
-        crStatus = (rows[0] as { status: string; hold_reason: string | null }).status;
-        crHoldReason = (rows[0] as { status: string; hold_reason: string | null }).hold_reason;
+        const row = rows[0] as unknown as { status: string; hold_reason: string | null };
+        crStatus = row.status;
+        crHoldReason = row.hold_reason;
       }
     } catch {
       // non-fatal — use default

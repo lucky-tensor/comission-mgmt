@@ -21,6 +21,7 @@
       "db/attribution": ["packages/db/src/attribution.ts"],
       "db/plans": ["packages/db/src/plans.ts"],
       "db/commission-records": ["packages/db/src/commission-records.ts"],
+      "db/commission-runs": ["packages/db/src/commission-runs.ts"],
       "db/invoices": ["packages/db/src/invoices.ts"],
       "db/*": ["packages/db/*.ts"]
     }
