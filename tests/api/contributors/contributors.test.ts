@@ -26,10 +26,7 @@ import { startPostgres, type PgContainer } from 'db/pg-container';
 import { migrate } from 'db/index';
 import { FieldEncryptor } from '../../../packages/db/src/encryption';
 import { LocalDevKmsAdapter } from '../../../packages/db/src/kms-dev';
-import {
-  _setEncryptorForTest,
-  _resetEncryptorForTest,
-} from '../../../packages/db/src/placements';
+import { _setEncryptorForTest, _resetEncryptorForTest } from '../../../packages/db/src/placements';
 import { CONTRIBUTOR_ROLES } from '../../../packages/core/contributor-role';
 import {
   handleAddContributor,
@@ -83,11 +80,7 @@ afterAll(async () => {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function makeRequest(opts: {
-  path: string;
-  method?: string;
-  body?: unknown;
-}): Request {
+function makeRequest(opts: { path: string; method?: string; body?: unknown }): Request {
   const method = opts.method ?? 'GET';
   return new Request(`http://localhost${opts.path}`, {
     method,

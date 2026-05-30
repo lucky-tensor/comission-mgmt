@@ -85,10 +85,7 @@ export async function createContributor(
  *
  * @returns Array of contributor records (may be empty).
  */
-export async function listContributors(
-  sql: Sql,
-  placementId: string,
-): Promise<Contributor[]> {
+export async function listContributors(sql: Sql, placementId: string): Promise<Contributor[]> {
   const rows = await sql.unsafe(
     `
     SELECT id, org_id, placement_id, producer_id, role_code,

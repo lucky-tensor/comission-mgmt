@@ -195,13 +195,19 @@ async function fetchHandler(req: Request): Promise<Response> {
   if (req.method === 'GET' && contributorBaseMatch) {
     return handleListContributors(contributorBaseMatch[1], authResult.claims);
   }
-  const validateSplitMatch = pathname.match(/^\/placements\/([^/]+)\/contributors\/validate-split$/);
+  const validateSplitMatch = pathname.match(
+    /^\/placements\/([^/]+)\/contributors\/validate-split$/,
+  );
   if (req.method === 'POST' && validateSplitMatch) {
     return handleValidateSplit(validateSplitMatch[1], authResult.claims);
   }
   const contributorDeleteMatch = pathname.match(/^\/placements\/([^/]+)\/contributors\/([^/]+)$/);
   if (req.method === 'DELETE' && contributorDeleteMatch) {
-    return handleDeleteContributor(contributorDeleteMatch[1], contributorDeleteMatch[2], authResult.claims);
+    return handleDeleteContributor(
+      contributorDeleteMatch[1],
+      contributorDeleteMatch[2],
+      authResult.claims,
+    );
   }
 
   // 404 for all other paths

@@ -27,7 +27,10 @@ export default defineConfig({
       { find: 'core/logger', replacement: resolve(root, 'packages/core/logger.ts') },
       { find: 'core/trace', replacement: resolve(root, 'packages/core/trace.ts') },
       { find: 'core/encryption', replacement: resolve(root, 'packages/core/encryption.ts') },
-      { find: 'core/contributor-role', replacement: resolve(root, 'packages/core/contributor-role.ts') },
+      {
+        find: 'core/contributor-role',
+        replacement: resolve(root, 'packages/core/contributor-role.ts'),
+      },
       { find: 'core/types', replacement: resolve(root, 'packages/core/types.ts') },
       { find: 'core', replacement: resolve(root, 'packages/core/index.ts') },
       // db/* — individual subpaths before catch-all
@@ -36,7 +39,10 @@ export default defineConfig({
       { find: 'db/pg-container', replacement: resolve(root, 'packages/db/pg-container.ts') },
       { find: 'db/ssl', replacement: resolve(root, 'packages/db/ssl.ts') },
       { find: 'db/src/placements', replacement: resolve(root, 'packages/db/src/placements.ts') },
-      { find: 'db/src/contributors', replacement: resolve(root, 'packages/db/src/contributors.ts') },
+      {
+        find: 'db/src/contributors',
+        replacement: resolve(root, 'packages/db/src/contributors.ts'),
+      },
       { find: 'db/placements', replacement: resolve(root, 'packages/db/src/placements.ts') },
       { find: 'db/contributors', replacement: resolve(root, 'packages/db/src/contributors.ts') },
       { find: 'db/index', replacement: resolve(root, 'packages/db/index.ts') },

@@ -161,7 +161,8 @@ export async function handleAddContributor(
   const splitPct = Number(body.split_pct);
   if (isNaN(splitPct) || splitPct <= 0 || splitPct > 1) {
     return errorResponse('Validation failed', 422, {
-      split_pct: 'split_pct must be a positive decimal fraction between 0 (exclusive) and 1 (inclusive)',
+      split_pct:
+        'split_pct must be a positive decimal fraction between 0 (exclusive) and 1 (inclusive)',
     });
   }
 
