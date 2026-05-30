@@ -230,7 +230,8 @@ export async function handleGetReconciliationReport(
       total_ar_records: arRecords.length,
       matched: matched.length,
       discrepancies: allDiscrepancies.length,
-      unacknowledged: allDiscrepancies.filter((d: ReconciliationDiscrepancy) => !d.acknowledged).length,
+      unacknowledged: allDiscrepancies.filter((d: ReconciliationDiscrepancy) => !d.acknowledged)
+        .length,
     },
     matched,
     discrepancies: allDiscrepancies.map(formatDiscrepancy),

@@ -80,10 +80,7 @@ import {
   handleApproveCommissionRun,
   handleFinalizeCommissionRun,
 } from './api/commission-runs';
-import {
-  handleGetReconciliationReport,
-  handleAcknowledgeDiscrepancy,
-} from './api/reconciliation';
+import { handleGetReconciliationReport, handleAcknowledgeDiscrepancy } from './api/reconciliation';
 import {
   handleCreateException,
   handleListExceptions,
@@ -398,15 +395,9 @@ async function fetchHandler(req: Request): Promise<Response> {
   if (req.method === 'GET' && pathname === '/reconciliation') {
     return handleGetReconciliationReport(req, authResult.claims);
   }
-  const reconciliationAcknowledgeMatch = pathname.match(
-    /^\/reconciliation\/([^/]+)\/acknowledge$/,
-  );
+  const reconciliationAcknowledgeMatch = pathname.match(/^\/reconciliation\/([^/]+)\/acknowledge$/);
   if (req.method === 'POST' && reconciliationAcknowledgeMatch) {
-    return handleAcknowledgeDiscrepancy(
-      reconciliationAcknowledgeMatch[1],
-      req,
-      authResult.claims,
-    );
+    return handleAcknowledgeDiscrepancy(reconciliationAcknowledgeMatch[1], req, authResult.claims);
   }
 
   // Exception workflow routes — authenticated (session cookie), scoped to tenant

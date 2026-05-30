@@ -394,7 +394,12 @@ describe('POST /reconciliation/:id/acknowledge (AC#5)', () => {
       path: `/reconciliation?period_start=${PERIOD_START}&period_end=${PERIOD_END}`,
       method: 'GET',
     });
-    const reportRes = await handleGetReconciliationReport(reportReq, adminClaims, testSql, auditSql);
+    const reportRes = await handleGetReconciliationReport(
+      reportReq,
+      adminClaims,
+      testSql,
+      auditSql,
+    );
     expect(reportRes.status).toBe(200);
     const reportBody = (await jsonBody(reportRes)) as {
       discrepancies: Array<{ id: string; discrepancy_type: string; acknowledged: boolean }>;
@@ -440,7 +445,12 @@ describe('POST /reconciliation/:id/acknowledge (AC#5)', () => {
       path: `/reconciliation?period_start=${PERIOD_START}&period_end=${PERIOD_END}`,
       method: 'GET',
     });
-    const reportRes = await handleGetReconciliationReport(reportReq, adminClaims, testSql, auditSql);
+    const reportRes = await handleGetReconciliationReport(
+      reportReq,
+      adminClaims,
+      testSql,
+      auditSql,
+    );
     const reportBody = (await jsonBody(reportRes)) as {
       discrepancies: Array<{ id: string }>;
     };
@@ -490,7 +500,12 @@ describe('POST /commission-runs/:id/finalize — reconciliation gate (AC#3)', ()
       path: `/reconciliation?period_start=${PERIOD_START}&period_end=${PERIOD_END}`,
       method: 'GET',
     });
-    const reportRes = await handleGetReconciliationReport(reportReq, adminClaims, testSql, auditSql);
+    const reportRes = await handleGetReconciliationReport(
+      reportReq,
+      adminClaims,
+      testSql,
+      auditSql,
+    );
     expect(reportRes.status).toBe(200);
     const reportBody = (await jsonBody(reportRes)) as { discrepancies: Array<{ id: string }> };
     expect(reportBody.discrepancies.length).toBeGreaterThanOrEqual(1);
@@ -558,7 +573,12 @@ describe('POST /commission-runs/:id/finalize — acknowledged and override paths
       path: `/reconciliation?period_start=${PERIOD_START}&period_end=${PERIOD_END}`,
       method: 'GET',
     });
-    const reportRes = await handleGetReconciliationReport(reportReq, adminClaims, testSql, auditSql);
+    const reportRes = await handleGetReconciliationReport(
+      reportReq,
+      adminClaims,
+      testSql,
+      auditSql,
+    );
     const reportBody = (await jsonBody(reportRes)) as { discrepancies: Array<{ id: string }> };
 
     // Acknowledge all
@@ -568,7 +588,13 @@ describe('POST /commission-runs/:id/finalize — acknowledged and override paths
         method: 'POST',
         body: { note: 'Acknowledged for test' },
       });
-      const ackRes = await handleAcknowledgeDiscrepancy(d.id, ackReq, adminClaims, testSql, auditSql);
+      const ackRes = await handleAcknowledgeDiscrepancy(
+        d.id,
+        ackReq,
+        adminClaims,
+        testSql,
+        auditSql,
+      );
       expect(ackRes.status).toBe(200);
     }
 
@@ -688,7 +714,12 @@ describe('AuditLogEntry created for acknowledgement and override (AC#6)', () => 
       path: `/reconciliation?period_start=${PERIOD_START}&period_end=${PERIOD_END}`,
       method: 'GET',
     });
-    const reportRes = await handleGetReconciliationReport(reportReq, adminClaims, testSql, auditSql);
+    const reportRes = await handleGetReconciliationReport(
+      reportReq,
+      adminClaims,
+      testSql,
+      auditSql,
+    );
     const reportBody = (await jsonBody(reportRes)) as { discrepancies: Array<{ id: string }> };
     const discrepancyId = reportBody.discrepancies[0].id;
 
