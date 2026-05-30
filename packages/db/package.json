@@ -1,0 +1,25 @@
+{
+  "name": "db",
+  "private": true,
+  "type": "module",
+  "main": "index.ts",
+  "types": "index.ts",
+  "exports": {
+    ".": "./index.ts",
+    "./revocation": "./revocation.ts",
+    "./migrate": "./migrate.ts",
+    "./ssl": "./ssl.ts",
+    "./task-queue": "./task-queue.ts",
+    "./worker-tokens": "./worker-tokens.ts"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "postgres": "^3.4.8"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.1",
+    "vitest": "^2.0.0"
+  }
+}

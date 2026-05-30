@@ -1,0 +1,19 @@
+{
+  "name": "commission-mgmt",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "bun run --filter '*' build",
+    "test": "bun run test:unit",
+    "test:unit": "bun --bun vitest run packages/core/tests packages/db/tests apps/server/tests/unit",
+    "typecheck": "bun tsc --noEmit",
+    "lint": "bunx eslint ."
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "vitest": "^2.0.0"
+  }
+}
