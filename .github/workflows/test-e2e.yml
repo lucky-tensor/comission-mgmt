@@ -1,0 +1,36 @@
+# test-e2e.yml — Producer Portal component + E2E browser suite (headless Chromium).
+#
+# Runs the Vitest browser-mode harness (vitest.browser.config.ts): React
+# component tests and the producer-portal E2E user-story test, in a real
+# headless Chromium via the Playwright provider. The E2E test's globalSetup
+# starts an ephemeral postgres:16 container (Docker, available on ubuntu-latest),
+# seeds a producer persona, and spawns the real API server.
+#
+# Blueprint: TEST-D-004 / IMPL-TEST-002 (headless-browser provider, never JSDOM).
+# Issue: feat: Producer Portal UI + headless-Chromium browser/E2E harness (#78)
+
+name: E2E browser tests
+
+on:
+  push:
+    branches: [main, 'feat/**', 'fix/**']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: test-e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Install Playwright Chromium
+        run: bunx playwright install --with-deps chromium
+      - name: Run browser component + E2E suite
+        run: bun run test:browser
