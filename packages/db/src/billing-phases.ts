@@ -171,32 +171,33 @@ export async function createBillingPhase(
     );
   }
 
-  const idClause = input.id ? `'${input.id}',` : '';
-  const idColClause = input.id ? 'id,' : '';
-  const invoiceClause = input.invoiceId ? `'${input.invoiceId}'` : 'NULL';
-  const billedParam = billedBuf ? '$3' : 'NULL';
-  const receivedParam = receivedBuf ? `$${billedBuf ? 4 : 3}` : 'NULL';
+  // Every caller-supplied value is bound as a $n parameter (DATA-C-005).
+  const cols: string[] = [];
+  const valuePlaceholders: string[] = [];
+  const params: unknown[] = [];
+  const bind = (col: string, value: unknown): void => {
+    cols.push(col);
+    params.push(value);
+    valuePlaceholders.push(`$${params.length}`);
+  };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const baseParams: any[] = [projectedBuf];
-  if (billedBuf) baseParams.push(billedBuf);
-  if (receivedBuf) baseParams.push(receivedBuf);
+  if (input.id) bind('id', input.id);
+  bind('org_id', input.orgId);
+  bind('placement_id', input.placementId);
+  bind('phase_name', input.phaseName);
+  bind('invoice_id', input.invoiceId ?? null);
+  bind('projected_amount', projectedBuf);
+  bind('billed_amount', billedBuf);
+  bind('received_amount', receivedBuf);
 
   const rows = await sql.unsafe(
     `
-    INSERT INTO billing_phases (
-      ${idColClause}
-      org_id, placement_id, phase_name, invoice_id,
-      projected_amount, billed_amount, received_amount
-    ) VALUES (
-      ${idClause}
-      '${input.orgId}', '${input.placementId}', '${input.phaseName}', ${invoiceClause},
-      $1, ${billedParam}, ${receivedParam}
-    )
+    INSERT INTO billing_phases (${cols.join(', ')})
+    VALUES (${valuePlaceholders.join(', ')})
     RETURNING id, org_id, placement_id, phase_name, invoice_id,
               projected_amount, billed_amount, received_amount, created_at, updated_at
     `,
-    baseParams,
+    params as (string | Buffer | null)[],
   );
 
   if (!rows || rows.length === 0) {
@@ -305,7 +306,12 @@ export async function updateBillingPhase(
   let paramIdx = 1;
 
   if ('invoiceId' in input) {
-    sets.push(input.invoiceId != null ? `invoice_id = '${input.invoiceId}'` : `invoice_id = NULL`);
+    if (input.invoiceId != null) {
+      sets.push(`invoice_id = $${paramIdx++}`);
+      params.push(input.invoiceId);
+    } else {
+      sets.push(`invoice_id = NULL`);
+    }
   }
 
   if (input.projectedAmount !== undefined) {

@@ -22,6 +22,11 @@
 
 import { log } from 'core/logger';
 import { runPingAgent } from './agents/ping';
+import { assertNoDbCredentials } from './startup-guard';
+
+// Fail fast if the worker was handed a DB credential or the encryption master
+// key — it is HTTP-only and must never hold one (WORKER-X-009, DATA-P-007).
+assertNoDbCredentials();
 
 const POLL_INTERVAL_MS = Number(process.env.POLL_INTERVAL_MS ?? '5000');
 const API_BASE_URL = process.env.API_BASE_URL ?? 'http://server:31415';

@@ -39,6 +39,9 @@ jobs:
         run: bun run format:check
       - name: Build verification
         run: bun run build
+      - name: SQL-injection gate — no raw interpolation into sql.unsafe()
+        # Blueprint: DATA-C-005 — caller values must be bound $n parameters
+        run: bun run check:sql-injection
       - name: CRM symbol ban — no smart-crm imports
         # Blueprint: CI-C-002 — commission-mgmt must not import CRM-specific symbols
         run: |

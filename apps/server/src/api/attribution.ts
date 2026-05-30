@@ -122,9 +122,14 @@ export async function handleSubmitAttribution(
       );
     }
 
-    const updated = await updatePlacement(db, placementId, {
-      status: 'PendingApproval' as PlacementStatus,
-    });
+    const updated = await updatePlacement(
+      db,
+      placementId,
+      {
+        status: 'PendingApproval' as PlacementStatus,
+      },
+      claims.org_id,
+    );
 
     if (!updated) return errorResponse('Placement not found', 404);
 
@@ -192,9 +197,14 @@ export async function handleApproveAttribution(
       );
     }
 
-    const updated = await updatePlacement(db, placementId, {
-      status: 'Active' as PlacementStatus,
-    });
+    const updated = await updatePlacement(
+      db,
+      placementId,
+      {
+        status: 'Active' as PlacementStatus,
+      },
+      claims.org_id,
+    );
 
     if (!updated) return errorResponse('Placement not found', 404);
 
@@ -279,9 +289,14 @@ export async function handleRejectAttribution(
       );
     }
 
-    const updated = await updatePlacement(db, placementId, {
-      status: 'ContributorsAssigned' as PlacementStatus,
-    });
+    const updated = await updatePlacement(
+      db,
+      placementId,
+      {
+        status: 'ContributorsAssigned' as PlacementStatus,
+      },
+      claims.org_id,
+    );
 
     if (!updated) return errorResponse('Placement not found', 404);
 

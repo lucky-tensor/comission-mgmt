@@ -3,10 +3,9 @@
 # Image tag is set at deploy time via deploy.sh — never hardcoded here.
 # All environment variables are sourced from the `superfield-api-secrets` Secret.
 #
-# Health probes:
-#   livenessProbe  → GET /health/live  (process alive)
-#   readinessProbe → GET /health/ready (DB reachable)
-#   /healthz is an alias for /health/live (backward compat with smoke tests)
+# Health probes (paths must match routes the server actually serves):
+#   livenessProbe  → GET /healthz (process alive)
+#   readinessProbe → GET /readyz  (DB reachable)
 #
 # Architecture constraints:
 #   - Distroless production image (WORKER-C-001 — no shell in runtime)
@@ -79,7 +78,7 @@ spec:
             failureThreshold: 3
           readinessProbe:
             httpGet:
-              path: /health/ready
+              path: /readyz
               port: 31415
             initialDelaySeconds: 10
             periodSeconds: 10

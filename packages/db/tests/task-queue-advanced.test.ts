@@ -176,67 +176,27 @@ describe('lease reclaim: stale claim recovery', () => {
 });
 
 // ---------------------------------------------------------------------------
-// 3. DB isolation: agent_rw role permissions
+// 3. Worker DB isolation: no worker DB identity exists at all
+//
+// The worker holds NO database credential. The schema must therefore provision
+// no `agent_rw` role and no `claimable_tasks` view — any such DB read path for
+// the worker is the prohibited pattern (WORKER-X-009, WORKER-P-008). All task
+// access is mediated by the application API.
 // ---------------------------------------------------------------------------
 
-describe('DB isolation: agent_rw role', () => {
-  test('agent_rw role cannot SELECT from domain table (placements)', async () => {
-    // Create the agent_rw role if missing and grant it a login for testing
-    // The schema migration creates the role; here we just add a login password
-    // for test purposes using the superuser connection.
-    await sql`
-      DO $$
-      BEGIN
-        IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'agent_rw') THEN
-          CREATE ROLE agent_rw NOLOGIN;
-        END IF;
-      END$$
+describe('Worker DB isolation: no worker DB role or read view', () => {
+  test('schema provisions no agent_rw role', async () => {
+    const rows = await sql<{ rolname: string }[]>`
+      SELECT rolname FROM pg_roles WHERE rolname = 'agent_rw'
     `;
-
-    // Give agent_rw login capability for this test
-    await sql`ALTER ROLE agent_rw LOGIN PASSWORD 'agent_rw_test'`;
-
-    // Build a connection URL using the agent_rw credentials
-    const agentRwUrl = pg.url
-      .replace(/\/\/[^:]+:[^@]+@/, '//agent_rw:agent_rw_test@')
-      .replace(/\/[^/]+$/, '/superfield'); // same DB
-
-    const agentSql = postgres(agentRwUrl, { max: 1 });
-
-    try {
-      // agent_rw should NOT be able to SELECT from placements
-      await expect(
-        agentSql`SELECT id FROM placements LIMIT 1`.catch((e: unknown) => {
-          throw e;
-        }),
-      ).rejects.toThrow();
-
-      // agent_rw SHOULD be able to SELECT from claimable_tasks view
-      const rows = await agentSql`SELECT * FROM claimable_tasks LIMIT 1`;
-      // Just assert that the query succeeded (rows may be empty, that's fine)
-      expect(Array.isArray(rows)).toBe(true);
-    } finally {
-      await agentSql.end({ timeout: 5 });
-      // Remove login capability after test
-      await sql`ALTER ROLE agent_rw NOLOGIN`;
-    }
+    expect(rows.length).toBe(0);
   });
 
-  test('agent_rw role cannot SELECT from commission_records', async () => {
-    await sql`ALTER ROLE agent_rw LOGIN PASSWORD 'agent_rw_test'`;
-
-    const agentRwUrl = pg.url
-      .replace(/\/\/[^:]+:[^@]+@/, '//agent_rw:agent_rw_test@')
-      .replace(/\/[^/]+$/, '/superfield');
-
-    const agentSql = postgres(agentRwUrl, { max: 1 });
-
-    try {
-      await expect(agentSql`SELECT id FROM commission_records LIMIT 1`).rejects.toThrow();
-    } finally {
-      await agentSql.end({ timeout: 5 });
-      await sql`ALTER ROLE agent_rw NOLOGIN`;
-    }
+  test('schema provisions no claimable_tasks view', async () => {
+    const rows = await sql<{ viewname: string }[]>`
+      SELECT viewname FROM pg_views WHERE viewname = 'claimable_tasks'
+    `;
+    expect(rows.length).toBe(0);
   });
 });
 

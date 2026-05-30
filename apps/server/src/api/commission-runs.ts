@@ -562,12 +562,11 @@ export async function handleFinalizeCommissionRun(
         unacknowledged_discrepancy_count: unacknowledgedCount,
         finalized_by: claims.user_id,
       });
-      const afterJsonClause = `'${afterJsonStr.replace(/'/g, "''")}'::jsonb`;
       await adb.unsafe(
         `
         INSERT INTO audit_log_entries (
           org_id, actor_id, actor_type, action, entity_type, entity_id, before_json, after_json
-        ) VALUES ($1, $2, $3, $4, $5, $6, NULL, ${afterJsonClause})
+        ) VALUES ($1, $2, $3, $4, $5, $6, NULL, $7::jsonb)
         `,
         [
           claims.org_id,
@@ -576,6 +575,7 @@ export async function handleFinalizeCommissionRun(
           'commission_run.finalization.override',
           'commission_run',
           runId,
+          afterJsonStr,
         ],
       );
     } catch (err: unknown) {
