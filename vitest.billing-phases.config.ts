@@ -1,19 +1,23 @@
 /**
- * Vitest configuration for invoice and collection tracking API integration tests.
+ * Vitest configuration for retained search billing phases API integration tests.
  *
  * Covers:
- *   - POST /invoices — create invoice linked to placement (status=Issued)
- *   - PATCH /invoices/:id — update status, amount_collected
- *   - PATCH /invoices/:id to status=Paid triggers collection gate release
- *   - PATCH /invoices/:id to status=WrittenOff produces AuditLogEntry
- *   - GET /commission-records?reason=collection_gate — filter Held records
- *   - POST /invoices/import — batch CSV import with re-evaluation
- *   - End-to-end: placement → calculate → invoice Paid → CommissionRecord=Payable
+ *   - POST /placements/:id/billing-phases — create billing phases (retainer, delivery)
+ *   - GET  /placements/:id/billing-phases — list billing phases
+ *   - PATCH /placements/:id/billing-phases/:phaseId — update phase (link invoice, amounts)
+ *   - POST /placements/:id/billing-phases/:phaseId/contributors — assign phase contributor
+ *   - GET  /placements/:id/billing-phases/:phaseId/contributors — list phase contributors
+ *   - POST /placements/:id/calculate-phases — per-phase commission calculation
+ *   - Phase-gated collection: retainer invoice paid → retainer released, delivery held
+ *   - Delivery invoice paid → delivery released
+ *   - GET /me/commission-records shows blocked_phase with held_pending_phase_invoice
+ *   - Relational journal entries with billing_phase_id on each release
+ *   - Regression: contingency placement flow unaffected
  *
  * Requires an ephemeral Postgres container (Docker) and uses workspace package
  * aliases for db/* and core/* imports.
  *
- * Issue: feat: invoice and collection tracking (#12)
+ * Issue: feat: retained search billing phases (#63)
  */
 import { defineConfig } from 'vitest/config';
 import { resolve } from 'path';
@@ -64,12 +68,12 @@ export default defineConfig({
       },
       { find: 'db/invoices', replacement: resolve(root, 'packages/db/src/invoices.ts') },
       {
-        find: 'db/commission-runs',
-        replacement: resolve(root, 'packages/db/src/commission-runs.ts'),
-      },
-      {
         find: 'db/billing-phases',
         replacement: resolve(root, 'packages/db/src/billing-phases.ts'),
+      },
+      {
+        find: 'db/commission-runs',
+        replacement: resolve(root, 'packages/db/src/commission-runs.ts'),
       },
       { find: 'db/index', replacement: resolve(root, 'packages/db/index.ts') },
       { find: 'db', replacement: resolve(root, 'packages/db/index.ts') },
@@ -78,7 +82,7 @@ export default defineConfig({
   test: {
     globals: false,
     environment: 'node',
-    include: ['tests/api/invoices/**/*.test.ts'],
+    include: ['tests/api/billing-phases/**/*.test.ts'],
     testTimeout: 300_000,
     hookTimeout: 300_000,
   },

@@ -31,6 +31,7 @@ import {
   listCommissionRecordsByContributor,
   listApprovedPayoutsByContributor,
 } from 'db/index';
+import { getBillingPhase } from 'db/billing-phases';
 
 type SqlClient = Sql;
 
@@ -118,24 +119,48 @@ export async function handleGetMyCommissionRecords(
       claims.user_id,
       statusFilter,
     );
-    return jsonResponse({
-      commission_records: records.map((r) => ({
-        id: r.id,
-        org_id: r.orgId,
-        placement_id: r.placementId,
-        contributor_id: r.contributorId,
-        plan_version_id: r.planVersionId,
-        gross_commission: r.grossAmount,
-        net_payable: r.netPayable,
-        tier_rate: r.tierRate,
-        status: r.status,
-        hold_reason: r.holdReason,
-        explanation: r.explanation,
-        approval_actor: r.approvalActor,
-        approval_at: r.approvalAt,
-        created_at: r.createdAt,
-      })),
-    });
+    // For phase-blocked records, enrich with phase info so producers can see
+    // which phase is blocking their payout and why.
+    const enrichedRecords = await Promise.all(
+      records.map(async (r) => {
+        let blockedPhase: { phase_name: string; blocking_invoice_id: string | null } | null = null;
+
+        if (r.holdReason === 'held_pending_phase_invoice' && r.billingPhaseId) {
+          try {
+            const phase = await getBillingPhase(db, r.orgId, r.billingPhaseId);
+            if (phase) {
+              blockedPhase = {
+                phase_name: phase.phaseName,
+                blocking_invoice_id: phase.invoiceId,
+              };
+            }
+          } catch {
+            // Non-fatal — blocked_phase will be null
+          }
+        }
+
+        return {
+          id: r.id,
+          org_id: r.orgId,
+          placement_id: r.placementId,
+          contributor_id: r.contributorId,
+          plan_version_id: r.planVersionId,
+          gross_commission: r.grossAmount,
+          net_payable: r.netPayable,
+          tier_rate: r.tierRate,
+          status: r.status,
+          hold_reason: r.holdReason,
+          billing_phase_id: r.billingPhaseId,
+          blocked_phase: blockedPhase,
+          explanation: r.explanation,
+          approval_actor: r.approvalActor,
+          approval_at: r.approvalAt,
+          created_at: r.createdAt,
+        };
+      }),
+    );
+
+    return jsonResponse({ commission_records: enrichedRecords });
   } catch (err: unknown) {
     console.error('[me/commission-records] list error:', err);
     return errorResponse('Failed to retrieve commission records', 500);
@@ -179,6 +204,7 @@ export async function handleGetMyPayouts(
         tier_rate: r.tierRate,
         status: r.status,
         hold_reason: r.holdReason,
+        billing_phase_id: r.billingPhaseId,
         explanation: r.explanation,
         approval_actor: r.approvalActor,
         approval_at: r.approvalAt,

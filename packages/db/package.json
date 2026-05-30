@@ -26,7 +26,8 @@
     "./commission-runs": "./src/commission-runs.ts",
     "./exceptions": "./src/exceptions.ts",
     "./invoices": "./src/invoices.ts",
-    "./payroll-exports": "./src/payroll-exports.ts"
+    "./payroll-exports": "./src/payroll-exports.ts",
+    "./billing-phases": "./src/billing-phases.ts"
   },
   "scripts": {
     "build": "tsc --noEmit --project tsconfig.json"

@@ -584,3 +584,122 @@ CREATE TABLE IF NOT EXISTS payroll_export_artifacts (
 
 CREATE INDEX IF NOT EXISTS idx_payroll_export_artifacts_org ON payroll_export_artifacts (org_id);
 CREATE INDEX IF NOT EXISTS idx_payroll_export_artifacts_run ON payroll_export_artifacts (run_id);
+
+-- =============================================================================
+-- Billing Phases: named phases for retained search placements (issue #63).
+--
+-- Retained search placements carry two named billing phases — retainer and
+-- delivery — each with its own invoice linkage, projected/billed/received
+-- amounts, per-phase contributor-credit assignments, and commission lifecycle.
+-- Collection gating is phase-scoped: a paid retainer invoice releases only
+-- retainer-phase commission; delivery-phase commission remains Held until the
+-- delivery invoice is paid independently.
+--
+-- Property-graph registry: billing_phase is registered as an entity_type in
+-- the encryption_key_registry with kms_key_id metadata (projected_amount,
+-- billed_amount, received_amount are BYTEA).
+--
+-- Canonical: docs/prd.md §5.1, §5.5, docs/architecture.md §4
+-- Issue: feat: retained search billing phases (#63)
+-- =============================================================================
+
+DO $$ BEGIN
+  CREATE TYPE billing_phase_name AS ENUM (
+    'retainer',
+    'delivery'
+  );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+-- billing_phases: one row per named phase on a retained-search placement.
+-- Each phase may link to one invoice, track projected/billed/received amounts,
+-- and carry its own commission lifecycle independently of other phases.
+CREATE TABLE IF NOT EXISTS billing_phases (
+  id               UUID              PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id           UUID              NOT NULL,
+  placement_id     UUID              NOT NULL REFERENCES placements(id),
+  phase_name       billing_phase_name NOT NULL,
+  -- Invoice linked to this phase (nullable until invoiced).
+  invoice_id       UUID              REFERENCES invoices(id),
+  -- Monetary columns stored as BYTEA (AES-256-GCM via FieldEncryptor).
+  projected_amount BYTEA             NOT NULL,
+  billed_amount    BYTEA,
+  received_amount  BYTEA,
+  created_at       TIMESTAMPTZ       NOT NULL DEFAULT NOW(),
+  updated_at       TIMESTAMPTZ       NOT NULL DEFAULT NOW(),
+  UNIQUE (placement_id, phase_name)
+);
+
+CREATE INDEX IF NOT EXISTS idx_billing_phases_org ON billing_phases (org_id);
+CREATE INDEX IF NOT EXISTS idx_billing_phases_placement ON billing_phases (placement_id);
+
+-- Property-graph registry entry for billing_phase (architecture §4).
+-- kms_key_id metadata tells FieldEncryptor which KMS key to use for each
+-- BYTEA column on this entity type.
+INSERT INTO encryption_key_registry (entity_type, field_name, kms_key_id)
+VALUES
+  ('billing_phases', 'projected_amount', 'billing_phases_amounts_key'),
+  ('billing_phases', 'billed_amount',    'billing_phases_amounts_key'),
+  ('billing_phases', 'received_amount',  'billing_phases_amounts_key')
+ON CONFLICT (entity_type, field_name) DO NOTHING;
+
+-- phase_contributors: per-phase contributor-credit assignments.
+-- A contributor may be credited on one or both phases independently.
+-- When a contributor has no phase_contributors row for a given phase,
+-- they accrue zero commission on that phase.
+CREATE TABLE IF NOT EXISTS phase_contributors (
+  id               UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id           UUID        NOT NULL,
+  billing_phase_id UUID        NOT NULL REFERENCES billing_phases(id),
+  contributor_id   UUID        NOT NULL REFERENCES contributors(id),
+  split_pct        NUMERIC(5,4) NOT NULL,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (billing_phase_id, contributor_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_phase_contributors_org ON phase_contributors (org_id);
+CREATE INDEX IF NOT EXISTS idx_phase_contributors_phase ON phase_contributors (billing_phase_id);
+CREATE INDEX IF NOT EXISTS idx_phase_contributors_contributor ON phase_contributors (contributor_id);
+
+-- billing_phase_id on commission_records: links a record to the phase it was
+-- calculated for. NULL for non-retained (contingency) placements — no change
+-- to existing contingency flow.
+ALTER TABLE commission_records ADD COLUMN IF NOT EXISTS billing_phase_id UUID REFERENCES billing_phases(id);
+CREATE INDEX IF NOT EXISTS idx_commission_records_phase ON commission_records (billing_phase_id) WHERE billing_phase_id IS NOT NULL;
+
+-- Update hold_reason to include the phase-level variant.
+-- Values: 'collection_gate' | 'guarantee_hold' | 'held_pending_phase_invoice' | NULL
+-- The existing 'collection_gate' value remains for contingency placements.
+-- 'held_pending_phase_invoice' is used when the invoice linked to a specific
+-- billing phase has not yet been marked Paid.
+-- (No DDL change required — hold_reason is TEXT with no constraint.)
+
+-- =============================================================================
+-- Commission Journal: relational append-only journal for phase-level transitions.
+--
+-- Every Held→Released commission transition (triggered by phase invoice payment)
+-- writes an immutable journal entry with billing_phase_id, from_status, to_status,
+-- triggering invoice ID, and the actor who triggered the transition.
+-- Used for audit, reconciliation, and replay.
+--
+-- Canonical: docs/architecture.md §4 (relational journal)
+-- Issue: feat: retained search billing phases (#63)
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS commission_journal (
+  id                UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id            UUID        NOT NULL,
+  commission_record_id UUID     NOT NULL REFERENCES commission_records(id),
+  billing_phase_id  UUID        REFERENCES billing_phases(id),
+  from_status       TEXT        NOT NULL,
+  to_status         TEXT        NOT NULL,
+  trigger_invoice_id UUID       REFERENCES invoices(id),
+  actor_id          UUID,
+  reason            TEXT,
+  created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_commission_journal_org ON commission_journal (org_id);
+CREATE INDEX IF NOT EXISTS idx_commission_journal_record ON commission_journal (commission_record_id);
+CREATE INDEX IF NOT EXISTS idx_commission_journal_phase ON commission_journal (billing_phase_id) WHERE billing_phase_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_commission_journal_created ON commission_journal (created_at);

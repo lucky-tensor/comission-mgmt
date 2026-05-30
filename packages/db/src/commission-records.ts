@@ -53,10 +53,17 @@ export interface CommissionRecordRow {
   explanation: string | null;
   /**
    * Hold reason for Held records.
-   * Values: 'collection_gate' | 'guarantee_hold' | null.
+   * Values: 'collection_gate' | 'guarantee_hold' | 'held_pending_phase_invoice' | null.
    * Issue: feat: invoice and collection tracking (#12)
+   * 'held_pending_phase_invoice' added in issue #63.
    */
   holdReason: string | null;
+  /**
+   * Billing phase ID this record is credited to.
+   * NULL for contingency placements; set for retained-search phase calculations.
+   * Issue: feat: retained search billing phases (#63)
+   */
+  billingPhaseId: string | null;
 }
 
 export interface CreateCommissionRecordInput {
@@ -78,10 +85,18 @@ export interface CreateCommissionRecordInput {
   explanation?: string | null;
   /**
    * Hold reason for Held records.
-   * Values: 'collection_gate' | 'guarantee_hold' | null.
+   * Values: 'collection_gate' | 'guarantee_hold' | 'held_pending_phase_invoice' | null.
    * Issue: feat: invoice and collection tracking (#12)
+   * 'held_pending_phase_invoice' added in issue #63 (retained search billing phases).
    */
   holdReason?: string | null;
+  /**
+   * Billing phase ID this record is credited to.
+   * NULL for contingency (non-retained) placements — no change to existing flow.
+   * Set for retained-search placements calculated via POST /placements/:id/calculate-phases.
+   * Issue: feat: retained search billing phases (#63)
+   */
+  billingPhaseId?: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -138,18 +153,20 @@ export async function createCommissionRecord(
   const holdReasonClause =
     input.holdReason != null ? `'${input.holdReason.replace(/'/g, "''")}'` : 'NULL';
 
+  const billingPhaseClause = input.billingPhaseId != null ? `'${input.billingPhaseId}'` : 'NULL';
+
   const rows = await sql.unsafe(
     `
     INSERT INTO commission_records (
       org_id, placement_id, contributor_id, plan_version_id,
-      gross_amount, net_payable, tier_rate, status, explanation, hold_reason
+      gross_amount, net_payable, tier_rate, status, explanation, hold_reason, billing_phase_id
     ) VALUES (
       '${input.orgId}', '${input.placementId}', '${input.contributorId}', '${input.planVersionId}',
-      $1, $2, ${tierRateClause}, '${input.status}', ${explanationClause}, ${holdReasonClause}
+      $1, $2, ${tierRateClause}, '${input.status}', ${explanationClause}, ${holdReasonClause}, ${billingPhaseClause}
     )
     RETURNING id, org_id, placement_id, contributor_id, plan_version_id,
               gross_amount, net_payable, tier_rate, status,
-              approval_actor, approval_at, created_at, explanation, hold_reason
+              approval_actor, approval_at, created_at, explanation, hold_reason, billing_phase_id
     `,
     [grossAmountBuf, netPayableBuf],
   );
@@ -180,7 +197,7 @@ export async function listCommissionRecords(
     `
     SELECT id, org_id, placement_id, contributor_id, plan_version_id,
            gross_amount, net_payable, tier_rate, status,
-           approval_actor, approval_at, created_at, explanation, hold_reason
+           approval_actor, approval_at, created_at, explanation, hold_reason, billing_phase_id
     FROM commission_records
     WHERE org_id = $1 AND placement_id = $2
     ORDER BY created_at DESC
@@ -213,7 +230,7 @@ export async function getCommissionRecord(
     `
     SELECT id, org_id, placement_id, contributor_id, plan_version_id,
            gross_amount, net_payable, tier_rate, status,
-           approval_actor, approval_at, created_at, explanation, hold_reason
+           approval_actor, approval_at, created_at, explanation, hold_reason, billing_phase_id
     FROM commission_records
     WHERE id = $1 AND org_id = $2
     LIMIT 1
@@ -310,7 +327,7 @@ export async function listCommissionRecordsByContributor(
     `
     SELECT cr.id, cr.org_id, cr.placement_id, cr.contributor_id, cr.plan_version_id,
            cr.gross_amount, cr.net_payable, cr.tier_rate, cr.status,
-           cr.approval_actor, cr.approval_at, cr.created_at, cr.explanation, cr.hold_reason
+           cr.approval_actor, cr.approval_at, cr.created_at, cr.explanation, cr.hold_reason, cr.billing_phase_id
     FROM commission_records cr
     JOIN contributors c ON c.id = cr.contributor_id
     WHERE cr.org_id = $1
@@ -353,7 +370,7 @@ export async function listApprovedPayoutsByContributor(
     `
     SELECT cr.id, cr.org_id, cr.placement_id, cr.contributor_id, cr.plan_version_id,
            cr.gross_amount, cr.net_payable, cr.tier_rate, cr.status,
-           cr.approval_actor, cr.approval_at, cr.created_at, cr.explanation, cr.hold_reason
+           cr.approval_actor, cr.approval_at, cr.created_at, cr.explanation, cr.hold_reason, cr.billing_phase_id
     FROM commission_records cr
     JOIN contributors c ON c.id = cr.contributor_id
     JOIN commission_run_records crr ON crr.commission_record_id = cr.id
@@ -391,6 +408,7 @@ interface CommissionRecordRawRow {
   created_at: Date;
   explanation: string | null;
   hold_reason: string | null;
+  billing_phase_id: string | null;
 }
 
 async function decryptRecordRow(
@@ -423,5 +441,6 @@ async function decryptRecordRow(
     createdAt: row.created_at,
     explanation: row.explanation ?? null,
     holdReason: row.hold_reason ?? null,
+    billingPhaseId: row.billing_phase_id ?? null,
   };
 }
