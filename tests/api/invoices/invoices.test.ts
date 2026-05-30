@@ -539,7 +539,7 @@ describe('PATCH /invoices/:id to WrittenOff — audit log (AC#3)', () => {
     );
 
     expect(auditRows.length).toBe(1);
-    const auditRow = auditRows[0] as {
+    const auditRow = auditRows[0] as unknown as {
       actor_id: string;
       action: string;
       entity_type: string;
@@ -594,7 +594,7 @@ describe('PATCH /invoices/:id to WrittenOff — audit log (AC#3)', () => {
     );
 
     expect(auditRows.length).toBe(1);
-    const row = auditRows[0] as { actor_id: string };
+    const row = auditRows[0] as unknown as { actor_id: string };
     expect(row.actor_id).toBe(USER_A_ID);
   });
 });

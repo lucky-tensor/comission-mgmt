@@ -197,7 +197,8 @@ export async function updateInvoice(
 
   // Build SET clauses dynamically
   const sets: string[] = [];
-  const params: unknown[] = [invoiceId, orgId];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const params: any[] = [invoiceId, orgId];
   let paramIdx = 3;
 
   if (input.status !== undefined) {
@@ -294,7 +295,8 @@ export async function upsertInvoiceByNumber(
   const collectedAtSql = status === 'Paid' ? 'NOW()' : 'NULL';
   const amountCollectedParam = amountCollectedBuf !== null ? '$6' : 'NULL';
 
-  const baseParams: unknown[] = [
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const baseParams: any[] = [
     orgId,
     input.placementId,
     input.invoiceNumber,

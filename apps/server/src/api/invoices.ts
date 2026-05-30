@@ -39,6 +39,7 @@ import {
   releaseCollectionGate,
   listHeldCommissionRecordsByReason,
   INVOICE_STATES,
+  type HeldCommissionRecordRow,
 } from 'db/invoices';
 import type { SessionClaims } from 'core/auth';
 
@@ -575,7 +576,7 @@ export async function handleListAllCommissionRecords(
     if (reason) {
       const records = await listHeldCommissionRecordsByReason(db, claims.org_id, reason);
       return jsonResponse({
-        commission_records: records.map((r) => ({
+        commission_records: records.map((r: HeldCommissionRecordRow) => ({
           id: r.id,
           org_id: r.org_id,
           placement_id: r.placement_id,
