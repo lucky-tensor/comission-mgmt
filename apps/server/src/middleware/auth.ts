@@ -50,9 +50,7 @@ export interface AuthContext {
  *
  * Returns the parsed session claims on success, or a Response (401/403) on failure.
  */
-export async function authenticateRequest(
-  req: Request,
-): Promise<AuthContext | Response> {
+export async function authenticateRequest(req: Request): Promise<AuthContext | Response> {
   const cookies = parseCookies(req);
   const token = getAuthToken(cookies);
 

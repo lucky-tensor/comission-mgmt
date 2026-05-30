@@ -13,13 +13,7 @@
 import { sql } from './index';
 
 /** Application roles — mirrored from core/auth to avoid cross-package import cycles. */
-type AppRole =
-  | 'FinanceAdmin'
-  | 'Producer'
-  | 'Manager'
-  | 'Executive'
-  | 'HR'
-  | 'ExternalPartner';
+type AppRole = 'FinanceAdmin' | 'Producer' | 'Manager' | 'Executive' | 'HR' | 'ExternalPartner';
 
 // ---------------------------------------------------------------------------
 // Challenge management
@@ -301,9 +295,7 @@ export async function updatePasskeySignCount(
 }
 
 /** Returns all passkey credentials for a user. */
-export async function getPasskeyCredentialsForUser(
-  userId: string,
-): Promise<DbPasskeyCredential[]> {
+export async function getPasskeyCredentialsForUser(userId: string): Promise<DbPasskeyCredential[]> {
   const rows = await sql<
     {
       id: string;

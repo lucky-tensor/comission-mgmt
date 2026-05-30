@@ -390,9 +390,10 @@ describe('algorithm pin', () => {
     try {
       const token = await makeSession({ org_id: 'org-pin', user_id: 'u', role: 'HR' });
       const headerB64 = token.split('.')[0].replace(/-/g, '+').replace(/_/g, '/');
-      const header = JSON.parse(
-        atob(headerB64 + '='.repeat((4 - (headerB64.length % 4)) % 4)),
-      ) as { alg: string; typ: string };
+      const header = JSON.parse(atob(headerB64 + '='.repeat((4 - (headerB64.length % 4)) % 4))) as {
+        alg: string;
+        typ: string;
+      };
       // The header field claims ES256 — verifyJwt ignores this and always
       // uses the pinned ECDSA algorithm from the key store.
       expect(header.alg).toBe('ES256');

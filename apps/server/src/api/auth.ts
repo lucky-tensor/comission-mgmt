@@ -184,9 +184,7 @@ export async function handlePasskeyLoginComplete(req: Request): Promise<Response
     return errorResponse('User has no org memberships', 403);
   }
 
-  const membership = orgId
-    ? memberships.find((m) => m.orgId === orgId)
-    : memberships[0];
+  const membership = orgId ? memberships.find((m) => m.orgId === orgId) : memberships[0];
 
   if (!membership) {
     return errorResponse('User is not a member of the specified org', 403);

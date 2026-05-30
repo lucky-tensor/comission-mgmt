@@ -208,7 +208,7 @@ interface AuthenticatorData {
 }
 
 const FLAG_UP = 0x01; // User Presence
-const FLAG_UV = 0x04; // User Verification
+// FLAG_UV (0x04) = User Verification — available for stricter checks if needed
 const FLAG_AT = 0x40; // Attested Credential Data present
 
 function parseAuthenticatorData(data: Uint8Array): AuthenticatorData {
@@ -216,8 +216,7 @@ function parseAuthenticatorData(data: Uint8Array): AuthenticatorData {
 
   const rpIdHash = data.slice(0, 32);
   const flags = data[32];
-  const signCount =
-    (data[33] << 24) | (data[34] << 16) | (data[35] << 8) | data[36];
+  const signCount = (data[33] << 24) | (data[34] << 16) | (data[35] << 8) | data[36];
 
   let attestedCredentialData: AuthenticatorData['attestedCredentialData'] | undefined;
 
@@ -417,9 +416,7 @@ export interface AssertBeginResult {
  * Begins a WebAuthn passkey assertion (login) flow.
  * Generates a challenge and returns the PublicKeyCredentialRequestOptions.
  */
-export async function passkeyLoginBegin(opts: {
-  email?: string;
-}): Promise<AssertBeginResult> {
+export async function passkeyLoginBegin(opts: { email?: string }): Promise<AssertBeginResult> {
   const challenge = base64UrlEncode(
     (() => {
       const bytes = new Uint8Array(32);
@@ -514,9 +511,7 @@ export async function passkeyLoginComplete(opts: {
   }
 
   // 7. Verify signature
-  const clientDataHash = new Uint8Array(
-    await crypto.subtle.digest('SHA-256', clientDataBytes),
-  );
+  const clientDataHash = new Uint8Array(await crypto.subtle.digest('SHA-256', clientDataBytes));
   const signedData = new Uint8Array(authDataBytes.length + clientDataHash.length);
   signedData.set(authDataBytes);
   signedData.set(clientDataHash, authDataBytes.length);
