@@ -70,6 +70,8 @@ export {
   listCommissionRecords,
   getCommissionRecord,
   adjustNetPayable,
+  listCommissionRecordsByContributor,
+  listApprovedPayoutsByContributor,
   _setEncryptorForTest as _setCommissionRecordEncryptorForTest,
   _resetEncryptorForTest as _resetCommissionRecordEncryptorForTest,
 } from './src/commission-records.js';

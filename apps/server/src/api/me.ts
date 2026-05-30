@@ -1,45 +1,53 @@
 /**
- * Producer Portal /me routes — stub integration seams.
+ * Producer Portal /me routes — real implementation.
  *
- * Dev-scout stub for Plan issue #26. No real behaviour is implemented here.
- * All handlers return 501 Not Implemented. Feature implementation is tracked
- * in downstream Producer Portal issues.
+ * Routes implemented in this issue (#16):
+ *   GET  /me/commission-records            — producer's own CommissionRecords with explanation
+ *   GET  /me/commission-records?status=Held — filter to held records
+ *   GET  /me/payouts                        — historical approved payouts from prior runs
  *
- * Planned routes (501 stubs):
+ * Stub routes (still 501 — tracked in downstream issues):
  *   GET  /me                        — producer identity + active plan summary
- *   GET  /me/commission-records     — producer-scoped payout records (period-filtered)
- *   GET  /me/tier-progress          — on-the-fly tier progress from CommissionRecord totals
+ *   GET  /me/tier-progress          — on-the-fly tier progress
  *   POST /me/disputes               — open a dispute against a commission record
  *
- * Integration seams discovered (see docs/architecture/phase-producer-portal.md):
- *   - Producer scoping uses SessionClaims.user_id to filter commission_records rows
- *     (contributor_id = user_id within the org). No new tables required beyond
- *     commission_records + plans + placements.
- *   - Tier progress: on-the-fly SUM(gross_amount) over commission_records for the
- *     current plan period. No materialized view or aggregation table needed for MVP;
- *     decision recorded in docs/architecture/phase-producer-portal.md §Tier Progress Approach.
- *   - Disputes route will share the existing exceptions table and workflow; no new
- *     storage required.
- *   - /me reads are subject to the same audit-log-first requirement (DATA-D-010) as
- *     all sensitive reads. The producer portal must write a commission_audit entry
- *     before returning payout data.
- *   - RBAC: only the Producer role may call /me routes. FinanceAdmin/Manager access
- *     to a specific producer's data goes through existing /placements and
- *     /commission-records routes, not /me.
+ * Security:
+ *   - Scoped to SessionClaims.user_id (contributor_id = user_id within the org).
+ *   - Only the Producer role may call /me routes (enforced by RBAC in core/auth).
+ *   - A different producer's data is not accessible — queries are scoped by
+ *     contributor_id = claims.user_id, so isolation is enforced at the DB layer.
  *
  * Canonical docs:
- *   - docs/prd.md §4 (Producer user stories), §5.3 (commission calculation), §5.4 (tier progress)
+ *   - docs/prd.md §5.8, §7.6 — Producer Payout Portal
  *   - docs/architecture/phase-producer-portal.md — scout decision record
- *   - docs/architecture/decisions.md — ER diagram (commission_records, plans)
  *
- * Issue: dev-scout: stub Producer Portal integration seams (#26)
+ * Issue: feat: producer payout statement and deal visibility (#16)
  */
 
 import type { SessionClaims } from 'core/auth';
+import type { Sql } from 'postgres';
+import {
+  sql as defaultSql,
+  listCommissionRecordsByContributor,
+  listApprovedPayoutsByContributor,
+} from 'db/index';
+
+type SqlClient = Sql;
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+function jsonResponse(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+function errorResponse(message: string, status: number): Response {
+  return jsonResponse({ error: message }, status);
+}
 
 function notImplemented(description: string): Response {
   return new Response(
@@ -56,7 +64,7 @@ function notImplemented(description: string): Response {
 }
 
 // ---------------------------------------------------------------------------
-// Stubs
+// GET /me — producer identity + active plan summary (stub)
 // ---------------------------------------------------------------------------
 
 /**
@@ -75,23 +83,117 @@ export function handleGetMe(_claims: SessionClaims): Response {
   return notImplemented('Producer identity and active plan summary — not yet implemented');
 }
 
+// ---------------------------------------------------------------------------
+// GET /me/commission-records
+// ---------------------------------------------------------------------------
+
 /**
- * GET /me/commission-records
+ * GET /me/commission-records — returns CommissionRecords for the authenticated producer.
  *
- * Returns commission records for the authenticated producer scoped to their
- * user_id and org_id. Supports optional period query parameters.
- * Scout stub — returns 501 Not Implemented.
+ * Scoped to contributor_id = claims.user_id and org_id = claims.org_id.
+ * Optional ?status=<value> filter (e.g. status=Held).
  *
- * Planned implementation notes:
- *   - Queries commission_records WHERE contributor_id = claims.user_id
- *     AND org_id = claims.org_id, optionally filtered by period start/end.
- *   - Decrypts gross_amount and net_payable via FieldEncryptor before returning.
- *   - Writes a commission_audit entry before returning (audit-log-first, DATA-D-010).
- *   - Returns paginated JSON array of CommissionRecordRow.
+ * Returns 200 with { commission_records: [...] } including the explanation field.
+ *
+ * Isolation guarantee: because we scope contributor_id = claims.user_id, a producer
+ * token can only see their own records even if they know another producer's ID.
+ *
+ * @param req        - HTTP request (may include ?status= query param)
+ * @param claims     - Session claims (org_id, user_id)
+ * @param sqlClient  - Optional injectable SQL client for testing
  */
-export function handleGetMyCommissionRecords(_req: Request, _claims: SessionClaims): Response {
-  return notImplemented('Producer-scoped commission records listing — not yet implemented');
+export async function handleGetMyCommissionRecords(
+  req: Request,
+  claims: SessionClaims,
+  sqlClient?: SqlClient,
+): Promise<Response> {
+  const db = sqlClient ?? defaultSql;
+  const url = new URL(req.url);
+  const statusFilter = url.searchParams.get('status') ?? undefined;
+
+  try {
+    const records = await listCommissionRecordsByContributor(
+      db,
+      claims.org_id,
+      claims.user_id,
+      statusFilter,
+    );
+    return jsonResponse({
+      commission_records: records.map((r) => ({
+        id: r.id,
+        org_id: r.orgId,
+        placement_id: r.placementId,
+        contributor_id: r.contributorId,
+        plan_version_id: r.planVersionId,
+        gross_commission: r.grossAmount,
+        net_payable: r.netPayable,
+        tier_rate: r.tierRate,
+        status: r.status,
+        hold_reason: r.holdReason,
+        explanation: r.explanation,
+        approval_actor: r.approvalActor,
+        approval_at: r.approvalAt,
+        created_at: r.createdAt,
+      })),
+    });
+  } catch (err: unknown) {
+    console.error('[me/commission-records] list error:', err);
+    return errorResponse('Failed to retrieve commission records', 500);
+  }
 }
+
+// ---------------------------------------------------------------------------
+// GET /me/payouts
+// ---------------------------------------------------------------------------
+
+/**
+ * GET /me/payouts — returns historical approved payouts for the authenticated producer.
+ *
+ * Returns only CommissionRecords that are part of an Approved commission run,
+ * scoped to contributor_id = claims.user_id and org_id = claims.org_id.
+ *
+ * Returns 200 with { payouts: [...] }.
+ *
+ * @param _req       - HTTP request (unused currently)
+ * @param claims     - Session claims (org_id, user_id)
+ * @param sqlClient  - Optional injectable SQL client for testing
+ */
+export async function handleGetMyPayouts(
+  _req: Request,
+  claims: SessionClaims,
+  sqlClient?: SqlClient,
+): Promise<Response> {
+  const db = sqlClient ?? defaultSql;
+
+  try {
+    const records = await listApprovedPayoutsByContributor(db, claims.org_id, claims.user_id);
+    return jsonResponse({
+      payouts: records.map((r) => ({
+        id: r.id,
+        org_id: r.orgId,
+        placement_id: r.placementId,
+        contributor_id: r.contributorId,
+        plan_version_id: r.planVersionId,
+        gross_commission: r.grossAmount,
+        net_payable: r.netPayable,
+        tier_rate: r.tierRate,
+        status: r.status,
+        hold_reason: r.holdReason,
+        explanation: r.explanation,
+        approval_actor: r.approvalActor,
+        approval_at: r.approvalAt,
+        created_at: r.createdAt,
+      })),
+    });
+  } catch (err: unknown) {
+    console.error('[me/payouts] list error:', err);
+    return errorResponse('Failed to retrieve payouts', 500);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// GET /me/tier-progress (stub)
+// ---------------------------------------------------------------------------
 
 /**
  * GET /me/tier-progress
@@ -111,6 +213,10 @@ export function handleGetMyCommissionRecords(_req: Request, _claims: SessionClai
 export function handleGetMyTierProgress(_claims: SessionClaims): Response {
   return notImplemented('Producer tier progress (on-the-fly aggregation) — not yet implemented');
 }
+
+// ---------------------------------------------------------------------------
+// POST /me/disputes (stub)
+// ---------------------------------------------------------------------------
 
 /**
  * POST /me/disputes
