@@ -89,6 +89,14 @@ import {
 import { handleCreatePayrollExport, handleListPayrollExports } from './api/exports';
 import { handleDemoUsers, handleDemoSession, isDemoMode } from './api/demo-session';
 import { requireAuth } from './middleware/auth';
+// Producer Portal /me stubs — dev-scout #26
+// See docs/architecture/phase-producer-portal.md for integration seam decisions.
+import {
+  handleGetMe,
+  handleGetMyCommissionRecords,
+  handleGetMyTierProgress,
+  handleCreateMyDispute,
+} from './api/me';
 
 // Re-export foundation modules so they continue to be verified at compile time.
 export * from './auth/jwt';
@@ -392,6 +400,21 @@ async function fetchHandler(req: Request): Promise<Response> {
   const exceptionGetMatch = pathname.match(/^\/exceptions\/([^/]+)$/);
   if (req.method === 'GET' && exceptionGetMatch) {
     return handleGetException(exceptionGetMatch[1], authResult.claims);
+  }
+
+  // Producer Portal /me routes — stubs (dev-scout #26, all return 501)
+  // See docs/architecture/phase-producer-portal.md for integration seam decisions.
+  if (req.method === 'GET' && pathname === '/me') {
+    return handleGetMe(authResult.claims);
+  }
+  if (req.method === 'GET' && pathname === '/me/commission-records') {
+    return handleGetMyCommissionRecords(req, authResult.claims);
+  }
+  if (req.method === 'GET' && pathname === '/me/tier-progress') {
+    return handleGetMyTierProgress(authResult.claims);
+  }
+  if (req.method === 'POST' && pathname === '/me/disputes') {
+    return handleCreateMyDispute(req, authResult.claims);
   }
 
   // 404 for all other paths
