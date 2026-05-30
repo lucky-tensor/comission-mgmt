@@ -17,6 +17,15 @@ import postgres from 'postgres';
 import { log } from 'core/logger';
 import { withTraceId, getCurrentTraceId } from './middleware/trace';
 import { handleHealthz, handleReadyz } from './api/health';
+import { assertRequiredEnv } from './config/env';
+import { verifyCsrf } from './auth/csrf';
+import { parseCookies } from './middleware/auth';
+import {
+  loginIpLimiter,
+  registerIpLimiter,
+  getClientIp,
+  tooManyRequests,
+} from './security/rate-limiter';
 import {
   handlePasskeyRegisterBegin,
   handlePasskeyRegisterComplete,
@@ -129,6 +138,13 @@ export * from './lib/response';
 export * from './middleware/auth';
 export * from './api/demo-session';
 
+// Fail fast on missing required configuration before constructing any pool —
+// never boot with an insecure default credential (DEPLOY env fail-fast).
+// Skipped when imported as a module (tests); enforced only at the entrypoint.
+if (import.meta.main) {
+  assertRequiredEnv();
+}
+
 const PORT = Number(process.env.PORT ?? 31415);
 const DATABASE_URL =
   process.env.DATABASE_URL ?? 'postgres://app_rw:app_rw_password@localhost:5432/commission_app';
@@ -154,7 +170,7 @@ const sql = postgres(DATABASE_URL, {
  *
  * Auth middleware and product API routes are added in subsequent issues.
  */
-async function fetchHandler(req: Request): Promise<Response> {
+export async function fetchHandler(req: Request): Promise<Response> {
   const url = new URL(req.url);
   const { pathname } = url;
   const traceId = getCurrentTraceId();
@@ -171,6 +187,21 @@ async function fetchHandler(req: Request): Promise<Response> {
   }
   if (req.method === 'GET' && pathname === '/readyz') {
     return handleReadyz(sql);
+  }
+
+  // Brute-force protection on auth endpoints (AUTH-C-024). Each login/register
+  // attempt is rate-limited per client IP; over-limit returns 429.
+  if (req.method === 'POST' && pathname.startsWith('/auth/passkey/login/')) {
+    const ip = getClientIp(req);
+    const rl = loginIpLimiter.check(ip);
+    if (!rl.allowed) return tooManyRequests(rl);
+    loginIpLimiter.consume(ip);
+  }
+  if (req.method === 'POST' && pathname.startsWith('/auth/passkey/register/')) {
+    const ip = getClientIp(req);
+    const rl = registerIpLimiter.check(ip);
+    if (!rl.allowed) return tooManyRequests(rl);
+    registerIpLimiter.consume(ip);
   }
 
   // Auth routes — unauthenticated
@@ -216,6 +247,13 @@ async function fetchHandler(req: Request): Promise<Response> {
   // All other routes require authentication
   const authResult = await requireAuth(req);
   if (authResult instanceof Response) return authResult;
+
+  // CSRF double-submit check for every state-mutating, session-authenticated
+  // request (AUTH-C-014). Safe methods are skipped inside verifyCsrf. The
+  // worker Bearer-token routes (/tasks/claim, /tasks/:id/result) are matched
+  // above this point and are exempt.
+  const csrfFailure = verifyCsrf(req, parseCookies(req));
+  if (csrfFailure) return csrfFailure;
 
   // Task routes — authenticated (session cookie)
   if (req.method === 'POST' && pathname === '/tasks') {
@@ -535,13 +573,17 @@ async function fetchHandler(req: Request): Promise<Response> {
 }
 
 // Wrap the entire fetch handler with trace-ID middleware.
-const tracedFetch = withTraceId(fetchHandler);
+export const tracedFetch = withTraceId(fetchHandler);
 
-log('info', 'server_starting', { trace_id: '', port: PORT });
+// Only bind the port when run as the entrypoint — importing this module in
+// tests must not start a listening server.
+if (import.meta.main) {
+  log('info', 'server_starting', { trace_id: '', port: PORT });
 
-const server = Bun.serve({
-  port: PORT,
-  fetch: tracedFetch,
-});
+  const server = Bun.serve({
+    port: PORT,
+    fetch: tracedFetch,
+  });
 
-log('info', 'server_started', { trace_id: '', port: server.port });
+  log('info', 'server_started', { trace_id: '', port: server.port });
+}

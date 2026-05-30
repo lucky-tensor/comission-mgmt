@@ -22,6 +22,7 @@ import {
   passkeyLoginComplete,
 } from '../auth/passkeys';
 import { authCookieHeader, authCookieClearHeader, getAuthToken } from '../auth/cookie-config';
+import { generateCsrfToken, csrfCookieHeader } from '../auth/csrf';
 import { parseCookies } from '../middleware/auth';
 import type { SessionClaims } from 'core/auth';
 
@@ -200,12 +201,17 @@ export async function handlePasskeyLoginComplete(req: Request): Promise<Response
   const token = await signJwt(sessionPayload);
   const cookieValue = authCookieHeader(token);
 
-  return new Response(JSON.stringify({ ok: true, role: membership.role }), {
+  // Mint and set the CSRF double-submit token alongside the session cookie so
+  // the browser can echo it in X-CSRF-Token on subsequent mutating requests
+  // (AUTH-C-024). Returned in the body too, for non-cookie-reading clients.
+  const csrfToken = generateCsrfToken();
+  const headers = new Headers({ 'Content-Type': 'application/json' });
+  headers.append('Set-Cookie', cookieValue);
+  headers.append('Set-Cookie', csrfCookieHeader(csrfToken));
+
+  return new Response(JSON.stringify({ ok: true, role: membership.role, csrf_token: csrfToken }), {
     status: 200,
-    headers: {
-      'Content-Type': 'application/json',
-      'Set-Cookie': cookieValue,
-    },
+    headers,
   });
 }
 

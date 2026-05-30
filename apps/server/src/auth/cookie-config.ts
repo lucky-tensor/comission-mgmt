@@ -2,8 +2,8 @@
  * Environment-aware auth cookie configuration.
  *
  * When SECURE_COOKIES=true the cookie uses the __Host- prefix, Secure flag, and
- * SameSite=Lax — the correct posture for HTTPS deployments that need __Host-
- * prefix compliance.
+ * SameSite=Strict — the strict posture required for HTTPS deployments
+ * (AUTH-C-014; defends state-mutating cross-site requests).
  *
  * When SECURE_COOKIES is unset or false, the cookie uses a plain name without
  * the Secure flag and SameSite=Strict — suitable for local development over
@@ -32,12 +32,12 @@ export function getAuthCookieName(): string {
 /**
  * Build the Set-Cookie header value for the auth JWT token.
  *
- * HTTPS mode: `__Host-superfield_auth=<token>; HttpOnly; Secure; Path=/; SameSite=Lax; Max-Age=604800`
+ * HTTPS mode: `__Host-superfield_auth=<token>; HttpOnly; Secure; Path=/; SameSite=Strict; Max-Age=604800`
  * Dev mode:   `superfield_auth=<token>; HttpOnly; Path=/; SameSite=Strict; Max-Age=604800`
  */
 export function authCookieHeader(token: string): string {
   if (isSecureCookies()) {
-    return `${COOKIE_NAME_SECURE}=${token}; HttpOnly; Secure; Path=/; SameSite=Lax; Max-Age=604800`;
+    return `${COOKIE_NAME_SECURE}=${token}; HttpOnly; Secure; Path=/; SameSite=Strict; Max-Age=604800`;
   }
   return `${COOKIE_NAME_PLAIN}=${token}; HttpOnly; Path=/; SameSite=Strict; Max-Age=604800`;
 }

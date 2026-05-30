@@ -240,6 +240,15 @@ export function log(level: LogLevel, message: string, context: LogContext = {}):
 
   const line = JSON.stringify(entry);
 
+  // Always emit the JSON line to stdout so logs are captured by the container
+  // runtime / aggregator even on an ephemeral, file-less distroless FS
+  // (DEPLOY-C-005/006). File append below is a secondary, best-effort sink.
+  try {
+    process.stdout.write(line + '\n');
+  } catch {
+    // never let logging crash the process
+  }
+
   // Always write to app.log
   writeLine(_appLog, line);
 
