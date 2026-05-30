@@ -36,10 +36,7 @@ import {
   _setEncryptorForTest as _setCommRecordEncryptorForTest,
   _resetEncryptorForTest as _resetCommRecordEncryptorForTest,
 } from '../../../packages/db/src/commission-records';
-import {
-  handleCreatePlacement,
-  handleUpdatePlacement,
-} from '../../../apps/server/src/api/placements';
+import { handleCreatePlacement } from '../../../apps/server/src/api/placements';
 import { handleAddContributor } from '../../../apps/server/src/api/contributors';
 import {
   handleCreatePlan,
@@ -157,30 +154,6 @@ async function activatePlacement(
 }
 
 /**
- * Add a contributor to a placement.
- */
-async function addContributor(
-  sql: ReturnType<typeof postgres>,
-  claims: SessionClaims,
-  placementId: string,
-  splitPct: number = 1.0,
-): Promise<string> {
-  const req = makeRequest({
-    path: `/placements/${placementId}/contributors`,
-    method: 'POST',
-    body: {
-      producer_id: crypto.randomUUID(),
-      role: 'CandidateOwner',
-      split_pct: splitPct,
-    },
-  });
-  const res = await handleAddContributor(placementId, req, claims, sql);
-  expect(res.status).toBe(201);
-  const body = (await jsonBody(res)) as { id: string };
-  return body.id;
-}
-
-/**
  * Create a plan with an active version and assign it to a producer.
  *
  * Returns the plan version ID.
@@ -216,10 +189,6 @@ async function createActivePlan(
   const versionId = createBody.version.id;
 
   // Activate the version
-  const activateReq = makeRequest({
-    path: `/plans/${planId}/versions/${versionId}/activate`,
-    method: 'POST',
-  });
   const activateRes = await handleActivatePlanVersion(planId, versionId, claims, sql);
   expect(activateRes.status).toBe(200);
 
@@ -271,24 +240,6 @@ async function createGuaranteePeriod(
   );
 }
 
-/**
- * Insert a draw balance for a producer.
- */
-async function createDrawBalance(
-  sql: ReturnType<typeof postgres>,
-  orgId: string,
-  producerId: string,
-  balance: number,
-): Promise<void> {
-  await sql.unsafe(
-    `
-    INSERT INTO draw_balances (org_id, producer_id, balance, draw_limit, status)
-    VALUES ($1, $2, $3, $4, 'Active')
-    `,
-    [orgId, producerId, Buffer.from(String(balance)), Buffer.from('50000')],
-  );
-}
-
 // ---------------------------------------------------------------------------
 // AC#1 — Basic calculation: one contributor, one plan, correct gross_commission
 // ---------------------------------------------------------------------------
@@ -300,11 +251,6 @@ describe('POST /placements/:id/calculate — basic calculation (AC#1)', () => {
       fee_amount: '30000',
     });
     await activatePlacement(testSql, placementId);
-
-    // Get the contributor's producer_id by reading back
-    const contribReq = makeRequest({ path: `/placements/${placementId}/contributors` });
-    const contribRes = await handleListCommissionRecords(placementId, claimsA, testSql);
-    // (no records yet — just checking setup)
 
     // Add contributor with 100% split
     const addContribReq = makeRequest({
