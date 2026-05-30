@@ -1,0 +1,26 @@
+# Exclude node_modules from build context — installed fresh in each stage.
+node_modules
+apps/server/node_modules
+apps/web/node_modules
+apps/worker/node_modules
+packages/core/node_modules
+packages/db/node_modules
+packages/ui/node_modules
+
+# Build artifacts
+dist
+apps/web/dist
+
+# Local dev data
+logs
+
+# Git metadata and tooling
+.git
+.github
+.agents
+blueprint
+
+# Editor and OS artifacts
+.DS_Store
+*.swp
+*.swo
