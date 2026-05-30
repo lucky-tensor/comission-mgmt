@@ -8,7 +8,7 @@
 # Issue: feat: task queue and network-isolated worker execution model (#35)
 #
 # Applies to:
-#   - Pods with label app=commission-worker in the commission namespace
+#   - Pods with label app=commission-worker in the commission-production namespace
 #
 # Egress allowed:
 #   - TCP to the app server (port 31415) for task claim and result submission
@@ -21,7 +21,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: worker-deny-db-egress
-  namespace: commission
+  namespace: commission-production
   labels:
     app.kubernetes.io/part-of: commission-mgmt
     app.kubernetes.io/component: worker
@@ -43,7 +43,7 @@ spec:
     - to:
         - podSelector:
             matchLabels:
-              app: commission-server
+              app: commission-app
       ports:
         - port: 31415
           protocol: TCP
@@ -60,7 +60,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: worker-default-deny-egress
-  namespace: commission
+  namespace: commission-production
   labels:
     app.kubernetes.io/part-of: commission-mgmt
     app.kubernetes.io/component: worker
