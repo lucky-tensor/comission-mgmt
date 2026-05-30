@@ -2,11 +2,13 @@
 
 ## 1. Problem Statement
 
-Recruiting and staffing firms produce hiring outcomes through a chain of contributors — business development, account ownership, sourcing, research, candidate qualification, process management, offer negotiation, invoicing, and post-placement risk management. The economics attached to each placement are multi-party, variable by business model, and subject to change after the hire.
+Direct-hire and retained search firms produce hiring outcomes through a chain of contributors — business development, account ownership, sourcing, research, candidate qualification, process management, offer negotiation, invoicing, and post-placement risk management. The economics attached to each placement are multi-party, variable by business model, and subject to change after the hire. (Contract and temp staffing economics — timesheet-driven gross profit — are not the initial customer profile; see §8.)
 
 Today, firms manage these economics through a combination of spreadsheets, ATS fields, accounting exports, emails, and manager judgment. The result is a fragmented record that no single stakeholder fully trusts: attribution disputes go unresolved, commission calculations are opaque to producers, finance teams spend cycles reconstructing deal history, clawback exposure is poorly tracked, and leadership lacks reliable margin visibility.
 
 The core problem is not that commissions are hard to calculate. It is that the full economic lifecycle of a placement — who contributed, what revenue was created, what risk remains, and who should be paid when — has no governed, auditable home. When that record does not exist, trust breaks down, disputes escalate, and the commission process becomes a recurring operational and cultural liability.
+
+The initial buying trigger is commission-close pain: firms adopt the platform to **close commissions faster, with fewer disputes and less finance rework**. Payout transparency and split-dispute resolution are the felt symptoms that drive the purchase. The broader "governed economic ledger for every placement" capability deepens from that beachhead rather than being the opening pitch.
 
 ---
 
@@ -96,6 +98,8 @@ Baseline values for operational metrics are captured during onboarding so that i
 ---
 
 ## 5. Core Workflows
+
+*A day in the life — month-end commission close.* At month-end, a Finance Admin imports the period's placements and their current invoice and collection status. Managers review and approve the split allocations on their teams' deals. Incomplete records and flagged exceptions surface in a review queue and are resolved. Producers watch their expected payouts update as placement and collection data lands. Once every placement in the cycle is reviewed and approved, finance generates an approved, payroll-ready export and hands it to payroll. This recurring close — not a one-time setup — is the workflow the product is built around. The subsections below detail each step.
 
 ### 5.1 Placement Ledger Creation
 
@@ -242,10 +246,9 @@ The following are explicitly out of scope:
 
 ## 10. Open Questions
 
-1. **Segment priority** — Which segment has the most acute near-term pain: contingency search, retained search, hybrid search, or staffing firms with gross profit models? This determines MVP data model scope.
-2. **Primary wedge** — Is the strongest buying trigger finance commission close efficiency, attribution and split dispute reduction, recruiter payout transparency, or guarantee/clawback risk management?
-3. **ATS integration priority** — Which applicant tracking systems represent the highest concentration in the target segment and should be prioritized for the first live integrations?
-4. **Configurability threshold** — How much plan configurability is required for initial customers to replace their spreadsheets? Specifically: are retroactive tiers, draw recovery, and team pools required at launch, or can they be deferred?
-5. **Plan acknowledgment workflow** — Is digital plan acknowledgment by producers a requirement for initial customers, or a later compliance add-on?
-6. **Buyer title** — Which title most commonly signs the check: COO, CFO, CEO, or managing partner? This affects positioning and sales motion.
-7. **Pricing model** — Is per-producer-per-month pricing the strongest fit, or do customers respond better to per-placement or commission-volume-based pricing?
+1. **Segment priority** — Within the direct-hire and retained search ICP (§8), which segment has the most acute near-term pain: contingency search, retained search, or hybrid (contingency + retained) firms? This determines MVP data model scope.
+2. **ATS integration priority** — Which applicant tracking systems represent the highest concentration in the target segment and should be prioritized for the first live integrations?
+3. **Configurability threshold** — How much plan configurability is required for initial customers to replace their spreadsheets? Specifically: are retroactive tiers, draw recovery, and team pools required at launch, or can they be deferred?
+4. **Plan acknowledgment workflow** — Is digital plan acknowledgment by producers a requirement for initial customers, or a later compliance add-on?
+5. **Buyer title** — Which title most commonly signs the check: COO, CFO, CEO, or managing partner? The commission-close wedge (§1) presumes an operations-accountable buyer (most likely the COO), but the specific signing title still affects sales motion and remains to be validated.
+6. **Pricing model** — Is per-producer-per-month pricing the strongest fit, or do customers respond better to per-placement or commission-volume-based pricing?
