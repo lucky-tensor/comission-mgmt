@@ -177,6 +177,21 @@ CREATE OR REPLACE VIEW claimable_tasks AS
 GRANT SELECT ON claimable_tasks TO agent_rw;
 
 -- =============================================================================
+-- Encryption Key Registry
+-- Maps entity_type + field_name → KMS key ID used to wrap the DEK for that field.
+-- FieldEncryptor consults this table to determine which KMS key to use when
+-- wrapping/unwrapping a data encryption key.
+-- Architecture: docs/architecture/decisions.md — Field Encryption Registry
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS encryption_key_registry (
+  entity_type  TEXT NOT NULL,
+  field_name   TEXT NOT NULL,
+  kms_key_id   TEXT NOT NULL,
+  PRIMARY KEY (entity_type, field_name)
+);
+
+-- =============================================================================
 -- Commission Domain: Lifecycle State Enums
 -- Matches PRD §6 exactly.
 -- =============================================================================

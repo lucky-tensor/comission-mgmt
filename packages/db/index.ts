@@ -17,6 +17,14 @@ import { buildSslOptions } from './ssl';
 
 export { buildSslOptions } from './ssl';
 
+export {
+  createPlacement,
+  getPlacement,
+  _setEncryptorForTest,
+  _resetEncryptorForTest,
+} from './src/placements.js';
+export type { Placement, CreatePlacementInput, PlacementStatus } from './src/placements.js';
+
 const DEFAULT_DATABASE_URLS = {
   app: 'postgres://app_rw:app_rw_password@localhost:5432/commission_app',
   audit: 'postgres://audit_w:audit_w_password@localhost:5432/commission_audit',
