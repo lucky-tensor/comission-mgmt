@@ -228,7 +228,7 @@ export default function Login() {
   }, []);
 
   function handleSuccess() {
-    window.location.href = '/';
+    window.location.href = '/portal';
   }
 
   function handleError(msg: string) {
@@ -248,7 +248,7 @@ export default function Login() {
         const data = (await res.json()) as { error?: string };
         throw new Error(data.error ?? 'Demo sign-in failed');
       }
-      window.location.href = '/';
+      window.location.href = '/portal';
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Demo sign-in failed');
     } finally {
@@ -270,7 +270,7 @@ export default function Login() {
         const data = (await res.json()) as { error?: string };
         throw new Error(data.error ?? 'Demo create failed');
       }
-      window.location.href = '/';
+      window.location.href = '/portal';
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Demo create failed');
     } finally {
