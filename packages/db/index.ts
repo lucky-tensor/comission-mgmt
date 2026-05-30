@@ -85,6 +85,7 @@ export {
   createInvoice,
   getInvoice,
   listInvoicesForPlacement,
+  listInvoicesForPeriod,
   updateInvoice,
   upsertInvoiceByNumber,
   releaseCollectionGate,
@@ -159,6 +160,26 @@ export type {
   CommissionJournalEntry,
   CreateCommissionJournalEntryInput,
 } from './src/billing-phases.js';
+
+export {
+  upsertArIngestedRecord,
+  listArIngestedRecords,
+  createDiscrepancy,
+  listDiscrepancies,
+  getDiscrepancy,
+  acknowledgeDiscrepancy,
+  countUnacknowledgedDiscrepancies,
+  clearUnacknowledgedDiscrepancies,
+  generateReconciliationReport,
+} from './src/reconciliation.js';
+export type {
+  ArIngestedRecord,
+  CreateArIngestedRecordInput,
+  ReconciliationDiscrepancy,
+  UpsertDiscrepancyInput,
+  DiscrepancyType,
+  ReconcileOptions,
+} from './src/reconciliation.js';
 
 const DEFAULT_DATABASE_URLS = {
   app: 'postgres://app_rw:app_rw_password@localhost:5432/commission_app',

@@ -179,6 +179,37 @@ export async function listInvoicesForPlacement(
 }
 
 // ---------------------------------------------------------------------------
+// listInvoicesForPeriod — SELECT all invoices for an org within an issued_at date range
+
+/**
+ * Lists all invoices for an org where issued_at falls within [periodStart, periodEnd].
+ * Returns decrypted InvoiceRow objects.
+ */
+export async function listInvoicesForPeriod(
+  sql: Sql,
+  orgId: string,
+  periodStart: string,
+  periodEnd: string,
+): Promise<InvoiceRow[]> {
+  const enc = await getEncryptor();
+
+  const rows = await sql.unsafe(
+    `
+    SELECT id, org_id, placement_id, invoice_number,
+           amount_billed, amount_collected, status, issued_at, due_at, collected_at
+    FROM invoices
+    WHERE org_id = $1
+      AND issued_at >= $2::date
+      AND issued_at <  ($3::date + INTERVAL '1 day')
+    ORDER BY issued_at
+    `,
+    [orgId, periodStart, periodEnd],
+  );
+
+  if (!rows || rows.length === 0) return [];
+  return Promise.all((rows as unknown as InvoiceRawRow[]).map((r) => decryptInvoiceRow(enc, r)));
+}
+
 // updateInvoice — UPDATE status and optional paid amount
 // ---------------------------------------------------------------------------
 

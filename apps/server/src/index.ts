@@ -78,7 +78,9 @@ import {
   handleGetCommissionRunQueue,
   handleApproveRunRecord,
   handleApproveCommissionRun,
+  handleFinalizeCommissionRun,
 } from './api/commission-runs';
+import { handleGetReconciliationReport, handleAcknowledgeDiscrepancy } from './api/reconciliation';
 import {
   handleCreateException,
   handleListExceptions,
@@ -254,6 +256,12 @@ async function fetchHandler(req: Request): Promise<Response> {
   if (req.method === 'POST' && commissionRunApproveMatch) {
     return handleApproveCommissionRun(commissionRunApproveMatch[1], authResult.claims);
   }
+  // POST /commission-runs/:id/finalize — reconciliation-gated finalization
+  const commissionRunFinalizeMatch = pathname.match(/^\/commission-runs\/([^/]+)\/finalize$/);
+  if (req.method === 'POST' && commissionRunFinalizeMatch) {
+    return handleFinalizeCommissionRun(commissionRunFinalizeMatch[1], req, authResult.claims);
+  }
+
   // POST /commission-runs/:id/export — generate payroll CSV export artifact
   const commissionRunExportMatch = pathname.match(/^\/commission-runs\/([^/]+)\/export$/);
   if (req.method === 'POST' && commissionRunExportMatch) {
@@ -381,6 +389,15 @@ async function fetchHandler(req: Request): Promise<Response> {
   const invoicePatchMatch = pathname.match(/^\/invoices\/([^/]+)$/);
   if (req.method === 'PATCH' && invoicePatchMatch) {
     return handleUpdateInvoice(invoicePatchMatch[1], req, authResult.claims);
+  }
+
+  // Reconciliation routes — Finance Admin only, scoped to tenant
+  if (req.method === 'GET' && pathname === '/reconciliation') {
+    return handleGetReconciliationReport(req, authResult.claims);
+  }
+  const reconciliationAcknowledgeMatch = pathname.match(/^\/reconciliation\/([^/]+)\/acknowledge$/);
+  if (req.method === 'POST' && reconciliationAcknowledgeMatch) {
+    return handleAcknowledgeDiscrepancy(reconciliationAcknowledgeMatch[1], req, authResult.claims);
   }
 
   // Exception workflow routes — authenticated (session cookie), scoped to tenant

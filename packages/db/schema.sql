@@ -703,3 +703,64 @@ CREATE INDEX IF NOT EXISTS idx_commission_journal_org ON commission_journal (org
 CREATE INDEX IF NOT EXISTS idx_commission_journal_record ON commission_journal (commission_record_id);
 CREATE INDEX IF NOT EXISTS idx_commission_journal_phase ON commission_journal (billing_phase_id) WHERE billing_phase_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_commission_journal_created ON commission_journal (created_at);
+
+-- =============================================================================
+-- Financial Reconciliation: ledger vs financial system (AR) cross-check.
+-- Finance Admins generate a reconciliation report for a period. Discrepancies
+-- are surfaced and must be acknowledged before a commission run can be finalized.
+-- Canonical: docs/prd.md §5.8
+-- Issue: feat: financial reconciliation report — ledger vs financial system cross-check (#65)
+-- =============================================================================
+
+DO $$ BEGIN
+  CREATE TYPE discrepancy_type AS ENUM (
+    'ledger_only',
+    'system_only',
+    'amount_mismatch',
+    'date_gap'
+  );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+-- ar_ingested_records: AR data ingested from the financial system for reconciliation.
+-- This table holds the system-of-record amounts to compare against ledger invoices.
+CREATE TABLE IF NOT EXISTS ar_ingested_records (
+  id               UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id           UUID        NOT NULL,
+  invoice_number   TEXT        NOT NULL,
+  amount_billed    NUMERIC(15,2) NOT NULL,
+  amount_collected NUMERIC(15,2),
+  billed_date      DATE        NOT NULL,
+  collected_date   DATE,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_ar_ingested_org_number ON ar_ingested_records (org_id, invoice_number);
+CREATE INDEX IF NOT EXISTS idx_ar_ingested_org ON ar_ingested_records (org_id);
+CREATE INDEX IF NOT EXISTS idx_ar_ingested_billed_date ON ar_ingested_records (org_id, billed_date);
+
+-- reconciliation_discrepancies: one row per discovered discrepancy between ledger and AR.
+-- Finance Admins acknowledge discrepancies to allow commission run finalization.
+CREATE TABLE IF NOT EXISTS reconciliation_discrepancies (
+  id                   UUID             PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id               UUID             NOT NULL,
+  period_start         DATE             NOT NULL,
+  period_end           DATE             NOT NULL,
+  discrepancy_type     discrepancy_type NOT NULL,
+  invoice_id           UUID             REFERENCES invoices(id),
+  invoice_number       TEXT,
+  ledger_amount_billed NUMERIC(15,2),
+  ar_amount_billed     NUMERIC(15,2),
+  ledger_issued_at     DATE,
+  ar_billed_date       DATE,
+  date_gap_days        INTEGER,
+  acknowledged         BOOLEAN          NOT NULL DEFAULT false,
+  acknowledged_by      UUID,
+  acknowledged_at      TIMESTAMPTZ,
+  acknowledged_note    TEXT,
+  created_at           TIMESTAMPTZ      NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_reconciliation_discrepancies_org ON reconciliation_discrepancies (org_id);
+CREATE INDEX IF NOT EXISTS idx_reconciliation_discrepancies_period ON reconciliation_discrepancies (org_id, period_start, period_end);
+CREATE INDEX IF NOT EXISTS idx_reconciliation_discrepancies_ack ON reconciliation_discrepancies (org_id, acknowledged);
