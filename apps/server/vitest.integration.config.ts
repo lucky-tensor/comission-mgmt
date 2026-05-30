@@ -35,6 +35,10 @@ export default defineConfig({
       { find: 'db/ssl', replacement: resolve(root, 'packages/db/ssl.ts') },
       { find: 'db/placements', replacement: resolve(root, 'packages/db/src/placements.ts') },
       { find: 'db/plans', replacement: resolve(root, 'packages/db/src/plans.ts') },
+      {
+        find: 'db/guarantee-periods',
+        replacement: resolve(root, 'packages/db/src/guarantee-periods.ts'),
+      },
       { find: 'db/index', replacement: resolve(root, 'packages/db/index.ts') },
       { find: 'db', replacement: resolve(root, 'packages/db/index.ts') },
     ],
