@@ -108,6 +108,9 @@ import {
   handleGetMyTierProgress,
   handleCreateMyDispute,
 } from './api/me';
+// Leadership Visibility analytics stubs — issue #28
+// See docs/architecture/phase-leadership-visibility.md for aggregation strategy.
+import { handleGetExecutiveAnalytics, handleGetTeamAnalytics } from './api/analytics';
 
 // Re-export foundation modules so they continue to be verified at compile time.
 export * from './auth/jwt';
@@ -489,6 +492,15 @@ async function fetchHandler(req: Request): Promise<Response> {
   }
   if (req.method === 'GET' && pathname === '/me/clawback-exposure') {
     return handleGetMyClawbackExposure(authResult.claims);
+  }
+
+  // Leadership Visibility analytics routes — stub endpoints returning 501 (issue #28)
+  // Full implementation: executive dashboard (#21), manager team view (#22).
+  if (req.method === 'GET' && pathname === '/analytics/executive') {
+    return handleGetExecutiveAnalytics(req, authResult.claims);
+  }
+  if (req.method === 'GET' && pathname === '/analytics/team') {
+    return handleGetTeamAnalytics(req, authResult.claims);
   }
 
   // 404 for all other paths
