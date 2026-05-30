@@ -15,14 +15,8 @@
 import { describe, test, expect, beforeAll, afterAll } from 'vitest';
 import postgres from 'postgres';
 import { startPostgres, type PgContainer } from '../pg-container';
-import { migrate, splitSqlStatements } from '../index';
+import { migrate } from '../index';
 import { seedCommissionFixtures } from '../seed';
-import { readFileSync } from 'fs';
-import { resolve, dirname } from 'path';
-import { fileURLToPath } from 'url';
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const DB_ROOT = resolve(__dirname, '..');
 
 let pg: PgContainer;
 let sql: ReturnType<typeof postgres>;
@@ -234,8 +228,6 @@ describe('migration idempotency', () => {
 // 5. audit_w permission test — INSERT succeeds, UPDATE/DELETE fail
 // ---------------------------------------------------------------------------
 describe('audit_w role permissions', () => {
-  const baseUrl = () => pg.url.replace(/\/[^/]+$/, '');
-
   test('audit_w can INSERT into audit_log_entries', async () => {
     const auditWUrl = `postgres://audit_w:audit_w_test@${pg.url.replace(/^postgres:\/\/[^@]+@/, '')}`.replace(/\/[^/]*$/, '/commission_audit_test');
     const auditWPool = postgres(auditWUrl, { max: 1, connect_timeout: 10 });
