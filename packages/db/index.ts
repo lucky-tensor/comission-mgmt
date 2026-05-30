@@ -134,6 +134,32 @@ export type {
 export { createOrGetPayrollExport, listPayrollExports } from './src/payroll-exports.js';
 export type { PayrollExportArtifactRow, CreatePayrollExportInput } from './src/payroll-exports.js';
 
+export {
+  createBillingPhase,
+  listBillingPhases,
+  getBillingPhase,
+  getBillingPhaseByName,
+  updateBillingPhase,
+  createPhaseContributor,
+  listPhaseContributors,
+  releasePhaseCollectionGate,
+  listCommissionJournalEntries,
+  createCommissionJournalEntry,
+  BILLING_PHASE_NAMES,
+  _setEncryptorForTest as _setBillingPhaseEncryptorForTest,
+  _resetEncryptorForTest as _resetBillingPhaseEncryptorForTest,
+} from './src/billing-phases.js';
+export type {
+  BillingPhase,
+  BillingPhaseName,
+  CreateBillingPhaseInput,
+  UpdateBillingPhaseInput,
+  PhaseContributor,
+  CreatePhaseContributorInput,
+  CommissionJournalEntry,
+  CreateCommissionJournalEntryInput,
+} from './src/billing-phases.js';
+
 const DEFAULT_DATABASE_URLS = {
   app: 'postgres://app_rw:app_rw_password@localhost:5432/commission_app',
   audit: 'postgres://audit_w:audit_w_password@localhost:5432/commission_audit',

@@ -41,6 +41,7 @@ import {
   INVOICE_STATES,
   type HeldCommissionRecordRow,
 } from 'db/invoices';
+import { releasePhaseCollectionGate } from 'db/billing-phases';
 import type { SessionClaims } from 'core/auth';
 
 type SqlClient = Sql;
@@ -319,7 +320,9 @@ export async function handleUpdateInvoice(
 
     let collectionReleasedCount = 0;
 
-    // When transitioning to Paid: release collection-gated commission records
+    // When transitioning to Paid: release collection-gated commission records.
+    // Step 1: release placement-level (contingency) collection gate records.
+    // Step 2: release phase-level records where this invoice is the phase's linked invoice.
     if (body.status === 'Paid') {
       try {
         collectionReleasedCount = await releaseCollectionGate(
@@ -329,6 +332,33 @@ export async function handleUpdateInvoice(
         );
       } catch (err: unknown) {
         console.error('[invoices] collection gate release error:', err);
+        // Non-fatal — log but continue
+      }
+
+      // Phase-scoped release: find any billing_phases that link to this invoice and release
+      // commission records held pending this phase's invoice payment.
+      try {
+        const phaseRows = await db.unsafe(
+          `
+          SELECT id FROM billing_phases
+          WHERE org_id = $1 AND invoice_id = $2
+          `,
+          [claims.org_id, updated.id],
+        );
+
+        if (phaseRows && phaseRows.length > 0) {
+          for (const phaseRow of phaseRows as unknown as { id: string }[]) {
+            const phaseReleased = await releasePhaseCollectionGate(
+              db,
+              claims.org_id,
+              phaseRow.id,
+              updated.id,
+            );
+            collectionReleasedCount += phaseReleased;
+          }
+        }
+      } catch (err: unknown) {
+        console.error('[invoices] phase collection gate release error:', err);
         // Non-fatal — log but continue
       }
     }

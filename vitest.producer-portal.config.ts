@@ -65,6 +65,10 @@ export default defineConfig({
         replacement: resolve(root, 'packages/db/src/commission-runs.ts'),
       },
       { find: 'db/invoices', replacement: resolve(root, 'packages/db/src/invoices.ts') },
+      {
+        find: 'db/billing-phases',
+        replacement: resolve(root, 'packages/db/src/billing-phases.ts'),
+      },
       { find: 'db/index', replacement: resolve(root, 'packages/db/index.ts') },
       { find: 'db', replacement: resolve(root, 'packages/db/index.ts') },
     ],
