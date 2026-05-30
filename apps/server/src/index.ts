@@ -46,6 +46,12 @@ import {
   handleDeleteContributor,
   handleValidateSplit,
 } from './api/contributors';
+import {
+  handleSubmitAttribution,
+  handleApproveAttribution,
+  handleRejectAttribution,
+  handleAttributionTimeline,
+} from './api/attribution';
 import { handleDemoUsers, handleDemoSession, isDemoMode } from './api/demo-session';
 import { requireAuth } from './middleware/auth';
 
@@ -208,6 +214,24 @@ async function fetchHandler(req: Request): Promise<Response> {
       contributorDeleteMatch[2],
       authResult.claims,
     );
+  }
+
+  // Attribution routes — authenticated (session cookie), scoped to tenant
+  const attributionSubmitMatch = pathname.match(/^\/placements\/([^/]+)\/attribution\/submit$/);
+  if (req.method === 'POST' && attributionSubmitMatch) {
+    return handleSubmitAttribution(attributionSubmitMatch[1], authResult.claims);
+  }
+  const attributionApproveMatch = pathname.match(/^\/placements\/([^/]+)\/attribution\/approve$/);
+  if (req.method === 'POST' && attributionApproveMatch) {
+    return handleApproveAttribution(attributionApproveMatch[1], authResult.claims);
+  }
+  const attributionRejectMatch = pathname.match(/^\/placements\/([^/]+)\/attribution\/reject$/);
+  if (req.method === 'POST' && attributionRejectMatch) {
+    return handleRejectAttribution(attributionRejectMatch[1], req, authResult.claims);
+  }
+  const attributionTimelineMatch = pathname.match(/^\/placements\/([^/]+)\/attribution\/timeline$/);
+  if (req.method === 'GET' && attributionTimelineMatch) {
+    return handleAttributionTimeline(attributionTimelineMatch[1], authResult.claims);
   }
 
   // 404 for all other paths

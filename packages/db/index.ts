@@ -34,6 +34,13 @@ export {
 } from './src/contributors.js';
 export type { Contributor, CreateContributorInput } from './src/contributors.js';
 
+export { createAttributionEvent, listAttributionEvents } from './src/attribution.js';
+export type {
+  AttributionEvent,
+  AttributionEventType,
+  CreateAttributionEventInput,
+} from './src/attribution.js';
+
 const DEFAULT_DATABASE_URLS = {
   app: 'postgres://app_rw:app_rw_password@localhost:5432/commission_app',
   audit: 'postgres://audit_w:audit_w_password@localhost:5432/commission_audit',
