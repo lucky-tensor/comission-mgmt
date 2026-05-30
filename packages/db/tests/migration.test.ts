@@ -36,8 +36,12 @@ beforeAll(async () => {
   const analyticsUrl = `${baseUrl}/commission_analytics_test`;
 
   // Create additional databases (each must be a separate statement — CREATE DATABASE can't run in a transaction)
-  await sql.unsafe(`CREATE DATABASE commission_audit_test`).catch(() => {/* already exists */});
-  await sql.unsafe(`CREATE DATABASE commission_analytics_test`).catch(() => {/* already exists */});
+  await sql.unsafe(`CREATE DATABASE commission_audit_test`).catch(() => {
+    /* already exists */
+  });
+  await sql.unsafe(`CREATE DATABASE commission_analytics_test`).catch(() => {
+    /* already exists */
+  });
 
   await sql.unsafe(`
     DO $$ BEGIN
@@ -148,7 +152,7 @@ describe('tenancy — org_id column is NOT NULL on all multi-tenant tables', () 
         AND is_nullable = 'NO'
       ORDER BY table_name
     `;
-    const tablesWithOrgId = rows.map(r => r.table_name);
+    const tablesWithOrgId = rows.map((r) => r.table_name);
 
     for (const t of multiTenantTables) {
       expect(tablesWithOrgId, `"${t}" should have org_id NOT NULL`).toContain(t);
@@ -180,7 +184,7 @@ describe('PlacementState enum — matches PRD §6', () => {
       WHERE t.typname = 'placement_state'
       ORDER BY e.enumsortorder
     `;
-    const values = rows.map(r => r.enumlabel);
+    const values = rows.map((r) => r.enumlabel);
     expect(values).toEqual([
       'Created',
       'ContributorsAssigned',
@@ -229,7 +233,11 @@ describe('migration idempotency', () => {
 // ---------------------------------------------------------------------------
 describe('audit_w role permissions', () => {
   test('audit_w can INSERT into audit_log_entries', async () => {
-    const auditWUrl = `postgres://audit_w:audit_w_test@${pg.url.replace(/^postgres:\/\/[^@]+@/, '')}`.replace(/\/[^/]*$/, '/commission_audit_test');
+    const auditWUrl =
+      `postgres://audit_w:audit_w_test@${pg.url.replace(/^postgres:\/\/[^@]+@/, '')}`.replace(
+        /\/[^/]*$/,
+        '/commission_audit_test',
+      );
     const auditWPool = postgres(auditWUrl, { max: 1, connect_timeout: 10 });
     try {
       await auditWPool.unsafe(`
@@ -250,11 +258,15 @@ describe('audit_w role permissions', () => {
   });
 
   test('audit_w cannot UPDATE audit_log_entries', async () => {
-    const auditWUrl = `postgres://audit_w:audit_w_test@${pg.url.replace(/^postgres:\/\/[^@]+@/, '')}`.replace(/\/[^/]*$/, '/commission_audit_test');
+    const auditWUrl =
+      `postgres://audit_w:audit_w_test@${pg.url.replace(/^postgres:\/\/[^@]+@/, '')}`.replace(
+        /\/[^/]*$/,
+        '/commission_audit_test',
+      );
     const auditWPool = postgres(auditWUrl, { max: 1, connect_timeout: 10 });
     try {
       await expect(
-        auditWPool.unsafe(`UPDATE audit_log_entries SET action = 'x' WHERE FALSE`)
+        auditWPool.unsafe(`UPDATE audit_log_entries SET action = 'x' WHERE FALSE`),
       ).rejects.toThrow(/permission denied/i);
     } finally {
       await auditWPool.end({ timeout: 5 });
@@ -262,12 +274,16 @@ describe('audit_w role permissions', () => {
   });
 
   test('audit_w cannot DELETE from audit_log_entries', async () => {
-    const auditWUrl = `postgres://audit_w:audit_w_test@${pg.url.replace(/^postgres:\/\/[^@]+@/, '')}`.replace(/\/[^/]*$/, '/commission_audit_test');
+    const auditWUrl =
+      `postgres://audit_w:audit_w_test@${pg.url.replace(/^postgres:\/\/[^@]+@/, '')}`.replace(
+        /\/[^/]*$/,
+        '/commission_audit_test',
+      );
     const auditWPool = postgres(auditWUrl, { max: 1, connect_timeout: 10 });
     try {
-      await expect(
-        auditWPool.unsafe(`DELETE FROM audit_log_entries WHERE FALSE`)
-      ).rejects.toThrow(/permission denied/i);
+      await expect(auditWPool.unsafe(`DELETE FROM audit_log_entries WHERE FALSE`)).rejects.toThrow(
+        /permission denied/i,
+      );
     } finally {
       await auditWPool.end({ timeout: 5 });
     }
@@ -279,7 +295,11 @@ describe('audit_w role permissions', () => {
 // ---------------------------------------------------------------------------
 describe('analytics_w role permissions', () => {
   test('analytics_w can INSERT into commission_events', async () => {
-    const analyticsWUrl = `postgres://analytics_w:analytics_w_test@${pg.url.replace(/^postgres:\/\/[^@]+@/, '')}`.replace(/\/[^/]*$/, '/commission_analytics_test');
+    const analyticsWUrl =
+      `postgres://analytics_w:analytics_w_test@${pg.url.replace(/^postgres:\/\/[^@]+@/, '')}`.replace(
+        /\/[^/]*$/,
+        '/commission_analytics_test',
+      );
     const analyticsWPool = postgres(analyticsWUrl, { max: 1, connect_timeout: 10 });
     try {
       await analyticsWPool.unsafe(`
@@ -293,11 +313,15 @@ describe('analytics_w role permissions', () => {
   });
 
   test('analytics_w cannot SELECT from commission_events', async () => {
-    const analyticsWUrl = `postgres://analytics_w:analytics_w_test@${pg.url.replace(/^postgres:\/\/[^@]+@/, '')}`.replace(/\/[^/]*$/, '/commission_analytics_test');
+    const analyticsWUrl =
+      `postgres://analytics_w:analytics_w_test@${pg.url.replace(/^postgres:\/\/[^@]+@/, '')}`.replace(
+        /\/[^/]*$/,
+        '/commission_analytics_test',
+      );
     const analyticsWPool = postgres(analyticsWUrl, { max: 1, connect_timeout: 10 });
     try {
       await expect(
-        analyticsWPool.unsafe(`SELECT * FROM commission_events LIMIT 1`)
+        analyticsWPool.unsafe(`SELECT * FROM commission_events LIMIT 1`),
       ).rejects.toThrow(/permission denied/i);
     } finally {
       await analyticsWPool.end({ timeout: 5 });

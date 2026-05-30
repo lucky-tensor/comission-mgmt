@@ -40,11 +40,14 @@ export async function seedCommissionFixtures(sql: postgres.Sql) {
   const s = SEED;
 
   // placement
-  await sql.unsafe(`
+  await sql.unsafe(
+    `
     INSERT INTO placements (id, org_id, candidate_id, client_entity_id, job_title, status, fee_amount, compensation_base)
     VALUES ('${s.placementId}', '${s.orgId}', '${s.candidateId}', '${s.clientEntityId}', 'Senior Engineer', 'Created', $1, $2)
     ON CONFLICT (id) DO NOTHING
-  `, [PLACEHOLDER_BYTES, PLACEHOLDER_BYTES]);
+  `,
+    [PLACEHOLDER_BYTES, PLACEHOLDER_BYTES],
+  );
 
   // commission plan
   await sql.unsafe(`
@@ -68,32 +71,44 @@ export async function seedCommissionFixtures(sql: postgres.Sql) {
   `);
 
   // commission record
-  await sql.unsafe(`
+  await sql.unsafe(
+    `
     INSERT INTO commission_records (id, org_id, placement_id, contributor_id, plan_version_id, gross_amount, net_payable, status)
     VALUES ('${s.commissionRecordId}', '${s.orgId}', '${s.placementId}', '${s.contributorId}', '${s.planVersionId}', $1, $2, 'Accrued')
     ON CONFLICT (id) DO NOTHING
-  `, [PLACEHOLDER_BYTES, PLACEHOLDER_BYTES]);
+  `,
+    [PLACEHOLDER_BYTES, PLACEHOLDER_BYTES],
+  );
 
   // invoice
-  await sql.unsafe(`
+  await sql.unsafe(
+    `
     INSERT INTO invoices (id, org_id, placement_id, invoice_number, amount_billed, status, issued_at)
     VALUES ('${s.invoiceId}', '${s.orgId}', '${s.placementId}', 'INV-001', $1, 'Issued', NOW())
     ON CONFLICT (id) DO NOTHING
-  `, [PLACEHOLDER_BYTES]);
+  `,
+    [PLACEHOLDER_BYTES],
+  );
 
   // guarantee period
-  await sql.unsafe(`
+  await sql.unsafe(
+    `
     INSERT INTO guarantee_periods (id, org_id, placement_id, guarantee_ends, status, risk_amount)
     VALUES ('${s.guaranteePeriodId}', '${s.orgId}', '${s.placementId}', '2026-03-01', 'Active', $1)
     ON CONFLICT (id) DO NOTHING
-  `, [PLACEHOLDER_BYTES]);
+  `,
+    [PLACEHOLDER_BYTES],
+  );
 
   // draw balance
-  await sql.unsafe(`
+  await sql.unsafe(
+    `
     INSERT INTO draw_balances (id, org_id, producer_id, balance, draw_limit, status)
     VALUES ('${s.drawBalanceId}', '${s.orgId}', '${s.producerId}', $1, $2, 'Active')
     ON CONFLICT (id) DO NOTHING
-  `, [PLACEHOLDER_BYTES, PLACEHOLDER_BYTES]);
+  `,
+    [PLACEHOLDER_BYTES, PLACEHOLDER_BYTES],
+  );
 
   // exception
   await sql.unsafe(`

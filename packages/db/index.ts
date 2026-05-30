@@ -153,7 +153,11 @@ export function splitSqlStatements(sqlStr: string): string[] {
   return statements;
 }
 
-async function applySchema(schemaFilePath: string, pool: ReturnType<typeof postgres>, owned: boolean) {
+async function applySchema(
+  schemaFilePath: string,
+  pool: ReturnType<typeof postgres>,
+  owned: boolean,
+) {
   const schemaSql = readFileSync(schemaFilePath, 'utf-8');
   const cleanSql = schemaSql.replace(/--.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '');
   const statements = splitSqlStatements(cleanSql).filter((s) => s.length > 0);
@@ -183,9 +187,15 @@ export async function migrate(options: MigrateOptions = {}) {
 
   const appUrl = options.databaseUrl ?? databaseUrls.app;
 
-  const appPool = options.databaseUrl === undefined
-    ? sql
-    : postgres(appUrl, { max: 1, idle_timeout: 10, connect_timeout: 10, connection: { client_min_messages: 'warning' } });
+  const appPool =
+    options.databaseUrl === undefined
+      ? sql
+      : postgres(appUrl, {
+          max: 1,
+          idle_timeout: 10,
+          connect_timeout: 10,
+          connection: { client_min_messages: 'warning' },
+        });
   const appOwned = options.databaseUrl !== undefined;
 
   try {
@@ -195,7 +205,12 @@ export async function migrate(options: MigrateOptions = {}) {
     // Audit and analytics migrations are opt-in: only run when an explicit URL is provided.
     // This allows unit tests that only need the app schema to skip them.
     if (options.auditDatabaseUrl) {
-      const auditPool = postgres(options.auditDatabaseUrl, { max: 1, idle_timeout: 10, connect_timeout: 10, connection: { client_min_messages: 'warning' } });
+      const auditPool = postgres(options.auditDatabaseUrl, {
+        max: 1,
+        idle_timeout: 10,
+        connect_timeout: 10,
+        connection: { client_min_messages: 'warning' },
+      });
       try {
         await applySchema(resolveSchemaPath('audit_schema.sql'), auditPool, false);
         console.log('[db] Audit schema applied.');
@@ -210,7 +225,12 @@ export async function migrate(options: MigrateOptions = {}) {
     }
 
     if (options.analyticsDatabaseUrl) {
-      const analyticsPool = postgres(options.analyticsDatabaseUrl, { max: 1, idle_timeout: 10, connect_timeout: 10, connection: { client_min_messages: 'warning' } });
+      const analyticsPool = postgres(options.analyticsDatabaseUrl, {
+        max: 1,
+        idle_timeout: 10,
+        connect_timeout: 10,
+        connection: { client_min_messages: 'warning' },
+      });
       try {
         await applySchema(resolveSchemaPath('analytics_schema.sql'), analyticsPool, false);
         console.log('[db] Analytics schema applied.');
