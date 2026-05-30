@@ -26,6 +26,14 @@ export {
 } from './src/placements.js';
 export type { Placement, CreatePlacementInput, PlacementStatus } from './src/placements.js';
 
+export {
+  createContributor,
+  listContributors,
+  deleteContributor,
+  getSplitTotal,
+} from './src/contributors.js';
+export type { Contributor, CreateContributorInput } from './src/contributors.js';
+
 const DEFAULT_DATABASE_URLS = {
   app: 'postgres://app_rw:app_rw_password@localhost:5432/commission_app',
   audit: 'postgres://audit_w:audit_w_password@localhost:5432/commission_audit',

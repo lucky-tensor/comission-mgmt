@@ -40,6 +40,12 @@ import {
   handleUpdatePlacement,
   handlePreflightCommissionRun,
 } from './api/placements';
+import {
+  handleAddContributor,
+  handleListContributors,
+  handleDeleteContributor,
+  handleValidateSplit,
+} from './api/contributors';
 import { handleDemoUsers, handleDemoSession, isDemoMode } from './api/demo-session';
 import { requireAuth } from './middleware/auth';
 
@@ -179,6 +185,23 @@ async function fetchHandler(req: Request): Promise<Response> {
   // Commission run pre-flight check
   if (req.method === 'POST' && pathname === '/commission-runs') {
     return handlePreflightCommissionRun(req, authResult.claims);
+  }
+
+  // Contributor routes — authenticated (session cookie), scoped to tenant
+  const contributorBaseMatch = pathname.match(/^\/placements\/([^/]+)\/contributors$/);
+  if (req.method === 'POST' && contributorBaseMatch) {
+    return handleAddContributor(contributorBaseMatch[1], req, authResult.claims);
+  }
+  if (req.method === 'GET' && contributorBaseMatch) {
+    return handleListContributors(contributorBaseMatch[1], authResult.claims);
+  }
+  const validateSplitMatch = pathname.match(/^\/placements\/([^/]+)\/contributors\/validate-split$/);
+  if (req.method === 'POST' && validateSplitMatch) {
+    return handleValidateSplit(validateSplitMatch[1], authResult.claims);
+  }
+  const contributorDeleteMatch = pathname.match(/^\/placements\/([^/]+)\/contributors\/([^/]+)$/);
+  if (req.method === 'DELETE' && contributorDeleteMatch) {
+    return handleDeleteContributor(contributorDeleteMatch[1], contributorDeleteMatch[2], authResult.claims);
   }
 
   // 404 for all other paths

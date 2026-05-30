@@ -13,6 +13,7 @@
     "test:migration": "bun --bun vitest run --config vitest.migration.config.ts",
     "test:api": "bun --bun vitest run --config vitest.auth.config.ts",
     "test:tasks": "bun --bun vitest run --config vitest.tasks.config.ts",
+    "test:contributors": "bun --bun vitest run --config vitest.contributors.config.ts",
     "migrate": "bun run packages/db/migrate.ts",
     "demo:seed": "bun run scripts/demo-seed.ts",
     "typecheck": "bun tsc --noEmit",
