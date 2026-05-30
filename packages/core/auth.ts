@@ -103,6 +103,8 @@ export const ROLE_PERMISSIONS: Record<AppRole, Permission[]> = {
     { method: 'GET', pathPrefix: '/invoices' },
     { method: 'GET', pathPrefix: '/exceptions' },
     { method: 'PATCH', pathPrefix: '/exceptions' },
+    // Manager Team View — issue #21
+    { method: 'GET', pathPrefix: '/me/team' },
     { method: 'POST', pathPrefix: '/auth/logout' },
     { method: 'GET', pathPrefix: '/healthz' },
     { method: 'GET', pathPrefix: '/readyz' },

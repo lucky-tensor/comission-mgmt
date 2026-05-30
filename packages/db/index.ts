@@ -242,6 +242,22 @@ export type {
   ProfitabilityByProducer,
 } from './src/analytics-executive.js';
 
+// Manager Team View — issue #21
+export {
+  listTeamPlacements,
+  getTeamCommissionSummary,
+  listTeamPendingApprovals,
+  listTeamDisputes,
+  _setManagerTeamEncryptorForTest,
+  _resetManagerTeamEncryptorForTest,
+} from './src/manager-team.js';
+export type {
+  TeamPlacement,
+  ProducerCommissionSummary,
+  PendingApprovalItem,
+  TeamDisputeItem,
+} from './src/manager-team.js';
+
 const DEFAULT_DATABASE_URLS = {
   app: 'postgres://app_rw:app_rw_password@localhost:5432/commission_app',
   audit: 'postgres://audit_w:audit_w_password@localhost:5432/commission_audit',
