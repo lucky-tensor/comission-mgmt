@@ -249,3 +249,227 @@ export class NoOpCalculationEngine implements CalculationEngine {
     return { netPayable: 0, heldForCollection: false, heldForGuarantee: false };
   }
 }
+
+// ---------------------------------------------------------------------------
+// PlanRules — typed rules snapshot shape (issue #9 defines this schema)
+// ---------------------------------------------------------------------------
+
+export interface TierRule {
+  /** Threshold amount (cumulative YTD gross) above which this rate applies. */
+  threshold: number;
+  /** Commission rate as a decimal fraction, e.g. 0.25 = 25%. */
+  rate: number;
+}
+
+export interface PlanRulesSnapshot {
+  /** Fee basis for calculating the commissionable base. */
+  rate_type?: 'gross_fee' | 'net_fee_income';
+  /** Base commission rate as a decimal fraction, e.g. 0.20 = 20%. */
+  base_rate: number;
+  /** Ordered tiers of progressive rates; thresholds must be strictly ascending. */
+  tiers?: TierRule[];
+  /** Desk cost recovery amount in dollars deducted before commission accrues. */
+  desk_cost?: number;
+  /** Draw recovery mode. */
+  draw_recovery_mode?: 'none' | 'pro_rata' | 'first_dollar';
+}
+
+// ---------------------------------------------------------------------------
+// CommissionCalculationEngine — real implementation
+// ---------------------------------------------------------------------------
+
+/**
+ * Real implementation of the five-stage commission calculation pipeline.
+ *
+ * Pipeline order:
+ *   1. calculateBase      — creditedBase = commissionableBase × splitPct
+ *   2. applyTiers         — select tier rate based on ytdGross + creditedBase, then
+ *                           subtract desk_cost from creditedBase before multiplying
+ *   3. recoverDraw        — drawDeducted = min(tieredGross, drawBalance); netAfterDraw = tieredGross − drawDeducted
+ *   4. gateOnCollection   — hold if invoiceCollected is false
+ *   5. applyGuaranteeHold — hold if insideGuaranteeWindow is true
+ *
+ * Canonical docs: docs/prd.md §5.3, docs/architecture/phase-commission-engine.md
+ * Issue: feat: commission calculation engine (#10)
+ */
+export class CommissionCalculationEngine implements CalculationEngine {
+  /**
+   * Stage 1 — creditedBase = commissionableBase × splitPct.
+   * Validates that splitPct is in the range (0, 1].
+   */
+  async calculateBase(input: CalculationInput): Promise<BaseResult> {
+    const { commissionableBase, splitPct } = input;
+
+    if (splitPct <= 0 || splitPct > 1) {
+      throw new Error(`calculateBase: splitPct must be in range (0, 1], got ${splitPct}`);
+    }
+
+    // Zero credited base is valid (e.g. zero commissionable base placement)
+    const creditedBase = commissionableBase * splitPct;
+    return { creditedBase };
+  }
+
+  /**
+   * Stage 2 — Apply tier rate and desk cost deduction.
+   *
+   * Tier selection: find the highest-threshold tier whose threshold ≤ (ytdGross + creditedBase).
+   * Falls back to base_rate when no tier matches or tiers are undefined.
+   *
+   * Desk cost: deducted from creditedBase before multiplying by rate.
+   * If desk_cost ≥ creditedBase the result is 0.
+   */
+  async applyTiers(base: BaseResult, input: CalculationInput): Promise<TieredResult> {
+    const rules = input.planRules as PlanRulesSnapshot | null | undefined;
+    const { ytdGross } = input;
+    const { creditedBase } = base;
+
+    // Determine applicable rate
+    let appliedRate: number | null = null;
+    const baseRate = rules?.base_rate ?? 0;
+
+    if (rules?.tiers && rules.tiers.length > 0) {
+      // Select the tier with the highest threshold ≤ (ytdGross + creditedBase)
+      const cumulativeProduction = ytdGross + creditedBase;
+      let selectedTier: TierRule | null = null;
+
+      for (const tier of rules.tiers) {
+        if (cumulativeProduction >= tier.threshold) {
+          if (selectedTier === null || tier.threshold > selectedTier.threshold) {
+            selectedTier = tier;
+          }
+        }
+      }
+
+      appliedRate = selectedTier !== null ? selectedTier.rate : baseRate;
+    } else {
+      appliedRate = baseRate;
+    }
+
+    // Apply desk cost deduction before computing commission
+    const deskCost = rules?.desk_cost ?? 0;
+    const baseAfterDesk = Math.max(0, creditedBase - deskCost);
+    const tieredGross = baseAfterDesk * (appliedRate ?? 0);
+
+    return { tieredGross, appliedRate };
+  }
+
+  /**
+   * Stage 3 — Draw balance offset.
+   *
+   * drawDeducted = min(tieredGross, drawBalance)
+   * netAfterDraw = tieredGross − drawDeducted
+   *
+   * Note: In production the read-modify-write on draw_balances.balance must use
+   * SELECT FOR UPDATE to prevent concurrent double-recovery (see phase-commission-engine.md §Seam 3).
+   */
+  async recoverDraw(tiered: TieredResult, input: CalculationInput): Promise<DrawRecoveryResult> {
+    const { tieredGross } = tiered;
+    const { drawBalance } = input;
+
+    const drawDeducted = Math.min(tieredGross, Math.max(0, drawBalance));
+    const netAfterDraw = tieredGross - drawDeducted;
+
+    return { netAfterDraw, drawDeducted };
+  }
+
+  /**
+   * Stage 4 — Collection gate.
+   *
+   * If the plan requires cash collection and the invoice is not yet collected,
+   * the amount is held (status = Held, netPayable = 0).
+   */
+  async gateOnCollection(
+    recovery: DrawRecoveryResult,
+    input: CalculationInput,
+  ): Promise<PayableResult> {
+    const { netAfterDraw } = recovery;
+    const { invoiceCollected } = input;
+
+    if (!invoiceCollected) {
+      return { netPayable: 0, heldForCollection: true, heldForGuarantee: false };
+    }
+
+    return { netPayable: netAfterDraw, heldForCollection: false, heldForGuarantee: false };
+  }
+
+  /**
+   * Stage 5 — Guarantee-period hold.
+   *
+   * If the placement is inside an active guarantee window, the amount is held
+   * (status = Held, netPayable = 0). Overrides any collection gate status already set.
+   */
+  async applyGuaranteeHold(
+    payable: PayableResult,
+    input: CalculationInput,
+  ): Promise<PayableResult> {
+    if (input.insideGuaranteeWindow) {
+      return {
+        netPayable: 0,
+        heldForCollection: payable.heldForCollection,
+        heldForGuarantee: true,
+      };
+    }
+
+    return payable;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// CommissionRecord — the output of a full pipeline run
+// ---------------------------------------------------------------------------
+
+export type CommissionRecordStatus = 'Accrued' | 'Held' | 'Payable';
+
+export interface CommissionRecord {
+  /** Gross commission amount before draw offset (tieredGross). */
+  grossCommission: number;
+  /** Net payable amount after draw offset (may be 0 when held). */
+  netPayable: number;
+  /** Draw amount deducted in this calculation. */
+  drawDeducted: number;
+  /** The tier rate applied (null when base_rate used without a tier match). */
+  tierRate: number | null;
+  /** Record status: Accrued when collected + no guarantee hold; Held otherwise; Payable post-approval. */
+  status: CommissionRecordStatus;
+  /** True when held due to unpaid invoice. */
+  heldForCollection: boolean;
+  /** True when held due to active guarantee window. */
+  heldForGuarantee: boolean;
+}
+
+/**
+ * Run the full five-stage pipeline for a single contributor and return a CommissionRecord.
+ *
+ * This is the primary entry point for the API handler.
+ *
+ * @param engine - CalculationEngine implementation to use.
+ * @param input  - All inputs for the calculation pipeline.
+ * @returns      - A CommissionRecord with all computed fields.
+ */
+export async function runCalculationPipeline(
+  engine: CalculationEngine,
+  input: CalculationInput,
+): Promise<CommissionRecord> {
+  const base = await engine.calculateBase(input);
+  const tiered = await engine.applyTiers(base, input);
+  const recovery = await engine.recoverDraw(tiered, input);
+  const gated = await engine.gateOnCollection(recovery, input);
+  const final = await engine.applyGuaranteeHold(gated, input);
+
+  let status: CommissionRecordStatus;
+  if (final.heldForCollection || final.heldForGuarantee) {
+    status = 'Held';
+  } else {
+    status = 'Accrued';
+  }
+
+  return {
+    grossCommission: tiered.tieredGross,
+    netPayable: final.netPayable,
+    drawDeducted: recovery.drawDeducted,
+    tierRate: tiered.appliedRate,
+    status,
+    heldForCollection: final.heldForCollection,
+    heldForGuarantee: final.heldForGuarantee,
+  };
+}

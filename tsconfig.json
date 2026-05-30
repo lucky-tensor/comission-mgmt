@@ -20,6 +20,7 @@
       "db/contributors": ["packages/db/src/contributors.ts"],
       "db/attribution": ["packages/db/src/attribution.ts"],
       "db/plans": ["packages/db/src/plans.ts"],
+      "db/commission-records": ["packages/db/src/commission-records.ts"],
       "db/*": ["packages/db/*.ts"]
     }
   },
