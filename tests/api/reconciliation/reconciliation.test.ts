@@ -53,7 +53,6 @@ import { handleCreateInvoice } from '../../../apps/server/src/api/invoices';
 import {
   handleCreateCommissionRun,
   handleApproveRunRecord,
-  handleApproveCommissionRun,
   handleFinalizeCommissionRun,
 } from '../../../apps/server/src/api/commission-runs';
 import {
@@ -514,10 +513,6 @@ describe('POST /commission-runs/:id/finalize — reconciliation gate (AC#3)', ()
 
     // Approve all individual records
     for (const rid of commissionRecordIds) {
-      const approveReq = makeRequest({
-        path: `/commission-runs/${runId}/records/${rid}/approve`,
-        method: 'POST',
-      });
       await handleApproveRunRecord(runId, rid, adminClaims, testSql);
     }
 

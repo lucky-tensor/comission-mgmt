@@ -348,14 +348,14 @@ export interface ReconcileOptions {
   amountToleranceCents?: number;
 }
 
-interface LedgerInvoiceRow {
+interface _LedgerInvoiceRow {
   id: string;
   invoice_number: string;
   amount_billed_numeric: string;
   issued_at: Date;
 }
 
-interface ArRawRow {
+interface _ArRawRow {
   invoice_number: string;
   amount_billed: string;
   billed_date: Date;

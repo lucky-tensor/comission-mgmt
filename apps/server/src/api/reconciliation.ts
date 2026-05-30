@@ -181,9 +181,9 @@ export async function handleGetReconciliationReport(
   }
 
   // 3. Run the reconciliation engine (clears stale un-acknowledged, inserts fresh discrepancies)
-  let discrepancies;
+  let _discrepancies;
   try {
-    discrepancies = await generateReconciliationReport(db, {
+    _discrepancies = await generateReconciliationReport(db, {
       orgId: claims.org_id,
       periodStart: periodStart!,
       periodEnd: periodEnd!,
