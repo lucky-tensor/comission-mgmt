@@ -92,11 +92,7 @@ export class FieldEncryptor {
    * @param fieldName   Column name, e.g. 'compensation_base'
    * @param wrappedDek  If provided, unwrap this DEK instead of generating one
    */
-  async getDek(
-    entityType: string,
-    fieldName: string,
-    wrappedDek?: Buffer,
-  ): Promise<Buffer> {
+  async getDek(entityType: string, fieldName: string, wrappedDek?: Buffer): Promise<Buffer> {
     const cacheKey = `${entityType}:${fieldName}`;
     const now = Date.now();
 

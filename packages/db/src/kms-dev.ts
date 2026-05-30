@@ -36,9 +36,7 @@ export class LocalDevKmsAdapter implements IKmsAdapter {
     }
 
     if (!/^[0-9a-fA-F]{64}$/.test(hex)) {
-      throw new Error(
-        '[kms-dev] DEV_ENCRYPTION_KEY must be a 64-character hex string (32 bytes)',
-      );
+      throw new Error('[kms-dev] DEV_ENCRYPTION_KEY must be a 64-character hex string (32 bytes)');
     }
 
     this.masterKey = Buffer.from(hex, 'hex');
@@ -51,7 +49,9 @@ export class LocalDevKmsAdapter implements IKmsAdapter {
     // Use crypto.getRandomValues via globalThis for Bun/Node compat
     const ivArray = new Uint8Array(12);
     globalThis.crypto.getRandomValues(ivArray);
-    ivArray.forEach((b, i) => { iv[i] = b; });
+    ivArray.forEach((b, i) => {
+      iv[i] = b;
+    });
 
     const cipher = createCipheriv('aes-256-gcm', masterKey, iv);
     const encrypted = Buffer.concat([cipher.update(dek), cipher.final()]);
