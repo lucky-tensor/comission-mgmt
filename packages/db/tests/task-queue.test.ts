@@ -23,7 +23,7 @@ beforeAll(async () => {
 
   // Run schema migration using the test container URL
   const { migrate } = await import('../index');
-  await migrate({ databaseUrl: pg.url });
+  await migrate({ databaseUrl: pg.url, auditDatabaseUrl: null, analyticsDatabaseUrl: null });
 }, 120_000);
 
 afterAll(async () => {

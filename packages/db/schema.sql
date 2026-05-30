@@ -65,3 +65,282 @@ CREATE TABLE IF NOT EXISTS worker_tokens (
 
 CREATE INDEX IF NOT EXISTS idx_worker_tokens_jti ON worker_tokens (jti);
 CREATE INDEX IF NOT EXISTS idx_worker_tokens_pod ON worker_tokens (pod_id) WHERE consumed_at IS NULL AND invalidated_at IS NULL;
+
+-- =============================================================================
+-- Commission Domain: Lifecycle State Enums
+-- Matches PRD §6 exactly.
+-- =============================================================================
+
+DO $$ BEGIN
+  CREATE TYPE placement_state AS ENUM (
+    'Created',
+    'ContributorsAssigned',
+    'PendingApproval',
+    'Active',
+    'Invoiced',
+    'Collected',
+    'GuaranteeActive',
+    'GuaranteeExpired',
+    'Closed',
+    'Refunded',
+    'Disputed',
+    'ClawbackTriggered'
+  );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE TYPE commission_state AS ENUM (
+    'Accrued',
+    'PendingApproval',
+    'Approved',
+    'Held',
+    'Payable',
+    'Paid',
+    'ClawbackInitiated',
+    'Recovered'
+  );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE TYPE invoice_state AS ENUM (
+    'Issued',
+    'PartiallyPaid',
+    'Paid',
+    'Disputed',
+    'WrittenOff',
+    'CreditMemoApplied'
+  );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE TYPE guarantee_state AS ENUM (
+    'Active',
+    'ExpiredClean',
+    'Triggered',
+    'ClawbackApplied'
+  );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE TYPE draw_state AS ENUM (
+    'Active',
+    'PartiallyRecovered',
+    'FullyRecovered',
+    'Forgiven'
+  );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE TYPE exception_state AS ENUM (
+    'Requested',
+    'UnderReview',
+    'Approved',
+    'Rejected'
+  );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE TYPE plan_version_state AS ENUM (
+    'Draft',
+    'Active',
+    'Superseded'
+  );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+-- =============================================================================
+-- Commission Domain: Core Relational Tables
+-- All tables carry org_id UUID NOT NULL for multi-tenancy.
+-- Encrypted columns stored as BYTEA (AES-256-GCM via FieldEncryptor).
+-- Architecture: docs/architecture/decisions.md — ER Diagram, Field Encryption Registry
+-- =============================================================================
+
+-- Placements: the canonical record for each direct-hire/retained search engagement.
+CREATE TABLE IF NOT EXISTS placements (
+  id                UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id            UUID        NOT NULL,
+  ats_placement_id  TEXT,
+  candidate_id      UUID        NOT NULL,
+  client_entity_id  UUID        NOT NULL,
+  job_title         TEXT        NOT NULL,
+  start_date        DATE,
+  status            placement_state NOT NULL DEFAULT 'Created',
+  fee_amount        BYTEA       NOT NULL,
+  compensation_base BYTEA       NOT NULL,
+  guarantee_days    INT,
+  created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_placements_org ON placements (org_id);
+CREATE INDEX IF NOT EXISTS idx_placements_status ON placements (org_id, status);
+
+-- Contributors: participants credited on a placement (bd, owner, sourcer, researcher, etc.)
+CREATE TABLE IF NOT EXISTS contributors (
+  id               UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id           UUID        NOT NULL,
+  placement_id     UUID        NOT NULL REFERENCES placements(id),
+  producer_id      UUID        NOT NULL,
+  role_code        TEXT        NOT NULL,
+  split_pct        NUMERIC(5,4) NOT NULL,
+  split_override   BOOLEAN     NOT NULL DEFAULT false,
+  approved_by      UUID,
+  approved_at      TIMESTAMPTZ,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_contributors_org ON contributors (org_id);
+CREATE INDEX IF NOT EXISTS idx_contributors_placement ON contributors (placement_id);
+
+-- Contribution splits: granular split breakdown per contributor (supports multi-split models).
+CREATE TABLE IF NOT EXISTS contribution_splits (
+  id               UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id           UUID        NOT NULL,
+  contributor_id   UUID        NOT NULL REFERENCES contributors(id),
+  split_type       TEXT        NOT NULL,
+  split_pct        NUMERIC(5,4) NOT NULL,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_contribution_splits_org ON contribution_splits (org_id);
+CREATE INDEX IF NOT EXISTS idx_contribution_splits_contributor ON contribution_splits (contributor_id);
+
+-- Commission plans: named plan definitions (each with one or more versioned rule sets).
+CREATE TABLE IF NOT EXISTS commission_plans (
+  id               UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id           UUID        NOT NULL,
+  name             TEXT        NOT NULL,
+  effective_from   DATE        NOT NULL,
+  effective_to     DATE,
+  config_entity_id UUID        NOT NULL,
+  created_by       UUID        NOT NULL,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_commission_plans_org ON commission_plans (org_id);
+
+-- Plan versions: immutable snapshots of commission plan rules.
+CREATE TABLE IF NOT EXISTS plan_versions (
+  id               UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id           UUID        NOT NULL,
+  plan_id          UUID        NOT NULL REFERENCES commission_plans(id),
+  version_num      INT         NOT NULL,
+  status           plan_version_state NOT NULL DEFAULT 'Draft',
+  rules_snapshot   JSONB       NOT NULL,
+  acknowledged_by  UUID[]      NOT NULL DEFAULT '{}',
+  effective_at     TIMESTAMPTZ NOT NULL,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (plan_id, version_num)
+);
+
+CREATE INDEX IF NOT EXISTS idx_plan_versions_org ON plan_versions (org_id);
+CREATE INDEX IF NOT EXISTS idx_plan_versions_plan ON plan_versions (plan_id);
+
+-- Plan assignments: which producers are on which plan version.
+CREATE TABLE IF NOT EXISTS plan_assignments (
+  id               UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id           UUID        NOT NULL,
+  plan_version_id  UUID        NOT NULL REFERENCES plan_versions(id),
+  producer_id      UUID        NOT NULL,
+  assigned_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  expires_at       TIMESTAMPTZ,
+  UNIQUE (plan_version_id, producer_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_plan_assignments_org ON plan_assignments (org_id);
+CREATE INDEX IF NOT EXISTS idx_plan_assignments_producer ON plan_assignments (producer_id);
+
+-- Commission records: the calculated commission amount per contributor per placement.
+CREATE TABLE IF NOT EXISTS commission_records (
+  id               UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id           UUID        NOT NULL,
+  placement_id     UUID        NOT NULL REFERENCES placements(id),
+  contributor_id   UUID        NOT NULL REFERENCES contributors(id),
+  plan_version_id  UUID        NOT NULL REFERENCES plan_versions(id),
+  gross_amount     BYTEA       NOT NULL,
+  net_payable      BYTEA       NOT NULL,
+  tier_rate        NUMERIC(5,4),
+  status           commission_state NOT NULL DEFAULT 'Accrued',
+  approval_actor   UUID,
+  approval_at      TIMESTAMPTZ,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_commission_records_org ON commission_records (org_id);
+CREATE INDEX IF NOT EXISTS idx_commission_records_placement ON commission_records (placement_id);
+CREATE INDEX IF NOT EXISTS idx_commission_records_contributor ON commission_records (contributor_id);
+CREATE INDEX IF NOT EXISTS idx_commission_records_status ON commission_records (org_id, status);
+
+-- Invoices: billed amounts sent to clients for placements.
+CREATE TABLE IF NOT EXISTS invoices (
+  id               UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id           UUID        NOT NULL,
+  placement_id     UUID        NOT NULL REFERENCES placements(id),
+  invoice_number   TEXT        NOT NULL,
+  amount_billed    BYTEA       NOT NULL,
+  amount_collected BYTEA,
+  status           invoice_state NOT NULL DEFAULT 'Issued',
+  issued_at        TIMESTAMPTZ NOT NULL,
+  due_at           TIMESTAMPTZ,
+  collected_at     TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_invoices_org ON invoices (org_id);
+CREATE INDEX IF NOT EXISTS idx_invoices_placement ON invoices (placement_id);
+CREATE INDEX IF NOT EXISTS idx_invoices_status ON invoices (org_id, status);
+
+-- Guarantee periods: risk windows after placement start.
+CREATE TABLE IF NOT EXISTS guarantee_periods (
+  id               UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id           UUID        NOT NULL,
+  placement_id     UUID        NOT NULL REFERENCES placements(id),
+  guarantee_ends   DATE        NOT NULL,
+  status           guarantee_state NOT NULL DEFAULT 'Active',
+  risk_amount      BYTEA       NOT NULL,
+  triggered_at     TIMESTAMPTZ,
+  resolved_at      TIMESTAMPTZ,
+  resolution       TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_guarantee_periods_org ON guarantee_periods (org_id);
+CREATE INDEX IF NOT EXISTS idx_guarantee_periods_placement ON guarantee_periods (placement_id);
+
+-- Draw balances: outstanding draw advances against future commissions.
+CREATE TABLE IF NOT EXISTS draw_balances (
+  id               UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id           UUID        NOT NULL,
+  producer_id      UUID        NOT NULL,
+  balance          BYTEA       NOT NULL,
+  draw_limit       BYTEA       NOT NULL,
+  status           draw_state  NOT NULL DEFAULT 'Active',
+  recovery_start   DATE,
+  recovery_end     DATE,
+  updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_draw_balances_org ON draw_balances (org_id);
+CREATE INDEX IF NOT EXISTS idx_draw_balances_producer ON draw_balances (producer_id);
+
+-- Exceptions: requested overrides to split percentages, rates, or clawback waivers.
+CREATE TABLE IF NOT EXISTS exceptions (
+  id               UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id           UUID        NOT NULL,
+  placement_id     UUID        NOT NULL REFERENCES placements(id),
+  requested_by     UUID        NOT NULL,
+  exception_type   TEXT        NOT NULL,
+  justification    TEXT        NOT NULL,
+  status           exception_state NOT NULL DEFAULT 'Requested',
+  reviewed_by      UUID,
+  reviewed_at      TIMESTAMPTZ,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_exceptions_org ON exceptions (org_id);
+CREATE INDEX IF NOT EXISTS idx_exceptions_placement ON exceptions (placement_id);
+CREATE INDEX IF NOT EXISTS idx_exceptions_status ON exceptions (org_id, status);

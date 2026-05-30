@@ -20,7 +20,7 @@ beforeAll(async () => {
   sql = postgres(pg.url, { max: 5 });
 
   const { migrate } = await import('../index');
-  await migrate({ databaseUrl: pg.url });
+  await migrate({ databaseUrl: pg.url, auditDatabaseUrl: null, analyticsDatabaseUrl: null });
 }, 120_000);
 
 afterAll(async () => {

@@ -67,18 +67,33 @@ export function createSql(databaseUrl: string, max = 1) {
 }
 
 export interface MigrateOptions {
+  /** URL for commission_app (transactional). Defaults to the module-level pool. */
   databaseUrl?: string;
+  /**
+   * URL for commission_audit.
+   * If omitted, the audit schema migration is skipped (useful for unit tests
+   * that only need the app schema in an ephemeral container).
+   * Pass null explicitly to skip.
+   */
+  auditDatabaseUrl?: string | null;
+  /**
+   * URL for commission_analytics.
+   * If omitted, the analytics schema migration is skipped.
+   * Pass null explicitly to skip.
+   */
+  analyticsDatabaseUrl?: string | null;
 }
 
-export function resolveSchemaSqlPath(
+export function resolveSchemaPath(
+  filename: string,
   moduleUrl: string = import.meta.url,
   cwd: string = process.cwd(),
 ): string {
   const moduleDir = dirname(fileURLToPath(moduleUrl));
   const candidates = [
-    resolve(moduleDir, 'schema.sql'),
-    resolve(moduleDir, '../packages/db/schema.sql'),
-    resolve(cwd, 'packages/db/schema.sql'),
+    resolve(moduleDir, filename),
+    resolve(moduleDir, `../packages/db/${filename}`),
+    resolve(cwd, `packages/db/${filename}`),
   ];
 
   for (const candidate of candidates) {
@@ -88,6 +103,13 @@ export function resolveSchemaSqlPath(
   }
 
   return candidates[0];
+}
+
+export function resolveSchemaSqlPath(
+  moduleUrl: string = import.meta.url,
+  cwd: string = process.cwd(),
+): string {
+  return resolveSchemaPath('schema.sql', moduleUrl, cwd);
 }
 
 /**
@@ -131,39 +153,100 @@ export function splitSqlStatements(sqlStr: string): string[] {
   return statements;
 }
 
+async function applySchema(
+  schemaFilePath: string,
+  pool: ReturnType<typeof postgres>,
+  owned: boolean,
+) {
+  const schemaSql = readFileSync(schemaFilePath, 'utf-8');
+  const cleanSql = schemaSql.replace(/--.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '');
+  const statements = splitSqlStatements(cleanSql).filter((s) => s.length > 0);
+  try {
+    for (const statement of statements) {
+      await pool.unsafe(statement);
+    }
+  } finally {
+    if (owned) {
+      await pool.end({ timeout: 5 });
+    }
+  }
+}
+
 /**
- * Initializes the database tables by executing the native raw SQL schema.
+ * Initializes all three commission databases by applying their respective schemas.
+ *
+ * - commission_app: schema.sql (placements, contributors, commission plans, etc.)
+ * - commission_audit: audit_schema.sql (audit_log_entries — INSERT-only for audit_w)
+ * - commission_analytics: analytics_schema.sql (commission_events — INSERT-only for analytics_w)
+ *
+ * All migrations are idempotent (CREATE TABLE IF NOT EXISTS / DO...EXCEPTION guards).
  * This function should be called at server startup to ensure tables exist.
  */
 export async function migrate(options: MigrateOptions = {}) {
-  console.log('[db] Initializing PostgreSQL database schema...');
-  const schemaSql = readFileSync(resolveSchemaSqlPath(), 'utf-8');
-  const databaseUrl = options.databaseUrl ?? databaseUrls.app;
-  const migrationSql =
+  console.log('[db] Initializing PostgreSQL database schemas...');
+
+  const appUrl = options.databaseUrl ?? databaseUrls.app;
+
+  const appPool =
     options.databaseUrl === undefined
       ? sql
-      : postgres(databaseUrl, {
+      : postgres(appUrl, {
           max: 1,
           idle_timeout: 10,
           connect_timeout: 10,
           connection: { client_min_messages: 'warning' },
         });
+  const appOwned = options.databaseUrl !== undefined;
 
   try {
-    const cleanSql = schemaSql.replace(/--.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '');
+    await applySchema(resolveSchemaPath('schema.sql'), appPool, false);
+    console.log('[db] App schema applied.');
 
-    const statements = splitSqlStatements(cleanSql).filter((s) => s.length > 0);
-
-    for (const statement of statements) {
-      await migrationSql.unsafe(statement);
+    // Audit and analytics migrations are opt-in: only run when an explicit URL is provided.
+    // This allows unit tests that only need the app schema to skip them.
+    if (options.auditDatabaseUrl) {
+      const auditPool = postgres(options.auditDatabaseUrl, {
+        max: 1,
+        idle_timeout: 10,
+        connect_timeout: 10,
+        connection: { client_min_messages: 'warning' },
+      });
+      try {
+        await applySchema(resolveSchemaPath('audit_schema.sql'), auditPool, false);
+        console.log('[db] Audit schema applied.');
+      } finally {
+        await auditPool.end({ timeout: 5 });
+      }
+    } else if (options.auditDatabaseUrl === undefined) {
+      // Default production/dev mode: use the module-level auditSql pool
+      // (skipped if auditDatabaseUrl is explicitly null)
+      await applySchema(resolveSchemaPath('audit_schema.sql'), auditSql, false);
+      console.log('[db] Audit schema applied.');
     }
+
+    if (options.analyticsDatabaseUrl) {
+      const analyticsPool = postgres(options.analyticsDatabaseUrl, {
+        max: 1,
+        idle_timeout: 10,
+        connect_timeout: 10,
+        connection: { client_min_messages: 'warning' },
+      });
+      try {
+        await applySchema(resolveSchemaPath('analytics_schema.sql'), analyticsPool, false);
+        console.log('[db] Analytics schema applied.');
+      } finally {
+        await analyticsPool.end({ timeout: 5 });
+      }
+    } else if (options.analyticsDatabaseUrl === undefined) {
+      await applySchema(resolveSchemaPath('analytics_schema.sql'), analyticsSql, false);
+      console.log('[db] Analytics schema applied.');
+    }
+
     console.log('[db] Schema migration complete.');
   } catch (err) {
     console.error('[db] Schema migration failed:', err);
     throw err;
   } finally {
-    if (migrationSql !== sql) {
-      await migrationSql.end({ timeout: 5 });
-    }
+    if (appOwned) await appPool.end({ timeout: 5 });
   }
 }
