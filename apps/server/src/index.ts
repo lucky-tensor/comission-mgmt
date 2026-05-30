@@ -86,6 +86,7 @@ import {
   handleApproveException,
   handleRejectException,
 } from './api/exceptions';
+import { handleCreatePayrollExport, handleListPayrollExports } from './api/exports';
 import { handleDemoUsers, handleDemoSession, isDemoMode } from './api/demo-session';
 import { requireAuth } from './middleware/auth';
 
@@ -243,6 +244,16 @@ async function fetchHandler(req: Request): Promise<Response> {
   const commissionRunApproveMatch = pathname.match(/^\/commission-runs\/([^/]+)\/approve$/);
   if (req.method === 'POST' && commissionRunApproveMatch) {
     return handleApproveCommissionRun(commissionRunApproveMatch[1], authResult.claims);
+  }
+  // POST /commission-runs/:id/export — generate payroll CSV export artifact
+  const commissionRunExportMatch = pathname.match(/^\/commission-runs\/([^/]+)\/export$/);
+  if (req.method === 'POST' && commissionRunExportMatch) {
+    return handleCreatePayrollExport(commissionRunExportMatch[1], authResult.claims);
+  }
+  // GET /commission-runs/:id/exports — list export artifacts for a run
+  const commissionRunExportsListMatch = pathname.match(/^\/commission-runs\/([^/]+)\/exports$/);
+  if (req.method === 'GET' && commissionRunExportsListMatch) {
+    return handleListPayrollExports(commissionRunExportsListMatch[1], authResult.claims);
   }
 
   // Contributor routes — authenticated (session cookie), scoped to tenant

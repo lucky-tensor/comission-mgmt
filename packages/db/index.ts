@@ -129,6 +129,9 @@ export type {
   CreateExceptionInput,
 } from './src/exceptions.js';
 
+export { createOrGetPayrollExport, listPayrollExports } from './src/payroll-exports.js';
+export type { PayrollExportArtifactRow, CreatePayrollExportInput } from './src/payroll-exports.js';
+
 const DEFAULT_DATABASE_URLS = {
   app: 'postgres://app_rw:app_rw_password@localhost:5432/commission_app',
   audit: 'postgres://audit_w:audit_w_password@localhost:5432/commission_audit',

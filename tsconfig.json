@@ -24,6 +24,7 @@
       "db/commission-runs": ["packages/db/src/commission-runs.ts"],
       "db/exceptions": ["packages/db/src/exceptions.ts"],
       "db/invoices": ["packages/db/src/invoices.ts"],
+      "db/payroll-exports": ["packages/db/src/payroll-exports.ts"],
       "db/*": ["packages/db/*.ts"]
     }
   },

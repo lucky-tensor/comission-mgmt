@@ -559,3 +559,28 @@ CREATE TABLE IF NOT EXISTS commission_run_records (
 
 CREATE INDEX IF NOT EXISTS idx_commission_run_records_run ON commission_run_records (run_id);
 CREATE INDEX IF NOT EXISTS idx_commission_run_records_org ON commission_run_records (org_id);
+
+-- =============================================================================
+-- Payroll Export Artifacts: immutable export files generated from Approved runs.
+-- Each export is a downloadable CSV artifact linked to a commission run.
+-- Re-requesting an export for the same run returns the existing artifact (idempotent).
+-- Canonical: docs/prd.md §5.7 — Commission Close and Payroll Export
+-- Issue: feat: payroll-ready export from approved commission run (#15)
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS payroll_export_artifacts (
+  id               UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id           UUID        NOT NULL,
+  run_id           UUID        NOT NULL REFERENCES commission_runs(id) ON DELETE CASCADE,
+  format           TEXT        NOT NULL DEFAULT 'csv'
+                   CHECK (format IN ('csv')),
+  -- CSV content stored inline (MVP); large exports can be moved to object storage later.
+  content          TEXT        NOT NULL,
+  row_count        INTEGER     NOT NULL,
+  created_by       UUID        NOT NULL,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (run_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_payroll_export_artifacts_org ON payroll_export_artifacts (org_id);
+CREATE INDEX IF NOT EXISTS idx_payroll_export_artifacts_run ON payroll_export_artifacts (run_id);
