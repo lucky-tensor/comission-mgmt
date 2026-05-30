@@ -7,6 +7,7 @@ export default defineConfig({
     include: [
       'packages/db/tests/migration.test.ts',
       'packages/db/tests/encryption-integration.test.ts',
+      'packages/db/tests/demo-seed.test.ts',
     ],
     testTimeout: 300_000,
     hookTimeout: 300_000,

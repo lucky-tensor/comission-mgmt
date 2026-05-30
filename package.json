@@ -14,6 +14,7 @@
     "test:api": "bun --bun vitest run --config vitest.auth.config.ts",
     "test:tasks": "bun --bun vitest run --config vitest.tasks.config.ts",
     "migrate": "bun run packages/db/migrate.ts",
+    "demo:seed": "bun run scripts/demo-seed.ts",
     "typecheck": "bun tsc --noEmit",
     "lint": "bunx eslint .",
     "format": "bunx prettier --write .",
@@ -21,8 +22,12 @@
     "local-demo": "bun run scripts/local-demo.ts",
     "provision": "echo 'GCP provisioning is done externally. See docs/architecture.md.' && exit 1",
     "deploy": "bun run scripts/gcp/deploy.ts",
-    "doctor": "bun run scripts/gcp/doctor.ts",
-    "demo:seed": "bun run packages/db/seed-demo.ts"
+    "doctor": "bun run scripts/gcp/doctor.ts"
+  },
+  "dependencies": {
+    "@simplewebauthn/browser": "^13.3.0",
+    "@simplewebauthn/types": "^12.0.0",
+    "postgres": "^3.4.9"
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",
@@ -34,9 +39,5 @@
     "typescript": "^5.0.0",
     "typescript-eslint": "^8.0.0",
     "vitest": "^2.0.0"
-  },
-  "dependencies": {
-    "@simplewebauthn/browser": "^13.3.0",
-    "@simplewebauthn/types": "^12.0.0"
   }
 }
