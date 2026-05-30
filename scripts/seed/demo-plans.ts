@@ -116,5 +116,7 @@ export async function seedDemoPlans(sql: Sql): Promise<void> {
     ON CONFLICT (id) DO NOTHING
   `);
 
-  console.log('[demo-seed] Step 2: demo plans seeded (2 plans, 2 plan versions, 2 plan assignments).');
+  console.log(
+    '[demo-seed] Step 2: demo plans seeded (2 plans, 2 plan versions, 2 plan assignments).',
+  );
 }

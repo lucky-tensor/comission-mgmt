@@ -52,20 +52,16 @@ afterAll(async () => {
 // ---------------------------------------------------------------------------
 
 function runSeed(env: NodeJS.ProcessEnv = {}): { status: number | null; stderr: string } {
-  const result = spawnSync(
-    'bun',
-    ['run', resolve(WORKTREE, 'scripts/demo-seed.ts')],
-    {
-      encoding: 'utf8',
-      env: {
-        ...process.env,
-        DATABASE_URL: pg.url,
-        NODE_ENV: 'test',
-        ...env,
-      },
-      timeout: 30_000,
+  const result = spawnSync('bun', ['run', resolve(WORKTREE, 'scripts/demo-seed.ts')], {
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      DATABASE_URL: pg.url,
+      NODE_ENV: 'test',
+      ...env,
     },
-  );
+    timeout: 30_000,
+  });
   return { status: result.status, stderr: result.stderr ?? '' };
 }
 
@@ -126,9 +122,7 @@ describe('seed integration — row counts', () => {
   });
 
   test('1 demo org created', async () => {
-    const rows = await sql.unsafe(
-      `SELECT COUNT(*) AS cnt FROM orgs WHERE name LIKE '%(Demo)'`,
-    );
+    const rows = await sql.unsafe(`SELECT COUNT(*) AS cnt FROM orgs WHERE name LIKE '%(Demo)'`);
     expect(Number((rows[0] as unknown as { cnt: string }).cnt)).toBeGreaterThanOrEqual(1);
   });
 
@@ -182,9 +176,18 @@ describe('seed integration — row counts', () => {
 describe('idempotency', () => {
   test('running demo:seed twice produces identical row counts', async () => {
     const tables = [
-      'users', 'orgs', 'commission_plans', 'plan_versions', 'plan_assignments',
-      'placements', 'contributors', 'commission_records', 'invoices',
-      'guarantee_periods', 'draw_balances', 'exceptions',
+      'users',
+      'orgs',
+      'commission_plans',
+      'plan_versions',
+      'plan_assignments',
+      'placements',
+      'contributors',
+      'commission_records',
+      'invoices',
+      'guarantee_periods',
+      'draw_balances',
+      'exceptions',
     ];
 
     // Snapshot counts (seed already ran in describe above)
@@ -277,7 +280,10 @@ describe('encryption round-trip', () => {
     expect(rows.length).toBeGreaterThan(0);
     const raw = rows[0].raw;
     // Must be a Buffer (binary), not a plaintext number string
-    expect(Buffer.isBuffer(raw) || (raw != null && typeof (raw as unknown as { byteLength: number }).byteLength === 'number')).toBe(true);
+    expect(
+      Buffer.isBuffer(raw) ||
+        (raw != null && typeof (raw as unknown as { byteLength: number }).byteLength === 'number'),
+    ).toBe(true);
     // Must not be a simple ASCII number
     const asString = Buffer.from(raw).toString('utf8');
     expect(/^\d+(\.\d+)?$/.test(asString)).toBe(false);

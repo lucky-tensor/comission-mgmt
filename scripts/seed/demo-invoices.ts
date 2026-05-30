@@ -92,8 +92,7 @@ export async function seedDemoInvoices(sql: Sql): Promise<void> {
         'amount_collected',
         inv.amountCollected,
       );
-      const collectedClause =
-        inv.collectedAt !== null ? `'${inv.collectedAt}'` : 'NULL';
+      const collectedClause = inv.collectedAt !== null ? `'${inv.collectedAt}'` : 'NULL';
 
       await sql.unsafe(
         `
@@ -109,8 +108,7 @@ export async function seedDemoInvoices(sql: Sql): Promise<void> {
         [amountBilledBuf, amountCollectedBuf],
       );
     } else {
-      const collectedClause =
-        inv.collectedAt !== null ? `'${inv.collectedAt}'` : 'NULL';
+      const collectedClause = inv.collectedAt !== null ? `'${inv.collectedAt}'` : 'NULL';
 
       await sql.unsafe(
         `

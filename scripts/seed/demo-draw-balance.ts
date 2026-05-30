@@ -43,7 +43,5 @@ export async function seedDemoDrawBalance(sql: Sql): Promise<void> {
     [balanceBuf, drawLimitBuf],
   );
 
-  console.log(
-    '[demo-seed] Step 8: demo draw balance seeded (1 draw balance, PartiallyRecovered).',
-  );
+  console.log('[demo-seed] Step 8: demo draw balance seeded (1 draw balance, PartiallyRecovered).');
 }

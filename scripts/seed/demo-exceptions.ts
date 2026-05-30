@@ -58,7 +58,5 @@ export async function seedDemoExceptions(sql: Sql): Promise<void> {
     ON CONFLICT (id) DO NOTHING
   `);
 
-  console.log(
-    '[demo-seed] Step 9: demo exceptions seeded (1 Approved, 1 Requested).',
-  );
+  console.log('[demo-seed] Step 9: demo exceptions seeded (1 Approved, 1 Requested).');
 }

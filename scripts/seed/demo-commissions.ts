@@ -73,7 +73,8 @@ const RECORDS: CommissionRecordDef[] = [
     netPayable: '19500',
     tierRate: '0.1500',
     status: 'Held',
-    explanation: 'Held during active guarantee period (90 days); released when guarantee expires clean',
+    explanation:
+      'Held during active guarantee period (90 days); released when guarantee expires clean',
   },
   {
     id: DEMO_COMMISSION_RECORDS.held2.id,

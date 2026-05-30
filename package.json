@@ -22,8 +22,7 @@
     "local-demo": "bun run scripts/local-demo.ts",
     "provision": "echo 'GCP provisioning is done externally. See docs/architecture.md.' && exit 1",
     "deploy": "bun run scripts/gcp/deploy.ts",
-    "doctor": "bun run scripts/gcp/doctor.ts",
-    "demo:seed": "bun run packages/db/seed-demo.ts"
+    "doctor": "bun run scripts/gcp/doctor.ts"
   },
   "dependencies": {
     "@simplewebauthn/browser": "^13.3.0",

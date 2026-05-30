@@ -23,8 +23,14 @@ export const DEMO_PLACEMENTS = {
   active: { id: 'dd030000-0000-0000-0000-000000000002', status: 'Active' as const },
   invoiced: { id: 'dd030000-0000-0000-0000-000000000003', status: 'Invoiced' as const },
   collected: { id: 'dd030000-0000-0000-0000-000000000004', status: 'Collected' as const },
-  guaranteeActive: { id: 'dd030000-0000-0000-0000-000000000005', status: 'GuaranteeActive' as const },
-  guaranteeExpired: { id: 'dd030000-0000-0000-0000-000000000006', status: 'GuaranteeExpired' as const },
+  guaranteeActive: {
+    id: 'dd030000-0000-0000-0000-000000000005',
+    status: 'GuaranteeActive' as const,
+  },
+  guaranteeExpired: {
+    id: 'dd030000-0000-0000-0000-000000000006',
+    status: 'GuaranteeExpired' as const,
+  },
   closed: { id: 'dd030000-0000-0000-0000-000000000007', status: 'Closed' as const },
   clawback: { id: 'dd030000-0000-0000-0000-000000000008', status: 'ClawbackTriggered' as const },
 } as const;
@@ -159,7 +165,11 @@ export async function seedDemoPlacements(sql: Sql): Promise<void> {
   const enc = await getEncryptor();
 
   for (const p of PLACEMENT_DATA) {
-    const compensationBuf = await enc.encrypt('placements', 'compensation_base', p.compensationBase);
+    const compensationBuf = await enc.encrypt(
+      'placements',
+      'compensation_base',
+      p.compensationBase,
+    );
     const feeBuf = await enc.encrypt('placements', 'fee_amount', p.feeAmount);
 
     await sql.unsafe(
@@ -177,7 +187,9 @@ export async function seedDemoPlacements(sql: Sql): Promise<void> {
     );
   }
 
-  console.log('[demo-seed] Step 3: demo placements seeded (8 placements across all lifecycle states).');
+  console.log(
+    '[demo-seed] Step 3: demo placements seeded (8 placements across all lifecycle states).',
+  );
 }
 
 /** Export the shared encryptor instance so later steps can reuse it (avoiding extra KMS init). */
