@@ -4,16 +4,19 @@
  * Covers:
  *   - POST /placements/:id/calculate — trigger commission calculation
  *   - GET  /placements/:id/commission-records — list commission records
+ *   - GET  /commission-records/:id — fetch single record with explanation
  *   - Collection gate (status=Held when invoice unpaid)
  *   - Guarantee holdback (status=Held when inside guarantee window)
  *   - Draw balance offset (net_payable reduced, gross_commission unchanged)
  *   - Error cases: 404, 409, 422
  *   - Multi-tenant isolation
+ *   - Explainability: explanation field present, hold reason, guarantee expiry
  *
  * Requires an ephemeral Postgres container (Docker) and uses workspace package
  * aliases for db/* and core/* imports.
  *
  * Issue: feat: commission calculation engine (#10)
+ * Issue: feat: plain-language commission calculation explainability (#11)
  */
 import { defineConfig } from 'vitest/config';
 import { resolve } from 'path';
@@ -32,6 +35,10 @@ export default defineConfig({
       {
         find: 'core/calculation-engine',
         replacement: resolve(root, 'packages/core/calculation-engine.ts'),
+      },
+      {
+        find: 'core/explanation-engine',
+        replacement: resolve(root, 'packages/core/explanation-engine.ts'),
       },
       {
         find: 'core/contributor-role',
