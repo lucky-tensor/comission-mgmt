@@ -4,7 +4,10 @@ export default defineConfig({
   test: {
     globals: false,
     environment: 'node',
-    include: ['packages/db/tests/migration.test.ts'],
+    include: [
+      'packages/db/tests/migration.test.ts',
+      'packages/db/tests/encryption-integration.test.ts',
+    ],
     testTimeout: 300_000,
     hookTimeout: 300_000,
   },
