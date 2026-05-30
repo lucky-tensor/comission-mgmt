@@ -206,7 +206,7 @@ describe('GET /placements/incomplete — completeness gating', () => {
 // AC#2 — start_date missing → listed with start_date in missing_fields
 // ---------------------------------------------------------------------------
 
-describe('GET /placements/incomplete — field-level annotation', () => {
+describe('GET /placements/incomplete — field-level missing fields', () => {
   test('placement missing start_date appears in incomplete list with start_date named as missing', async () => {
     const incompleteId = await createIncompletePlacement(); // no start_date
 
