@@ -11,7 +11,8 @@
     "./ssl": "./ssl.ts",
     "./task-queue": "./task-queue.ts",
     "./worker-tokens": "./worker-tokens.ts",
-    "./seed": "./seed.ts"
+    "./seed": "./seed.ts",
+    "./passkeys": "./passkeys.ts"
   },
   "scripts": {
     "build": "tsc --noEmit --project tsconfig.json"

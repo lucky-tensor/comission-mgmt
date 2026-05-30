@@ -9,6 +9,75 @@ CREATE TABLE IF NOT EXISTS revoked_tokens (
   expires_at TIMESTAMPTZ NOT NULL
 );
 
+-- =============================================================================
+-- Authentication: Users, Org Memberships, and Passkey Credentials
+-- WebAuthn/FIDO2 passkey-first authentication (no passwords).
+-- Canonical: docs/architecture.md — Phase 1 Foundation, WebAuthn Auth
+-- =============================================================================
+
+-- Organisations: top-level multi-tenant isolation boundary.
+CREATE TABLE IF NOT EXISTS orgs (
+  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  name        TEXT        NOT NULL,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Users: platform-level user accounts (cross-org identity).
+CREATE TABLE IF NOT EXISTS users (
+  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  email       TEXT        NOT NULL UNIQUE,
+  display_name TEXT,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_users_email ON users (email);
+
+-- Org memberships: maps users to orgs with a role assignment.
+-- A user may belong to multiple orgs with different roles.
+CREATE TABLE IF NOT EXISTS org_memberships (
+  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     UUID        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  org_id      UUID        NOT NULL REFERENCES orgs(id) ON DELETE CASCADE,
+  role        TEXT        NOT NULL,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (user_id, org_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_org_memberships_user ON org_memberships (user_id);
+CREATE INDEX IF NOT EXISTS idx_org_memberships_org ON org_memberships (org_id);
+
+-- Passkey credentials: WebAuthn/FIDO2 credential storage per user.
+-- credential_id is the base64url-encoded credential ID from the authenticator.
+-- public_key is the COSE-encoded public key bytes stored as BYTEA.
+CREATE TABLE IF NOT EXISTS passkey_credentials (
+  id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id       UUID        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  credential_id TEXT        NOT NULL UNIQUE,
+  public_key    BYTEA       NOT NULL,
+  sign_count    BIGINT      NOT NULL DEFAULT 0,
+  transports    TEXT[],
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  last_used_at  TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_passkey_credentials_user ON passkey_credentials (user_id);
+CREATE INDEX IF NOT EXISTS idx_passkey_credentials_cred_id ON passkey_credentials (credential_id);
+
+-- WebAuthn challenges: short-lived challenges for registration and assertion.
+-- Challenges are single-use and expire after 5 minutes.
+CREATE TABLE IF NOT EXISTS webauthn_challenges (
+  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  challenge   TEXT        NOT NULL UNIQUE,
+  user_id     UUID        REFERENCES users(id) ON DELETE CASCADE,
+  flow        TEXT        NOT NULL CHECK (flow IN ('registration', 'assertion')),
+  expires_at  TIMESTAMPTZ NOT NULL,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_webauthn_challenges_challenge ON webauthn_challenges (challenge);
+CREATE INDEX IF NOT EXISTS idx_webauthn_challenges_expires ON webauthn_challenges (expires_at);
+
 -- Task queue: single-table queue for commission management agent types.
 -- delegated_token stores the single-use JWT issued at task creation.
 -- Agent types: commission-calculator, invoice-generator, partner-notifier, dispute-escalator
