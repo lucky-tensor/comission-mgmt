@@ -42,6 +42,11 @@ import {
   handleGetPlacementGuarantee,
 } from './api/placements';
 import {
+  handleTriggerClawback,
+  handleGetPlacementClawback,
+  handleGetMyClawbackExposure,
+} from './api/clawback';
+import {
   handleAddContributor,
   handleListContributors,
   handleDeleteContributor,
@@ -367,6 +372,20 @@ async function fetchHandler(req: Request): Promise<Response> {
     return handleGetPlacementGuarantee(placementGuaranteeMatch[1], authResult.claims);
   }
 
+  // POST /placements/:id/guarantee/trigger — trigger a clawback event (issue #20)
+  const placementGuaranteeTriggerMatch = pathname.match(
+    /^\/placements\/([^/]+)\/guarantee\/trigger$/,
+  );
+  if (req.method === 'POST' && placementGuaranteeTriggerMatch) {
+    return handleTriggerClawback(placementGuaranteeTriggerMatch[1], req, authResult.claims);
+  }
+
+  // GET /placements/:id/clawback — clawback status and recovery schedule (issue #20)
+  const placementClawbackMatch = pathname.match(/^\/placements\/([^/]+)\/clawback$/);
+  if (req.method === 'GET' && placementClawbackMatch) {
+    return handleGetPlacementClawback(placementClawbackMatch[1], authResult.claims);
+  }
+
   // Commission calculation routes — POST /placements/:id/calculate
   const calculateMatch = pathname.match(/^\/placements\/([^/]+)\/calculate$/);
   if (req.method === 'POST' && calculateMatch) {
@@ -467,6 +486,9 @@ async function fetchHandler(req: Request): Promise<Response> {
   }
   if (req.method === 'POST' && pathname === '/me/disputes') {
     return handleCreateMyDispute(req, authResult.claims);
+  }
+  if (req.method === 'GET' && pathname === '/me/clawback-exposure') {
+    return handleGetMyClawbackExposure(authResult.claims);
   }
 
   // 404 for all other paths
