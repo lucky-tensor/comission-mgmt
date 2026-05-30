@@ -617,9 +617,9 @@ describe('GET /commission-records?reason=collection_gate (AC#4)', () => {
     expect(records1[0].hold_reason).toBe('collection_gate');
 
     // Query for collection_gate records
-    const req = makeRequest({ path: '/commission-records?reason=collection_gate' });
-    const url = new URL('http://localhost/commission-records?reason=collection_gate');
-    const reqWithUrl = new Request(url.toString(), { method: 'GET' });
+    const reqWithUrl = new Request('http://localhost/commission-records?reason=collection_gate', {
+      method: 'GET',
+    });
     const res = await handleListAllCommissionRecords(reqWithUrl, claimsA, testSql);
     expect(res.status).toBe(200);
 
