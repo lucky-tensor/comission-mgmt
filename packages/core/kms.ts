@@ -36,7 +36,7 @@
  * Activate GCP backend by setting KMS_BACKEND=gcp at startup.
  *
  * Canonical docs: docs/architecture.md — Phase 1 Security foundation
- * Adapted from smart-crm packages/core/kms.ts — dropped AWS/Vault, added GCP Cloud KMS.
+ * Adapted from template kms.ts — dropped AWS/Vault backends, added GCP Cloud KMS.
  */
 
 // ---------------------------------------------------------------------------

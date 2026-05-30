@@ -37,8 +37,6 @@ function makeKey(): string {
 
 describe('task-queue claim-execute-submit cycle', () => {
   test('enqueue → claim → submit cycle completes successfully', async () => {
-    const { enqueueTask, claimNextTask, submitTaskResult } = await import('../task-queue');
-
     // 1. Enqueue via direct sql (bypassing module-level pool)
     const [taskRow] = await sql<{ id: string; status: string; agent_type: string }[]>`
       INSERT INTO task_queue

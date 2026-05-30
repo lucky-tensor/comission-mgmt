@@ -9,13 +9,7 @@
  */
 
 /** Commission management entity types. */
-export type EntityType =
-  | 'user'
-  | 'placement'
-  | 'contributor'
-  | 'commission'
-  | 'invoice'
-  | 'task';
+export type EntityType = 'user' | 'placement' | 'contributor' | 'commission' | 'invoice' | 'task';
 
 export interface Entity {
   id: string;

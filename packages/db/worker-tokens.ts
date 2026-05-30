@@ -22,7 +22,7 @@
  * - task_id: the task_queue row this token is bound to
  * - pod_id: the worker pod executing the task
  *
- * CRM-specific fields dropped: annotation_id, ingestion_id, corpus_chunk_id.
+ * Domain-specific fields dropped: scope narrowed to commission task_id / pod_id.
  *
  * Injectable sql
  * ---------------
@@ -30,8 +30,6 @@
  * tests can pass an ephemeral Postgres connection without affecting the
  * module-level singleton.  Production callers omit the parameter and the
  * module-level pool (from ./index) is used automatically.
- *
- * Adapted from smart-crm packages/db/worker-tokens.ts.
  * Canonical docs: docs/architecture.md — Phase 1 Foundation
  */
 

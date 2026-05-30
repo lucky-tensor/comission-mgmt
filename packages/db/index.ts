@@ -150,9 +150,7 @@ export async function migrate(options: MigrateOptions = {}) {
         });
 
   try {
-    const cleanSql = schemaSql
-      .replace(/--.*$/gm, '')
-      .replace(/\/\*[\s\S]*?\*\//g, '');
+    const cleanSql = schemaSql.replace(/--.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '');
 
     const statements = splitSqlStatements(cleanSql).filter((s) => s.length > 0);
 

@@ -12,6 +12,9 @@
     "./task-queue": "./task-queue.ts",
     "./worker-tokens": "./worker-tokens.ts"
   },
+  "scripts": {
+    "build": "tsc --noEmit --project tsconfig.json"
+  },
   "peerDependencies": {
     "typescript": "^5.0.0"
   },
@@ -19,6 +22,7 @@
     "postgres": "^3.4.8"
   },
   "devDependencies": {
+    "@types/bun": "^1.3.14",
     "@types/node": "^25.9.1",
     "vitest": "^2.0.0"
   }
