@@ -137,7 +137,6 @@ export async function main(): Promise<void> {
 
   try {
     const doctor = await runDoctor({
-      mode: 'deploy',
       projectId,
       quiet: true,
     });

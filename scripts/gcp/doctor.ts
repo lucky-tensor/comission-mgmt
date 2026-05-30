@@ -1,10 +1,10 @@
 #!/usr/bin/env bun
 /**
  * doctor.ts — Validate GCP credentials, project access, required APIs,
- * and IAM permissions before running provision or deploy.
+ * and IAM permissions before running deploy.
  *
  * Usage:
- *   bun run scripts/gcp/doctor.ts --project <project-id> [--mode provision|deploy]
+ *   bun run scripts/gcp/doctor.ts --project <project-id>
  *
  * Credential sources (resolution order):
  *   1. GCP_ACCESS_TOKEN
@@ -15,7 +15,7 @@
  *   6. GCP_SERVICE_ACCOUNT_KEY_JSON
  *   7. GCP_SERVICE_ACCOUNT_KEY_FILE
  *
- * Default mode: provision
+ * GCP provisioning is handled externally. This doctor checks deploy-only permissions.
  */
 
 import {
@@ -26,14 +26,10 @@ import {
   log,
   parseArgs,
   printHelp,
-  resolveOption,
   resolveRequiredOption,
 } from './common';
 
-type DoctorMode = 'provision' | 'deploy';
-
 interface DoctorConfig {
-  mode: DoctorMode;
   projectId: string;
   quiet?: boolean;
 }
@@ -49,68 +45,18 @@ interface ProjectResponse {
   name?: string;
 }
 
-interface ServiceStateResponse {
-  state?: string;
-}
-
 interface DoctorResult {
   credential: ReturnType<typeof getGoogleCredentialInfo>;
   disabledServices: string[];
   missingPermissions: string[];
-  mode: DoctorMode;
   ok: boolean;
   projectId: string;
   projectNumber: string;
   warnings: string[];
 }
 
-const REQUIRED_SERVICES = [
-  'compute.googleapis.com',
-  'alloydb.googleapis.com',
-  'serviceusage.googleapis.com',
-  'servicenetworking.googleapis.com',
-  'cloudresourcemanager.googleapis.com',
-] as const;
-
-// 34 IAM permissions required for idempotent VPC + AlloyDB + VM provisioning.
-const PROVISION_PERMISSIONS = [
-  'resourcemanager.projects.get',
-  'serviceusage.services.get',
-  'serviceusage.services.enable',
-  'serviceusage.services.list',
-  'compute.networks.get',
-  'compute.networks.create',
-  'compute.networks.update',
-  'compute.subnetworks.get',
-  'compute.subnetworks.create',
-  'compute.subnetworks.use',
-  'compute.subnetworks.useExternalIp',
-  'compute.firewalls.get',
-  'compute.firewalls.create',
-  'compute.firewalls.update',
-  'compute.globalAddresses.get',
-  'compute.globalAddresses.create',
-  'compute.instances.get',
-  'compute.instances.create',
-  'compute.instances.start',
-  'compute.instances.setMetadata',
-  'compute.instances.setTags',
-  'compute.images.useReadOnly',
-  'compute.globalOperations.get',
-  'compute.regionOperations.get',
-  'compute.zoneOperations.get',
-  'compute.disks.create',
-  'servicenetworking.services.addPeering',
-  'servicenetworking.services.get',
-  'alloydb.clusters.get',
-  'alloydb.clusters.create',
-  'alloydb.instances.get',
-  'alloydb.instances.create',
-  'alloydb.operations.get',
-  'alloydb.users.create',
-] as const;
-
 // 4 IAM permissions required for deploy liveness checks.
+// Provisioning is handled externally — no provision permissions needed here.
 const DEPLOY_PERMISSIONS = [
   'resourcemanager.projects.get',
   'compute.instances.get',
@@ -119,11 +65,11 @@ const DEPLOY_PERMISSIONS = [
 ] as const;
 
 const helpText = `
-Validate the Google credential, project access, required APIs, and IAM
-permissions before running Google Cloud provisioning or deploy checks.
+Validate the Google credential, project access, and IAM permissions before
+running the GCP deploy script. GCP provisioning is done externally.
 
 Usage:
-  bun run scripts/gcp/doctor.ts --project <project-id> [--mode provision|deploy]
+  bun run scripts/gcp/doctor.ts --project <project-id>
 
 Credential sources, in resolution order:
   1. GCP_ACCESS_TOKEN
@@ -134,19 +80,15 @@ Credential sources, in resolution order:
   6. GCP_SERVICE_ACCOUNT_KEY_JSON
   7. GCP_SERVICE_ACCOUNT_KEY_FILE
 
-Default mode: provision
-
-Provision mode checks 34 IAM permissions and 5 required APIs.
-Deploy mode checks 4 IAM permissions.
+Checks 4 IAM permissions for deploy liveness (VM and AlloyDB read access).
 `.trim();
 
 export async function runDoctor(config: DoctorConfig): Promise<DoctorResult> {
   const credential = getGoogleCredentialInfo();
-  const permissions =
-    config.mode === 'provision' ? [...PROVISION_PERMISSIONS] : [...DEPLOY_PERMISSIONS];
+  const permissions = [...DEPLOY_PERMISSIONS];
 
   if (!config.quiet) {
-    log(`Doctor: validating ${config.mode} credential for project ${config.projectId}`);
+    log(`Doctor: validating deploy credential for project ${config.projectId}`);
     log(`Doctor: credential source ${credential.source}`);
     if (credential.principal) {
       log(`Doctor: service account ${credential.principal}`);
@@ -163,7 +105,7 @@ export async function runDoctor(config: DoctorConfig): Promise<DoctorResult> {
   }
   if (project.lifecycleState && project.lifecycleState !== 'ACTIVE') {
     throw new Error(
-      `Project ${config.projectId} is ${project.lifecycleState}; expected ACTIVE before provisioning`,
+      `Project ${config.projectId} is ${project.lifecycleState}; expected ACTIVE`,
     );
   }
 
@@ -173,48 +115,22 @@ export async function runDoctor(config: DoctorConfig): Promise<DoctorResult> {
   );
 
   const projectNumber = await getProjectNumber(config.projectId);
-  const disabledServices: string[] = [];
-  for (const service of REQUIRED_SERVICES) {
-    const state = await googleJsonRequest<ServiceStateResponse>(
-      `https://serviceusage.googleapis.com/v1/projects/${projectNumber}/services/${service}`,
-    );
-    if (state?.state !== 'ENABLED') {
-      disabledServices.push(service);
-    }
-  }
 
-  const warnings: string[] = [];
-  if (
-    disabledServices.length > 0 &&
-    !grantedPermissions.has('serviceusage.services.enable') &&
-    config.mode === 'provision'
-  ) {
-    warnings.push(
-      `Required APIs are disabled but the credential cannot enable them: ${disabledServices.join(', ')}`,
-    );
-  }
-
-  const ok =
-    missingPermissions.length === 0 &&
-    (config.mode !== 'provision' ||
-      disabledServices.length === 0 ||
-      grantedPermissions.has('serviceusage.services.enable'));
+  const ok = missingPermissions.length === 0;
 
   return {
     credential,
-    disabledServices,
+    disabledServices: [],
     missingPermissions,
-    mode: config.mode,
     ok,
     projectId: config.projectId,
     projectNumber,
-    warnings,
+    warnings: [],
   };
 }
 
 function printDoctorResult(result: DoctorResult): void {
   console.log('');
-  console.log(`Mode:              ${result.mode}`);
   console.log(`Project:           ${result.projectId}`);
   console.log(`Project number:    ${result.projectNumber}`);
   console.log(`Credential source: ${result.credential.source}`);
@@ -224,23 +140,9 @@ function printDoctorResult(result: DoctorResult): void {
   console.log(
     `Missing perms:     ${result.missingPermissions.length === 0 ? 'none' : result.missingPermissions.join(', ')}`,
   );
-  console.log(
-    `Disabled APIs:     ${result.disabledServices.length === 0 ? 'none' : result.disabledServices.join(', ')}`,
-  );
-
-  if (result.mode === 'provision') {
-    console.log('');
-    console.log(`Checked ${PROVISION_PERMISSIONS.length} IAM permissions for provision.`);
-    console.log('Recommended role set:');
-    console.log('  - roles/serviceusage.serviceUsageAdmin');
-    console.log('  - roles/compute.instanceAdmin.v1');
-    console.log('  - roles/compute.networkAdmin');
-    console.log('  - roles/compute.securityAdmin');
-    console.log('  - roles/alloydb.admin');
-  } else {
-    console.log('');
-    console.log(`Checked ${DEPLOY_PERMISSIONS.length} IAM permissions for deploy.`);
-  }
+  console.log('');
+  console.log(`Checked ${DEPLOY_PERMISSIONS.length} IAM permissions for deploy.`);
+  console.log('Note: GCP provisioning is handled externally (Terraform / gcloud / GCP Console).');
 
   for (const warning of result.warnings) {
     console.log(`Warning: ${warning}`);
@@ -261,8 +163,7 @@ async function testProjectPermissions(
   return new Set(response?.permissions ?? []);
 }
 
-// Re-export permission arrays for use in tests and other scripts.
-export const PROVISION_PERMISSION_COUNT = PROVISION_PERMISSIONS.length;
+// Re-export permission count for use in tests and other scripts.
 export const DEPLOY_PERMISSION_COUNT = DEPLOY_PERMISSIONS.length;
 
 async function main(): Promise<void> {
@@ -273,13 +174,8 @@ async function main(): Promise<void> {
   }
 
   const projectId = resolveRequiredOption(args, 'project', ['GCP_PROJECT_ID'], 'GCP project');
-  const modeValue = resolveOption(args, 'mode', ['SUPERFIELD_GCP_DOCTOR_MODE'], 'provision');
-  if (modeValue !== 'provision' && modeValue !== 'deploy') {
-    throw new Error(`--mode must be "provision" or "deploy", got "${modeValue}"`);
-  }
 
   const result = await runDoctor({
-    mode: modeValue,
     projectId,
   });
   printDoctorResult(result);
