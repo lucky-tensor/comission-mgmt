@@ -46,6 +46,7 @@ import {
 import {
   handleCalculateCommission,
   handleListCommissionRecords,
+  handleGetCommissionRecord,
 } from '../../../apps/server/src/api/calculate';
 import type { SessionClaims } from 'core/auth';
 
@@ -567,5 +568,195 @@ describe('GET /placements/:id/commission-records', () => {
     const placementId = await createPlacement(testSql, claimsB);
     const listRes = await handleListCommissionRecords(placementId, claimsA, testSql);
     expect(listRes.status).toBe(404);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Issue #11 — Explainability: GET /commission-records/:id with explanation
+// ---------------------------------------------------------------------------
+
+describe('GET /commission-records/:id — explainability (issue #11)', () => {
+  test('AC#1: GET /commission-records/:id returns a non-empty explanation string', async () => {
+    // Setup: create placement, calculate commission
+    const placementId = await createPlacement(testSql, claimsA, { fee_amount: '30000' });
+    await activatePlacement(testSql, placementId);
+
+    const producerId = crypto.randomUUID();
+    const addReq = makeRequest({
+      path: `/placements/${placementId}/contributors`,
+      method: 'POST',
+      body: { producer_id: producerId, role: 'CandidateOwner', split_pct: 1.0 },
+    });
+    await handleAddContributor(placementId, addReq, claimsA, testSql);
+    await createActivePlan(testSql, claimsA, producerId, { base_rate: 0.2 });
+    await createInvoice(testSql, ORG_A_ID, placementId, 'Paid');
+
+    const calcReq = makeRequest({ path: `/placements/${placementId}/calculate`, method: 'POST' });
+    const calcRes = await handleCalculateCommission(placementId, calcReq, claimsA, testSql);
+    expect(calcRes.status).toBe(200);
+
+    const calcBody = (await jsonBody(calcRes)) as {
+      commission_records: Array<{ id: string; explanation: string }>;
+    };
+    expect(calcBody.commission_records).toHaveLength(1);
+    const recordId = calcBody.commission_records[0].id;
+
+    // GET /commission-records/:id
+    const getRes = await handleGetCommissionRecord(recordId, claimsA, testSql);
+    expect(getRes.status).toBe(200);
+
+    const body = (await jsonBody(getRes)) as { id: string; explanation: string };
+    expect(body.id).toBe(recordId);
+    expect(typeof body.explanation).toBe('string');
+    expect(body.explanation.length).toBeGreaterThan(0);
+  });
+
+  test('AC#2: explanation for collection-held record contains "pending client collection"', async () => {
+    const placementId = await createPlacement(testSql, claimsA, { fee_amount: '30000' });
+    await activatePlacement(testSql, placementId);
+
+    const producerId = crypto.randomUUID();
+    const addReq = makeRequest({
+      path: `/placements/${placementId}/contributors`,
+      method: 'POST',
+      body: { producer_id: producerId, role: 'CandidateOwner', split_pct: 1.0 },
+    });
+    await handleAddContributor(placementId, addReq, claimsA, testSql);
+    await createActivePlan(testSql, claimsA, producerId);
+
+    // Unpaid invoice → collection_gate hold
+    await createInvoice(testSql, ORG_A_ID, placementId, 'Issued');
+
+    const calcReq = makeRequest({ path: `/placements/${placementId}/calculate`, method: 'POST' });
+    const calcRes = await handleCalculateCommission(placementId, calcReq, claimsA, testSql);
+    expect(calcRes.status).toBe(200);
+
+    const calcBody = (await jsonBody(calcRes)) as {
+      commission_records: Array<{ id: string; status: string }>;
+    };
+    expect(calcBody.commission_records[0].status).toBe('Held');
+    const recordId = calcBody.commission_records[0].id;
+
+    const getRes = await handleGetCommissionRecord(recordId, claimsA, testSql);
+    expect(getRes.status).toBe(200);
+
+    const body = (await jsonBody(getRes)) as { explanation: string; status: string };
+    expect(body.status).toBe('Held');
+    expect(body.explanation).toContain('pending client collection');
+  });
+
+  test('AC#3: explanation for guarantee-held record includes the guarantee expiry date', async () => {
+    const placementId = await createPlacement(testSql, claimsA, { fee_amount: '30000' });
+    await activatePlacement(testSql, placementId);
+
+    const producerId = crypto.randomUUID();
+    const addReq = makeRequest({
+      path: `/placements/${placementId}/contributors`,
+      method: 'POST',
+      body: { producer_id: producerId, role: 'CandidateOwner', split_pct: 1.0 },
+    });
+    await handleAddContributor(placementId, addReq, claimsA, testSql);
+    await createActivePlan(testSql, claimsA, producerId);
+
+    // Active guarantee period ending 90 days in the future
+    const futureDate = new Date();
+    futureDate.setDate(futureDate.getDate() + 90);
+    const expiryStr = futureDate.toISOString().slice(0, 10);
+    await createGuaranteePeriod(testSql, ORG_A_ID, placementId, expiryStr);
+
+    const calcReq = makeRequest({ path: `/placements/${placementId}/calculate`, method: 'POST' });
+    const calcRes = await handleCalculateCommission(placementId, calcReq, claimsA, testSql);
+    expect(calcRes.status).toBe(200);
+
+    const calcBody = (await jsonBody(calcRes)) as {
+      commission_records: Array<{ id: string; status: string }>;
+    };
+    expect(calcBody.commission_records[0].status).toBe('Held');
+    const recordId = calcBody.commission_records[0].id;
+
+    const getRes = await handleGetCommissionRecord(recordId, claimsA, testSql);
+    expect(getRes.status).toBe(200);
+
+    const body = (await jsonBody(getRes)) as { explanation: string };
+    expect(body.explanation).toContain(expiryStr);
+  });
+
+  test('GET /commission-records/:id returns 404 for unknown record', async () => {
+    const fakeId = crypto.randomUUID();
+    const getRes = await handleGetCommissionRecord(fakeId, claimsA, testSql);
+    expect(getRes.status).toBe(404);
+  });
+
+  test('GET /commission-records/:id returns 404 for record owned by another org', async () => {
+    // Create record under org B
+    const placementId = await createPlacement(testSql, claimsB, { fee_amount: '25000' });
+    await activatePlacement(testSql, placementId);
+
+    const producerId = crypto.randomUUID();
+    const addReq = makeRequest({
+      path: `/placements/${placementId}/contributors`,
+      method: 'POST',
+      body: { producer_id: producerId, role: 'CandidateOwner', split_pct: 1.0 },
+    });
+    await handleAddContributor(placementId, addReq, claimsB, testSql);
+    await createActivePlan(testSql, claimsB, producerId);
+    await createInvoice(testSql, ORG_B_ID, placementId, 'Paid');
+
+    const calcReq = makeRequest({ path: `/placements/${placementId}/calculate`, method: 'POST' });
+    const calcRes = await handleCalculateCommission(placementId, calcReq, claimsB, testSql);
+    expect(calcRes.status).toBe(200);
+
+    const calcBody = (await jsonBody(calcRes)) as {
+      commission_records: Array<{ id: string }>;
+    };
+    const recordId = calcBody.commission_records[0].id;
+
+    // Try to fetch record as org A — should 404 (multi-tenant isolation)
+    const getRes = await handleGetCommissionRecord(recordId, claimsA, testSql);
+    expect(getRes.status).toBe(404);
+  });
+
+  test('POST /placements/:id/calculate → GET /commission-records/:id integration', async () => {
+    // Full integration: POST calculate then GET record, assert explanation present and non-empty
+    const placementId = await createPlacement(testSql, claimsA, { fee_amount: '40000' });
+    await activatePlacement(testSql, placementId);
+
+    const producerId = crypto.randomUUID();
+    const addReq = makeRequest({
+      path: `/placements/${placementId}/contributors`,
+      method: 'POST',
+      body: { producer_id: producerId, role: 'CandidateOwner', split_pct: 1.0 },
+    });
+    await handleAddContributor(placementId, addReq, claimsA, testSql);
+    await createActivePlan(testSql, claimsA, producerId, { base_rate: 0.25 });
+    await createInvoice(testSql, ORG_A_ID, placementId, 'Paid');
+
+    const calcReq = makeRequest({ path: `/placements/${placementId}/calculate`, method: 'POST' });
+    const calcRes = await handleCalculateCommission(placementId, calcReq, claimsA, testSql);
+    expect(calcRes.status).toBe(200);
+
+    const calcBody = (await jsonBody(calcRes)) as {
+      commission_records: Array<{ id: string }>;
+    };
+    const recordId = calcBody.commission_records[0].id;
+
+    // GET /commission-records/:id — explanation must be present and non-empty
+    const getRes = await handleGetCommissionRecord(recordId, claimsA, testSql);
+    expect(getRes.status).toBe(200);
+
+    const getBody = (await jsonBody(getRes)) as {
+      id: string;
+      explanation: string;
+      placement_id: string;
+      plan_version_id: string;
+    };
+
+    expect(getBody.id).toBe(recordId);
+    expect(getBody.explanation).toBeTruthy();
+    expect(getBody.explanation.length).toBeGreaterThan(0);
+    // Explanation must reference placement ID for traceability (PRD §9)
+    expect(getBody.explanation).toContain(placementId);
+    // Explanation must reference plan version ID for traceability
+    expect(getBody.explanation).toContain(getBody.plan_version_id);
   });
 });

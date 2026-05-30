@@ -62,7 +62,11 @@ import {
   handleCreatePlanAssignment,
   handleListPlanAssignments,
 } from './api/plans';
-import { handleCalculateCommission, handleListCommissionRecords } from './api/calculate';
+import {
+  handleCalculateCommission,
+  handleListCommissionRecords,
+  handleGetCommissionRecord,
+} from './api/calculate';
 import { handleDemoUsers, handleDemoSession, isDemoMode } from './api/demo-session';
 import { requireAuth } from './middleware/auth';
 
@@ -292,6 +296,12 @@ async function fetchHandler(req: Request): Promise<Response> {
   const commissionRecordsMatch = pathname.match(/^\/placements\/([^/]+)\/commission-records$/);
   if (req.method === 'GET' && commissionRecordsMatch) {
     return handleListCommissionRecords(commissionRecordsMatch[1], authResult.claims);
+  }
+
+  // Commission record by ID — GET /commission-records/:id
+  const commissionRecordGetMatch = pathname.match(/^\/commission-records\/([^/]+)$/);
+  if (req.method === 'GET' && commissionRecordGetMatch) {
+    return handleGetCommissionRecord(commissionRecordGetMatch[1], authResult.claims);
   }
 
   // 404 for all other paths

@@ -35,6 +35,7 @@ import {
   sql as defaultSql,
   createCommissionRecord,
   listCommissionRecords,
+  getCommissionRecord,
   type CreateCommissionRecordInput,
 } from 'db/index';
 import type { SessionClaims } from 'core/auth';
@@ -223,14 +224,18 @@ async function resolveInvoiceCollected(
 // resolveInsideGuaranteeWindow — check if placement is inside guarantee window
 // ---------------------------------------------------------------------------
 
+/**
+ * Returns { insideWindow: boolean, guaranteeExpiry: string | undefined }.
+ * guaranteeExpiry is an ISO date string (YYYY-MM-DD) when insideWindow is true.
+ */
 async function resolveInsideGuaranteeWindow(
   sql: SqlClient,
   orgId: string,
   placementId: string,
-): Promise<boolean> {
+): Promise<{ insideWindow: boolean; guaranteeExpiry: string | undefined }> {
   const rows = await sql.unsafe(
     `
-    SELECT id FROM guarantee_periods
+    SELECT guarantee_ends FROM guarantee_periods
     WHERE org_id = $1
       AND placement_id = $2
       AND status = 'Active'
@@ -240,7 +245,18 @@ async function resolveInsideGuaranteeWindow(
     [orgId, placementId],
   );
 
-  return rows && rows.length > 0;
+  if (!rows || rows.length === 0) {
+    return { insideWindow: false, guaranteeExpiry: undefined };
+  }
+
+  const row = rows[0] as unknown as { guarantee_ends: Date | string };
+  const expiryDate = row.guarantee_ends;
+  const expiryStr =
+    expiryDate instanceof Date
+      ? expiryDate.toISOString().slice(0, 10)
+      : String(expiryDate).slice(0, 10);
+
+  return { insideWindow: true, guaranteeExpiry: expiryStr };
 }
 
 // ---------------------------------------------------------------------------
@@ -313,10 +329,11 @@ export async function handleCalculateCommission(
   }
 
   // 4. Resolve cross-cutting inputs
-  const [invoiceCollected, insideGuaranteeWindow] = await Promise.all([
+  const [invoiceCollected, guaranteeResult] = await Promise.all([
     resolveInvoiceCollected(db, claims.org_id, placementId),
     resolveInsideGuaranteeWindow(db, claims.org_id, placementId),
   ]);
+  const { insideWindow: insideGuaranteeWindow, guaranteeExpiry } = guaranteeResult;
 
   const engine = new CommissionCalculationEngine();
   const createdRecords = [];
@@ -359,7 +376,7 @@ export async function handleCalculateCommission(
 
     let record;
     try {
-      record = await runCalculationPipeline(engine, input);
+      record = await runCalculationPipeline(engine, input, planVersionId, guaranteeExpiry);
     } catch (err: unknown) {
       console.error('[calculate] pipeline error:', err);
       return errorResponse(
@@ -378,6 +395,7 @@ export async function handleCalculateCommission(
       netPayable: record.netPayable.toFixed(4),
       tierRate: record.tierRate,
       status: record.status === 'Held' ? 'Held' : 'Accrued',
+      explanation: record.explanation,
     };
 
     let dbRecord;
@@ -401,6 +419,7 @@ export async function handleCalculateCommission(
       held_for_collection: record.heldForCollection,
       held_for_guarantee: record.heldForGuarantee,
       draw_deducted: record.drawDeducted,
+      explanation: record.explanation,
       created_at: dbRecord.createdAt,
     });
   }
@@ -458,6 +477,7 @@ export async function handleListCommissionRecords(
         net_payable: r.netPayable,
         tier_rate: r.tierRate,
         status: r.status,
+        explanation: r.explanation,
         approval_actor: r.approvalActor,
         approval_at: r.approvalAt,
         created_at: r.createdAt,
@@ -467,4 +487,59 @@ export async function handleListCommissionRecords(
     console.error('[commission-records] list error:', err);
     return errorResponse('Failed to list commission records', 500);
   }
+}
+
+// ---------------------------------------------------------------------------
+// GET /commission-records/:id — fetch a single commission record by ID
+// ---------------------------------------------------------------------------
+
+/**
+ * GET /commission-records/:id — fetches a single commission record by ID.
+ *
+ * Returns 200 with the commission record including the explanation field.
+ * Returns 404 if not found or tenant mismatch.
+ *
+ * Per PRD §9 Explainability constraint: the explanation field is always present
+ * and non-empty when the record was created by the calculation engine.
+ *
+ * @param recordId  - The commission record UUID from the route.
+ * @param claims    - Session claims (org_id, user_id).
+ * @param sqlClient - Optional injectable SQL client for testing.
+ *
+ * Issue: feat: plain-language commission calculation explainability (#11)
+ */
+export async function handleGetCommissionRecord(
+  recordId: string,
+  claims: SessionClaims,
+  sqlClient?: SqlClient,
+): Promise<Response> {
+  const db = sqlClient ?? defaultSql;
+
+  let record;
+  try {
+    record = await getCommissionRecord(db, claims.org_id, recordId);
+  } catch (err: unknown) {
+    console.error('[commission-records] get error:', err);
+    return errorResponse('Failed to retrieve commission record', 500);
+  }
+
+  if (!record) {
+    return errorResponse('Commission record not found', 404);
+  }
+
+  return jsonResponse({
+    id: record.id,
+    org_id: record.orgId,
+    placement_id: record.placementId,
+    contributor_id: record.contributorId,
+    plan_version_id: record.planVersionId,
+    gross_commission: record.grossAmount,
+    net_payable: record.netPayable,
+    tier_rate: record.tierRate,
+    status: record.status,
+    explanation: record.explanation,
+    approval_actor: record.approvalActor,
+    approval_at: record.approvalAt,
+    created_at: record.createdAt,
+  });
 }

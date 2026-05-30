@@ -402,6 +402,10 @@ CREATE INDEX IF NOT EXISTS idx_commission_records_placement ON commission_record
 CREATE INDEX IF NOT EXISTS idx_commission_records_contributor ON commission_records (contributor_id);
 CREATE INDEX IF NOT EXISTS idx_commission_records_status ON commission_records (org_id, status);
 
+-- Plain-language explanation for each commission record (issue #11: explainability).
+-- Nullable so existing rows without an explanation remain valid.
+ALTER TABLE commission_records ADD COLUMN IF NOT EXISTS explanation TEXT;
+
 -- Invoices: billed amounts sent to clients for placements.
 CREATE TABLE IF NOT EXISTS invoices (
   id               UUID        PRIMARY KEY DEFAULT gen_random_uuid(),

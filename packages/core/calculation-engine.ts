@@ -48,6 +48,8 @@
  *    plan_version_id, placement_id, and triggering event so PRD §9 explainability is met.
  */
 
+import { generateExplanation } from './explanation-engine.js';
+
 // ---------------------------------------------------------------------------
 // Input / output shapes
 // ---------------------------------------------------------------------------
@@ -435,6 +437,12 @@ export interface CommissionRecord {
   heldForCollection: boolean;
   /** True when held due to active guarantee window. */
   heldForGuarantee: boolean;
+  /**
+   * Plain-language explanation of this commission calculation.
+   * Machine-generated from CommissionRecord fields per PRD §9 Explainability constraint.
+   * Issue: feat: plain-language commission calculation explainability (#11)
+   */
+  explanation: string;
 }
 
 /**
@@ -442,13 +450,17 @@ export interface CommissionRecord {
  *
  * This is the primary entry point for the API handler.
  *
- * @param engine - CalculationEngine implementation to use.
- * @param input  - All inputs for the calculation pipeline.
- * @returns      - A CommissionRecord with all computed fields.
+ * @param engine           - CalculationEngine implementation to use.
+ * @param input            - All inputs for the calculation pipeline.
+ * @param planVersionId    - Plan version ID for traceability in the explanation.
+ * @param guaranteeExpiry  - ISO date string of the guarantee expiry (when inside window).
+ * @returns                - A CommissionRecord with all computed fields including explanation.
  */
 export async function runCalculationPipeline(
   engine: CalculationEngine,
   input: CalculationInput,
+  planVersionId?: string,
+  guaranteeExpiry?: string,
 ): Promise<CommissionRecord> {
   const base = await engine.calculateBase(input);
   const tiered = await engine.applyTiers(base, input);
@@ -463,6 +475,29 @@ export async function runCalculationPipeline(
     status = 'Accrued';
   }
 
+  const deskCost = (input.planRules as { desk_cost?: number } | null)?.desk_cost ?? 0;
+  const appliedRate = tiered.appliedRate ?? 0;
+  const isTieredRate =
+    tiered.appliedRate !== null &&
+    tiered.appliedRate !== ((input.planRules as { base_rate?: number } | null)?.base_rate ?? 0);
+
+  const explanation = generateExplanation({
+    commissionableBase: input.commissionableBase,
+    splitPct: input.splitPct,
+    creditedBase: base.creditedBase,
+    appliedRate,
+    isTieredRate,
+    grossCommission: tiered.tieredGross,
+    deskCost,
+    drawDeducted: recovery.drawDeducted,
+    netPayable: final.netPayable,
+    heldForCollection: final.heldForCollection,
+    heldForGuarantee: final.heldForGuarantee,
+    guaranteeExpiry,
+    planVersionId: planVersionId ?? input.placementId,
+    placementId: input.placementId,
+  });
+
   return {
     grossCommission: tiered.tieredGross,
     netPayable: final.netPayable,
@@ -471,5 +506,6 @@ export async function runCalculationPipeline(
     status,
     heldForCollection: final.heldForCollection,
     heldForGuarantee: final.heldForGuarantee,
+    explanation,
   };
 }
