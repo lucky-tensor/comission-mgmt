@@ -41,68 +41,6 @@ const AGENT_HANDLERS: Record<
 };
 
 /**
- * Claims the next available task of AGENT_TYPE from the application API.
- * Returns null when no task is available (204 from server).
- */
-async function claimTask(): Promise<{
-  id: string;
-  agent_type: string;
-  job_type: string;
-  payload: Record<string, unknown>;
-} | null> {
-  const res = await fetch(`${API_BASE_URL}/tasks/claim`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${WORKER_TOKEN}`,
-    },
-    body: JSON.stringify({ agent_type: AGENT_TYPE, pod_id: POD_ID }),
-  });
-
-  if (res.status === 204) return null;
-  if (!res.ok) {
-    log('warn', 'claim_task_failed', {
-      trace_id: '',
-      status: res.status,
-      agent_type: AGENT_TYPE,
-    });
-    return null;
-  }
-
-  return (await res.json()) as {
-    id: string;
-    agent_type: string;
-    job_type: string;
-    payload: Record<string, unknown>;
-  };
-}
-
-/**
- * Submits the result of a completed task via POST /tasks/:id/result.
- * Uses the delegated WORKER_TOKEN for authentication.
- */
-async function submitResult(taskId: string, result: Record<string, unknown>): Promise<boolean> {
-  const res = await fetch(`${API_BASE_URL}/tasks/${taskId}/result`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${WORKER_TOKEN}`,
-    },
-    body: JSON.stringify({ result }),
-  });
-
-  if (!res.ok) {
-    log('warn', 'submit_result_failed', {
-      trace_id: '',
-      task_id: taskId,
-      status: res.status,
-    });
-    return false;
-  }
-  return true;
-}
-
-/**
  * Processes one task: claim → execute → submit.
  * Returns true when a task was processed, false when no task was available.
  */
@@ -131,7 +69,11 @@ export async function processOnce(
 
   if (claimRes.status === 204) return false;
   if (!claimRes.ok) {
-    log('warn', 'claim_task_failed', { trace_id: '', status: claimRes.status, agent_type: agentType });
+    log('warn', 'claim_task_failed', {
+      trace_id: '',
+      status: claimRes.status,
+      agent_type: agentType,
+    });
     return false;
   }
 
@@ -152,7 +94,11 @@ export async function processOnce(
 
   const handler = AGENT_HANDLERS[task.agent_type];
   if (!handler) {
-    log('warn', 'unknown_agent_type', { trace_id: traceId, task_id: task.id, agent_type: task.agent_type });
+    log('warn', 'unknown_agent_type', {
+      trace_id: traceId,
+      task_id: task.id,
+      agent_type: task.agent_type,
+    });
     return true;
   }
 

@@ -24,11 +24,7 @@ import {
   type EcKeyPair,
 } from '../../../src/auth/jwt';
 import { persistWorkerToken } from 'db/worker-tokens';
-import {
-  handleEnqueueTask,
-  handleGetTask,
-  handleSubmitTaskResult,
-} from '../../../src/api/tasks';
+import { handleEnqueueTask, handleGetTask, handleSubmitTaskResult } from '../../../src/api/tasks';
 import type { SessionClaims } from 'core/auth';
 
 // ---------------------------------------------------------------------------

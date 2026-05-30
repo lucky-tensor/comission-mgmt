@@ -220,7 +220,12 @@ export async function verifyJwtSignatureOnly<T>(token: string): Promise<T> {
 
   for (const { publicKey } of keyPairs) {
     try {
-      const ok = await crypto.subtle.verify(SIGN_ALGORITHM, publicKey, signatureBytes, dataToVerify);
+      const ok = await crypto.subtle.verify(
+        SIGN_ALGORITHM,
+        publicKey,
+        signatureBytes,
+        dataToVerify,
+      );
       if (ok) {
         verified = true;
         break;

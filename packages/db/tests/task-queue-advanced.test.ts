@@ -13,7 +13,7 @@
 import { describe, test, expect, beforeAll, afterAll } from 'vitest';
 import postgres from 'postgres';
 import { startPostgres, type PgContainer } from '../pg-container';
-import { claimNextTask, enqueueTask, recoverStaleClaims, validatePayload } from '../task-queue';
+import { validatePayload } from '../task-queue';
 
 let pg: PgContainer;
 let sql: ReturnType<typeof postgres>;
@@ -50,9 +50,7 @@ describe('concurrency: SKIP LOCKED atomic claim', () => {
 
     // Spawn 10 concurrent workers each trying to claim the single task
     const WORKERS = 10;
-    const workerSqlClients = Array.from({ length: WORKERS }, () =>
-      postgres(pg.url, { max: 1 }),
-    );
+    const workerSqlClients = Array.from({ length: WORKERS }, () => postgres(pg.url, { max: 1 }));
 
     const results = await Promise.all(
       workerSqlClients.map(async (workerSql, i) => {
@@ -234,9 +232,7 @@ describe('DB isolation: agent_rw role', () => {
     const agentSql = postgres(agentRwUrl, { max: 1 });
 
     try {
-      await expect(
-        agentSql`SELECT id FROM commission_records LIMIT 1`,
-      ).rejects.toThrow();
+      await expect(agentSql`SELECT id FROM commission_records LIMIT 1`).rejects.toThrow();
     } finally {
       await agentSql.end({ timeout: 5 });
       await sql`ALTER ROLE agent_rw NOLOGIN`;
