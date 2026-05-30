@@ -22,7 +22,9 @@
     "./contributors": "./src/contributors.ts",
     "./attribution": "./src/attribution.ts",
     "./plans": "./src/plans.ts",
-    "./commission-records": "./src/commission-records.ts"
+    "./commission-records": "./src/commission-records.ts",
+    "./commission-runs": "./src/commission-runs.ts",
+    "./invoices": "./src/invoices.ts"
   },
   "scripts": {
     "build": "tsc --noEmit --project tsconfig.json"

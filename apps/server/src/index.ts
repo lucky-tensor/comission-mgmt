@@ -38,7 +38,6 @@ import {
   handleGetPlacement,
   handleListIncompletePlacements,
   handleUpdatePlacement,
-  handlePreflightCommissionRun,
 } from './api/placements';
 import {
   handleAddContributor,
@@ -66,6 +65,7 @@ import {
   handleCalculateCommission,
   handleListCommissionRecords,
   handleGetCommissionRecord,
+  handlePatchCommissionRecord,
 } from './api/calculate';
 import {
   handleCreateInvoice,
@@ -73,6 +73,12 @@ import {
   handleImportInvoices,
   handleListAllCommissionRecords,
 } from './api/invoices';
+import {
+  handleCreateCommissionRun,
+  handleGetCommissionRunQueue,
+  handleApproveRunRecord,
+  handleApproveCommissionRun,
+} from './api/commission-runs';
 import { handleDemoUsers, handleDemoSession, isDemoMode } from './api/demo-session';
 import { requireAuth } from './middleware/auth';
 
@@ -209,9 +215,27 @@ async function fetchHandler(req: Request): Promise<Response> {
     return handleUpdatePlacement(placementPatchMatch[1], req, authResult.claims);
   }
 
-  // Commission run pre-flight check
+  // Commission run routes — Finance Admin commission close workflow
   if (req.method === 'POST' && pathname === '/commission-runs') {
-    return handlePreflightCommissionRun(req, authResult.claims);
+    return handleCreateCommissionRun(req, authResult.claims);
+  }
+  const commissionRunQueueMatch = pathname.match(/^\/commission-runs\/([^/]+)\/queue$/);
+  if (req.method === 'GET' && commissionRunQueueMatch) {
+    return handleGetCommissionRunQueue(commissionRunQueueMatch[1], authResult.claims);
+  }
+  const commissionRunRecordApproveMatch = pathname.match(
+    /^\/commission-runs\/([^/]+)\/records\/([^/]+)\/approve$/,
+  );
+  if (req.method === 'POST' && commissionRunRecordApproveMatch) {
+    return handleApproveRunRecord(
+      commissionRunRecordApproveMatch[1],
+      commissionRunRecordApproveMatch[2],
+      authResult.claims,
+    );
+  }
+  const commissionRunApproveMatch = pathname.match(/^\/commission-runs\/([^/]+)\/approve$/);
+  if (req.method === 'POST' && commissionRunApproveMatch) {
+    return handleApproveCommissionRun(commissionRunApproveMatch[1], authResult.claims);
   }
 
   // Contributor routes — authenticated (session cookie), scoped to tenant
@@ -308,6 +332,11 @@ async function fetchHandler(req: Request): Promise<Response> {
   const commissionRecordGetMatch = pathname.match(/^\/commission-records\/([^/]+)$/);
   if (req.method === 'GET' && commissionRecordGetMatch) {
     return handleGetCommissionRecord(commissionRecordGetMatch[1], authResult.claims);
+  }
+  // PATCH /commission-records/:id — immutability guard (returns 409 if in an Approved run)
+  const commissionRecordPatchMatch = pathname.match(/^\/commission-records\/([^/]+)$/);
+  if (req.method === 'PATCH' && commissionRecordPatchMatch) {
+    return handlePatchCommissionRecord(commissionRecordPatchMatch[1], authResult.claims);
   }
 
   // Commission records list (global) — GET /commission-records?reason=...

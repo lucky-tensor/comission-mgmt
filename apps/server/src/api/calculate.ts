@@ -38,6 +38,7 @@ import {
   getCommissionRecord,
   type CreateCommissionRecordInput,
 } from 'db/index';
+import { isCommissionRecordInApprovedRun } from 'db/commission-runs';
 import type { SessionClaims } from 'core/auth';
 import type { Sql } from 'postgres';
 import {
@@ -554,4 +555,65 @@ export async function handleGetCommissionRecord(
     approval_at: record.approvalAt,
     created_at: record.createdAt,
   });
+}
+
+// ---------------------------------------------------------------------------
+// PATCH /commission-records/:id — immutability guard
+// ---------------------------------------------------------------------------
+
+/**
+ * PATCH /commission-records/:id — attempts to update a commission record.
+ *
+ * Returns 409 Conflict if the record is included in an Approved commission run,
+ * enforcing immutability of approved commission data (PRD §5.4, §9).
+ *
+ * Returns 404 if the record does not exist or belongs to a different tenant.
+ *
+ * NOTE: Full edit support is out of scope for this issue. The handler exists
+ * solely to enforce the immutability constraint. Any PATCH attempt on an
+ * approved record returns 409; all other PATCHes return 405 Method Not Allowed
+ * (edit workflow is not in MVP scope).
+ *
+ * @param recordId  - The commission record UUID from the route.
+ * @param claims    - Session claims (org_id, user_id).
+ * @param sqlClient - Optional injectable SQL client for testing.
+ *
+ * Issue: feat: finance admin commission run and review queue (#13)
+ */
+export async function handlePatchCommissionRecord(
+  recordId: string,
+  claims: SessionClaims,
+  sqlClient?: SqlClient,
+): Promise<Response> {
+  const db = sqlClient ?? defaultSql;
+
+  // Verify the record exists and belongs to this tenant
+  let record;
+  try {
+    record = await getCommissionRecord(db, claims.org_id, recordId);
+  } catch (err: unknown) {
+    console.error('[commission-records] patch check error:', err);
+    return errorResponse('Failed to retrieve commission record', 500);
+  }
+
+  if (!record) {
+    return errorResponse('Commission record not found', 404);
+  }
+
+  // Immutability gate: reject if record is in an Approved run
+  try {
+    const inApprovedRun = await isCommissionRecordInApprovedRun(db, claims.org_id, recordId);
+    if (inApprovedRun) {
+      return errorResponse(
+        'Commission record is part of an approved run and cannot be edited',
+        409,
+      );
+    }
+  } catch (err: unknown) {
+    console.error('[commission-records] immutability check error:', err);
+    return errorResponse('Failed to check commission record status', 500);
+  }
+
+  // Edit workflow not in MVP scope
+  return errorResponse('Commission record editing is not supported in this version', 405);
 }

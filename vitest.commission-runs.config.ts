@@ -1,22 +1,18 @@
 /**
- * Vitest configuration for commission calculation API integration tests.
+ * Vitest configuration for Finance Admin commission run and review queue integration tests.
  *
  * Covers:
- *   - POST /placements/:id/calculate — trigger commission calculation
- *   - GET  /placements/:id/commission-records — list commission records
- *   - GET  /commission-records/:id — fetch single record with explanation
- *   - Collection gate (status=Held when invoice unpaid)
- *   - Guarantee holdback (status=Held when inside guarantee window)
- *   - Draw balance offset (net_payable reduced, gross_commission unchanged)
- *   - Error cases: 404, 409, 422
- *   - Multi-tenant isolation
- *   - Explainability: explanation field present, hold reason, guarantee expiry
+ *   - POST /commission-runs — open run with pre-flight completeness check
+ *   - GET /commission-runs/:id/queue — review queue: ready, held, exception-pending records
+ *   - POST /commission-runs/:id/records/:rid/approve — individually approve a record
+ *   - POST /commission-runs/:id/approve — approve entire run (requires all approved)
+ *   - PATCH /commission-records/:id — returns 409 when record is in an Approved run
+ *   - End-to-end: placement → calculate → open run → review queue → approve all → approve run
  *
  * Requires an ephemeral Postgres container (Docker) and uses workspace package
  * aliases for db/* and core/* imports.
  *
- * Issue: feat: commission calculation engine (#10)
- * Issue: feat: plain-language commission calculation explainability (#11)
+ * Issue: feat: finance admin commission run and review queue (#13)
  */
 import { defineConfig } from 'vitest/config';
 import { resolve } from 'path';
@@ -48,6 +44,10 @@ export default defineConfig({
         find: 'core/placement-state',
         replacement: resolve(root, 'packages/core/placement-state.ts'),
       },
+      {
+        find: 'core/invoice-trigger',
+        replacement: resolve(root, 'packages/core/invoice-trigger.ts'),
+      },
       { find: 'core', replacement: resolve(root, 'packages/core/index.ts') },
       // db/* — individual subpaths before catch-all
       { find: 'db/revocation', replacement: resolve(root, 'packages/db/revocation.ts') },
@@ -65,6 +65,7 @@ export default defineConfig({
         find: 'db/commission-runs',
         replacement: resolve(root, 'packages/db/src/commission-runs.ts'),
       },
+      { find: 'db/invoices', replacement: resolve(root, 'packages/db/src/invoices.ts') },
       { find: 'db/index', replacement: resolve(root, 'packages/db/index.ts') },
       { find: 'db', replacement: resolve(root, 'packages/db/index.ts') },
     ],
@@ -72,7 +73,7 @@ export default defineConfig({
   test: {
     globals: false,
     environment: 'node',
-    include: ['tests/api/calculate/**/*.test.ts'],
+    include: ['tests/api/commission-runs/**/*.test.ts'],
     testTimeout: 300_000,
     hookTimeout: 300_000,
   },

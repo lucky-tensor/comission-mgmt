@@ -499,3 +499,53 @@ CREATE TABLE IF NOT EXISTS attribution_events (
 CREATE INDEX IF NOT EXISTS idx_attribution_events_org ON attribution_events (org_id);
 CREATE INDEX IF NOT EXISTS idx_attribution_events_placement ON attribution_events (placement_id);
 CREATE INDEX IF NOT EXISTS idx_attribution_events_created ON attribution_events (placement_id, created_at);
+
+-- =============================================================================
+-- Commission Runs: Finance Admin commission close workflow.
+-- A run groups placements for a period, pre-flight checks completeness,
+-- and gates final approval until all included records are individually approved.
+-- Canonical: docs/prd.md §5.4, §9 — Finance Close Workflow
+-- Issue: feat: finance admin commission run and review queue (#13)
+-- =============================================================================
+
+DO $$ BEGIN
+  CREATE TYPE commission_run_state AS ENUM (
+    'Open',
+    'Approved',
+    'Cancelled'
+  );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+-- commission_runs: one row per Finance Admin commission close batch.
+CREATE TABLE IF NOT EXISTS commission_runs (
+  id               UUID                  PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id           UUID                  NOT NULL,
+  period_start     DATE                  NOT NULL,
+  period_end       DATE                  NOT NULL,
+  status           commission_run_state  NOT NULL DEFAULT 'Open',
+  created_by       UUID                  NOT NULL,
+  approved_by      UUID,
+  approved_at      TIMESTAMPTZ,
+  created_at       TIMESTAMPTZ           NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_commission_runs_org ON commission_runs (org_id);
+CREATE INDEX IF NOT EXISTS idx_commission_runs_status ON commission_runs (org_id, status);
+
+-- commission_run_records: links a commission_run to the individual commission_records it governs.
+-- Each record may be individually approved; the run may only be fully approved once all
+-- linked records are approved.
+CREATE TABLE IF NOT EXISTS commission_run_records (
+  id               UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id           UUID        NOT NULL,
+  run_id           UUID        NOT NULL REFERENCES commission_runs(id) ON DELETE CASCADE,
+  commission_record_id UUID    NOT NULL REFERENCES commission_records(id),
+  individually_approved    BOOLEAN     NOT NULL DEFAULT false,
+  individually_approved_by UUID,
+  individually_approved_at TIMESTAMPTZ,
+  UNIQUE (run_id, commission_record_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_commission_run_records_run ON commission_run_records (run_id);
+CREATE INDEX IF NOT EXISTS idx_commission_run_records_org ON commission_run_records (org_id);

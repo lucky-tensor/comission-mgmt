@@ -98,6 +98,21 @@ export type {
   HeldCommissionRecordRow,
 } from './src/invoices.js';
 
+export {
+  createCommissionRun,
+  getCommissionRun,
+  getCommissionRunRecords,
+  approveRunRecord,
+  approveCommissionRun,
+  isCommissionRecordInApprovedRun,
+} from './src/commission-runs.js';
+export type {
+  CommissionRunRow,
+  CommissionRunRecordRow,
+  CommissionRunStatus,
+  CreateCommissionRunInput,
+} from './src/commission-runs.js';
+
 const DEFAULT_DATABASE_URLS = {
   app: 'postgres://app_rw:app_rw_password@localhost:5432/commission_app',
   audit: 'postgres://audit_w:audit_w_password@localhost:5432/commission_audit',
