@@ -19,6 +19,7 @@
       "db/placements": ["packages/db/src/placements.ts"],
       "db/contributors": ["packages/db/src/contributors.ts"],
       "db/attribution": ["packages/db/src/attribution.ts"],
+      "db/plans": ["packages/db/src/plans.ts"],
       "db/*": ["packages/db/*.ts"]
     }
   },

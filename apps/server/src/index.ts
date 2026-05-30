@@ -52,6 +52,16 @@ import {
   handleRejectAttribution,
   handleAttributionTimeline,
 } from './api/attribution';
+import {
+  handleCreatePlan,
+  handleListPlans,
+  handleCreatePlanVersion,
+  handleListPlanVersions,
+  handleGetActivePlanVersion,
+  handleActivatePlanVersion,
+  handleCreatePlanAssignment,
+  handleListPlanAssignments,
+} from './api/plans';
 import { handleDemoUsers, handleDemoSession, isDemoMode } from './api/demo-session';
 import { requireAuth } from './middleware/auth';
 
@@ -232,6 +242,43 @@ async function fetchHandler(req: Request): Promise<Response> {
   const attributionTimelineMatch = pathname.match(/^\/placements\/([^/]+)\/attribution\/timeline$/);
   if (req.method === 'GET' && attributionTimelineMatch) {
     return handleAttributionTimeline(attributionTimelineMatch[1], authResult.claims);
+  }
+
+  // Commission plan routes — authenticated (session cookie), scoped to tenant
+  if (req.method === 'POST' && pathname === '/plans') {
+    return handleCreatePlan(req, authResult.claims);
+  }
+  if (req.method === 'GET' && pathname === '/plans') {
+    return handleListPlans(req, authResult.claims);
+  }
+  // /plans/:id/versions/:vid/activate — must match before generic version routes
+  const planVersionActivateMatch = pathname.match(
+    /^\/plans\/([^/]+)\/versions\/([^/]+)\/activate$/,
+  );
+  if (req.method === 'POST' && planVersionActivateMatch) {
+    return handleActivatePlanVersion(
+      planVersionActivateMatch[1],
+      planVersionActivateMatch[2],
+      authResult.claims,
+    );
+  }
+  const planVersionsMatch = pathname.match(/^\/plans\/([^/]+)\/versions$/);
+  if (req.method === 'POST' && planVersionsMatch) {
+    return handleCreatePlanVersion(planVersionsMatch[1], req, authResult.claims);
+  }
+  if (req.method === 'GET' && planVersionsMatch) {
+    return handleListPlanVersions(planVersionsMatch[1], authResult.claims);
+  }
+  const planActiveMatch = pathname.match(/^\/plans\/([^/]+)\/active$/);
+  if (req.method === 'GET' && planActiveMatch) {
+    return handleGetActivePlanVersion(planActiveMatch[1], authResult.claims);
+  }
+  const planAssignmentsMatch = pathname.match(/^\/plans\/([^/]+)\/assignments$/);
+  if (req.method === 'POST' && planAssignmentsMatch) {
+    return handleCreatePlanAssignment(planAssignmentsMatch[1], req, authResult.claims);
+  }
+  if (req.method === 'GET' && planAssignmentsMatch) {
+    return handleListPlanAssignments(planAssignmentsMatch[1], authResult.claims);
   }
 
   // 404 for all other paths
