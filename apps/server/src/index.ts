@@ -31,6 +31,7 @@ import {
   handleMintAgentCredential,
   handleClaimTask,
 } from './api/tasks';
+import { handleDemoUsers, handleDemoSession, isDemoMode } from './api/demo-session';
 import { requireAuth } from './middleware/auth';
 
 // Re-export foundation modules so they continue to be verified at compile time.
@@ -40,6 +41,7 @@ export * from './auth/cookie-config';
 export * from './security/rate-limiter';
 export * from './lib/response';
 export * from './middleware/auth';
+export * from './api/demo-session';
 
 const PORT = Number(process.env.PORT ?? 31415);
 const DATABASE_URL =
@@ -113,6 +115,16 @@ async function fetchHandler(req: Request): Promise<Response> {
   // Worker task claim — Bearer token auth (no session cookie)
   if (req.method === 'POST' && pathname === '/tasks/claim') {
     return handleClaimTask(req);
+  }
+
+  // Demo routes — only registered when DEMO_MODE=true
+  if (isDemoMode()) {
+    if (req.method === 'GET' && pathname === '/demo/users') {
+      return handleDemoUsers();
+    }
+    if (req.method === 'POST' && pathname === '/demo/session') {
+      return handleDemoSession(req);
+    }
   }
 
   // All other routes require authentication
