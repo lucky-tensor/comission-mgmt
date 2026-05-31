@@ -291,6 +291,76 @@ describe('audit_w role permissions', () => {
 });
 
 // ---------------------------------------------------------------------------
+// 5b. DB-level append-only — the TABLE OWNER cannot mutate the ledger.
+//
+// GRANT/REVOKE does not bind a table's owner, so the append-only guarantee is
+// enforced by BEFORE UPDATE/DELETE/TRUNCATE triggers. `auditSql`/`analyticsSql`
+// here connect as the superuser that ran the migration (i.e. the owner), so a
+// successful rejection proves the triggers — not just the grants — hold.
+// (DATA-D-004/D-010, IMPL-DATA-043, issue #81)
+// ---------------------------------------------------------------------------
+describe('append-only enforcement — owner cannot mutate audit_log_entries', () => {
+  test('owner INSERT then UPDATE is rejected by trigger', async () => {
+    await auditSql.unsafe(`
+      INSERT INTO audit_log_entries (org_id, actor_id, actor_type, action, entity_type, entity_id)
+      VALUES (
+        '00000000-0000-0000-0000-0000000000a1',
+        '00000000-0000-0000-0000-0000000000a2',
+        'user', 'create', 'placement',
+        '00000000-0000-0000-0000-0000000000a3'
+      )
+    `);
+    await expect(
+      auditSql.unsafe(`UPDATE audit_log_entries SET action = 'tampered' WHERE TRUE`),
+    ).rejects.toThrow(/append-only|not permitted/i);
+  });
+
+  test('owner DELETE is rejected by trigger', async () => {
+    await expect(auditSql.unsafe(`DELETE FROM audit_log_entries WHERE TRUE`)).rejects.toThrow(
+      /append-only|not permitted/i,
+    );
+  });
+
+  test('owner TRUNCATE is rejected by trigger', async () => {
+    await expect(auditSql.unsafe(`TRUNCATE audit_log_entries`)).rejects.toThrow(
+      /append-only|not permitted/i,
+    );
+  });
+
+  test('rows survive the rejected mutations (ledger intact)', async () => {
+    const rows = await auditSql<{ cnt: string }[]>`
+      SELECT COUNT(*) AS cnt FROM audit_log_entries
+      WHERE entity_id = '00000000-0000-0000-0000-0000000000a3'
+    `;
+    expect(Number(rows[0].cnt)).toBeGreaterThan(0);
+  });
+});
+
+describe('append-only enforcement — owner cannot mutate commission_events', () => {
+  test('owner INSERT then UPDATE is rejected by trigger', async () => {
+    await analyticsSql.unsafe(`
+      INSERT INTO commission_events (org_id, event_type, metadata)
+      VALUES ('00000000-0000-0000-0000-0000000000b1', 'placement.created', '{}')
+    `);
+    await expect(
+      analyticsSql.unsafe(`UPDATE commission_events SET event_type = 'tampered' WHERE TRUE`),
+    ).rejects.toThrow(/append-only|not permitted/i);
+  });
+
+  test('owner DELETE is rejected by trigger', async () => {
+    await expect(analyticsSql.unsafe(`DELETE FROM commission_events WHERE TRUE`)).rejects.toThrow(
+      /append-only|not permitted/i,
+    );
+  });
+
+  test('owner TRUNCATE is rejected by trigger', async () => {
+    await expect(analyticsSql.unsafe(`TRUNCATE commission_events`)).rejects.toThrow(
+      /append-only|not permitted/i,
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
 // 6. analytics_w role permissions — INSERT succeeds, SELECT fails
 // ---------------------------------------------------------------------------
 describe('analytics_w role permissions', () => {
