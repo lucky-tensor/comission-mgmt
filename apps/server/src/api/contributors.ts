@@ -83,7 +83,7 @@ async function writeAuditLog(
         opts.action,
         'Contributor',
         opts.entityId,
-        JSON.stringify(opts.afterJson),
+        opts.afterJson as never,
       ],
     );
   } catch (err) {

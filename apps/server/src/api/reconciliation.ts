@@ -93,13 +93,11 @@ async function writeAuditLog(
   },
 ): Promise<void> {
   try {
-    const afterJsonStr = JSON.stringify(opts.afterJson);
-
     await auditSql.unsafe(
       `
       INSERT INTO audit_log_entries (
         org_id, actor_id, actor_type, action, entity_type, entity_id, before_json, after_json
-      ) VALUES ($1, $2, $3, $4, $5, $6, NULL, $7::jsonb)
+      ) VALUES ($1, $2, $3, $4, $5, $6, NULL, $7)
       `,
       [
         opts.orgId,
@@ -108,7 +106,7 @@ async function writeAuditLog(
         opts.action,
         'reconciliation_discrepancy',
         opts.entityId,
-        afterJsonStr,
+        opts.afterJson as never,
       ],
     );
   } catch (err: unknown) {

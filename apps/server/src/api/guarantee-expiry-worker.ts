@@ -157,17 +157,11 @@ export async function processGuaranteeExpiredRecalc(
 
   // 3. Write AuditLogEntry (non-fatal — outside the transaction)
   try {
-    const afterJson = JSON.stringify({
-      guarantee_state: 'ExpiredClean',
-      commission_records_released: releasedCount,
-      placement_advanced: placementAdvanced,
-    });
-
     await adb.unsafe(
       `
       INSERT INTO audit_log_entries (
         org_id, actor_id, actor_type, action, entity_type, entity_id, before_json, after_json
-      ) VALUES ($1, $2, $3, $4, $5, $6, '{}'::jsonb, $7::jsonb)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       `,
       [
         org_id,
@@ -176,7 +170,12 @@ export async function processGuaranteeExpiredRecalc(
         'guarantee.expired_clean',
         'guarantee_period',
         period.id,
-        afterJson,
+        {} as never,
+        {
+          guarantee_state: 'ExpiredClean',
+          commission_records_released: releasedCount,
+          placement_advanced: placementAdvanced,
+        } as never,
       ],
     );
   } catch (auditErr: unknown) {

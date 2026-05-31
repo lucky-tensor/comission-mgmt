@@ -492,6 +492,11 @@ describe('GET /me/team/pending-approvals (AC#3)', () => {
       managerId,
     );
 
+    // Transition to ContributorsAssigned (required by handleSubmitAttribution)
+    await testSql.unsafe(`UPDATE placements SET status = 'ContributorsAssigned' WHERE id = $1`, [
+      placementId,
+    ]);
+
     // Submit attribution to move placement to PendingApproval
     const submitRes = await handleSubmitAttribution(
       placementId,

@@ -121,14 +121,11 @@ async function writePlacementConfidentialAuditLog(
   },
 ): Promise<void> {
   try {
-    const beforeJsonStr = JSON.stringify({ is_confidential: opts.before });
-    const afterJsonStr = JSON.stringify({ is_confidential: opts.after });
-
     await auditSqlClient.unsafe(
       `
       INSERT INTO audit_log_entries (
         org_id, actor_id, actor_type, action, entity_type, entity_id, before_json, after_json
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8::jsonb)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       `,
       [
         opts.orgId,
@@ -137,8 +134,8 @@ async function writePlacementConfidentialAuditLog(
         'placement.confidential_flag_changed',
         'placement',
         opts.placementId,
-        beforeJsonStr,
-        afterJsonStr,
+        { is_confidential: opts.before } as never,
+        { is_confidential: opts.after } as never,
       ],
     );
   } catch (err: unknown) {

@@ -325,6 +325,9 @@ export async function upsertInvoiceByNumber(
 
   // collected_at is derived from the (bound) status value via a CASE; the
   // amount_collected blob is bound nullable. No caller value is interpolated.
+  // Pass status twice: $5 for the INSERT value (invoice_state), $8 for the CASE comparison (text).
+  // This avoids the "inconsistent types" error that occurs when $5 is used in both
+  // a column-typed position (invoice_state enum) and a text comparison context.
   const baseParams: (string | Buffer | Date | null)[] = [
     orgId,
     input.placementId,
@@ -333,6 +336,7 @@ export async function upsertInvoiceByNumber(
     status,
     issuedAt,
     amountCollectedBuf,
+    status,
   ];
 
   const rows = await sql.unsafe(
@@ -342,14 +346,14 @@ export async function upsertInvoiceByNumber(
       amount_collected, collected_at
     ) VALUES (
       $1, $2, $3, $4, $5, $6,
-      $7, CASE WHEN $5 = 'Paid' THEN NOW() ELSE NULL END
+      $7, CASE WHEN $8 = 'Paid' THEN NOW() ELSE NULL END
     )
     ON CONFLICT (org_id, invoice_number)
     DO UPDATE SET
       status = EXCLUDED.status,
       amount_billed = EXCLUDED.amount_billed,
       amount_collected = EXCLUDED.amount_collected,
-      collected_at = CASE WHEN EXCLUDED.status = 'Paid' THEN NOW() ELSE invoices.collected_at END
+      collected_at = CASE WHEN EXCLUDED.status::text = 'Paid' THEN NOW() ELSE invoices.collected_at END
     RETURNING id, org_id, placement_id, invoice_number,
               amount_billed, amount_collected, status, issued_at, due_at, collected_at
     `,
