@@ -105,14 +105,11 @@ async function writeInvoiceAuditLog(
   },
 ): Promise<void> {
   try {
-    const beforeJsonStr = opts.beforeJson != null ? JSON.stringify(opts.beforeJson) : null;
-    const afterJsonStr = JSON.stringify(opts.afterJson);
-
     await auditSql.unsafe(
       `
       INSERT INTO audit_log_entries (
         org_id, actor_id, actor_type, action, entity_type, entity_id, before_json, after_json
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8::jsonb)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       `,
       [
         opts.orgId,
@@ -121,8 +118,8 @@ async function writeInvoiceAuditLog(
         opts.action,
         'invoice',
         opts.entityId,
-        beforeJsonStr,
-        afterJsonStr,
+        opts.beforeJson ?? null,
+        opts.afterJson,
       ],
     );
   } catch (err: unknown) {

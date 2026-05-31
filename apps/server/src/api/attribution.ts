@@ -79,7 +79,7 @@ async function writeAuditLog(
         opts.action,
         'Placement',
         opts.entityId,
-        JSON.stringify(opts.afterJson),
+        opts.afterJson,
       ],
     );
   } catch (err) {

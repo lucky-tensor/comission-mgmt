@@ -87,13 +87,11 @@ async function writeAuditLog(
   },
 ): Promise<void> {
   try {
-    const before = JSON.stringify(opts.beforeJson ?? {});
-    const after = JSON.stringify(opts.afterJson);
     await adb.unsafe(
       `
       INSERT INTO audit_log_entries (
         org_id, actor_id, actor_type, action, entity_type, entity_id, before_json, after_json
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8::jsonb)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       `,
       [
         opts.orgId,
@@ -102,8 +100,8 @@ async function writeAuditLog(
         opts.action,
         opts.entityType,
         opts.entityId,
-        before,
-        after,
+        opts.beforeJson ?? {},
+        opts.afterJson,
       ],
     );
   } catch (err: unknown) {

@@ -554,19 +554,11 @@ export async function handleFinalizeCommissionRun(
   // Write override audit log if applicable
   if (hasOverride) {
     try {
-      const afterJsonStr = JSON.stringify({
-        run_id: runId,
-        period_start: run.periodStart,
-        period_end: run.periodEnd,
-        override_reason: body.override_reason!.trim(),
-        unacknowledged_discrepancy_count: unacknowledgedCount,
-        finalized_by: claims.user_id,
-      });
       await adb.unsafe(
         `
         INSERT INTO audit_log_entries (
           org_id, actor_id, actor_type, action, entity_type, entity_id, before_json, after_json
-        ) VALUES ($1, $2, $3, $4, $5, $6, NULL, $7::jsonb)
+        ) VALUES ($1, $2, $3, $4, $5, $6, NULL, $7)
         `,
         [
           claims.org_id,
@@ -575,7 +567,14 @@ export async function handleFinalizeCommissionRun(
           'commission_run.finalization.override',
           'commission_run',
           runId,
-          afterJsonStr,
+          {
+            run_id: runId,
+            period_start: run.periodStart,
+            period_end: run.periodEnd,
+            override_reason: body.override_reason!.trim(),
+            unacknowledged_discrepancy_count: unacknowledgedCount,
+            finalized_by: claims.user_id,
+          },
         ],
       );
     } catch (err: unknown) {
