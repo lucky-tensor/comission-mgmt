@@ -122,8 +122,8 @@ async function writeExceptionAuditLog(
         opts.action,
         'exception',
         opts.entityId,
-        opts.beforeJson ?? null,
-        opts.afterJson,
+        (opts.beforeJson ?? null) as never,
+        opts.afterJson as never,
       ],
     );
   } catch (err: unknown) {

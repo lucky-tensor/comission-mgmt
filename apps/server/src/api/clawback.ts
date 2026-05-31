@@ -100,8 +100,8 @@ async function writeAuditLog(
         opts.action,
         opts.entityType,
         opts.entityId,
-        opts.beforeJson ?? {},
-        opts.afterJson,
+        (opts.beforeJson ?? {}) as never,
+        opts.afterJson as never,
       ],
     );
   } catch (err: unknown) {

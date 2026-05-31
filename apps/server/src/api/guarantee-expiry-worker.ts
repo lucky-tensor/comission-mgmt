@@ -170,12 +170,12 @@ export async function processGuaranteeExpiredRecalc(
         'guarantee.expired_clean',
         'guarantee_period',
         period.id,
-        {},
+        {} as never,
         {
           guarantee_state: 'ExpiredClean',
           commission_records_released: releasedCount,
           placement_advanced: placementAdvanced,
-        },
+        } as never,
       ],
     );
   } catch (auditErr: unknown) {

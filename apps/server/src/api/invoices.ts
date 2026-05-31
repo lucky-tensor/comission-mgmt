@@ -118,8 +118,8 @@ async function writeInvoiceAuditLog(
         opts.action,
         'invoice',
         opts.entityId,
-        opts.beforeJson ?? null,
-        opts.afterJson,
+        (opts.beforeJson ?? null) as never,
+        opts.afterJson as never,
       ],
     );
   } catch (err: unknown) {

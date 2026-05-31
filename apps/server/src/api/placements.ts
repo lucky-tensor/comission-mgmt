@@ -134,8 +134,8 @@ async function writePlacementConfidentialAuditLog(
         'placement.confidential_flag_changed',
         'placement',
         opts.placementId,
-        { is_confidential: opts.before },
-        { is_confidential: opts.after },
+        { is_confidential: opts.before } as never,
+        { is_confidential: opts.after } as never,
       ],
     );
   } catch (err: unknown) {

@@ -106,7 +106,7 @@ async function writeAuditLog(
         opts.action,
         'reconciliation_discrepancy',
         opts.entityId,
-        opts.afterJson,
+        opts.afterJson as never,
       ],
     );
   } catch (err: unknown) {

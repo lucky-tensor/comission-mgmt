@@ -574,7 +574,7 @@ export async function handleFinalizeCommissionRun(
             override_reason: body.override_reason!.trim(),
             unacknowledged_discrepancy_count: unacknowledgedCount,
             finalized_by: claims.user_id,
-          },
+          } as never,
         ],
       );
     } catch (err: unknown) {
