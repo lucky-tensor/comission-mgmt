@@ -862,7 +862,7 @@ describe('producer visibility of blocked phase (AC#6)', () => {
       path: '/me/commission-records?status=Held',
       method: 'GET',
     });
-    const meRes = await handleGetMyCommissionRecords(meReq, producerAClaims, testSql);
+    const meRes = await handleGetMyCommissionRecords(meReq, producerAClaims, testSql, testSql);
     expect(meRes.status).toBe(200);
 
     const meBody = (await meRes.json()) as {

@@ -260,7 +260,7 @@ describe('GET /placements?guarantee=active', () => {
 
     // GET /placements?guarantee=active
     const req = makeRequest({ path: '/placements?guarantee=active' });
-    const res = await handleListPlacements(req, financeAdmin, testSql);
+    const res = await handleListPlacements(req, financeAdmin, testSql, testSql);
     expect(res.status).toBe(200);
 
     const body = (await jsonBody(res)) as Array<{ id: string }>;

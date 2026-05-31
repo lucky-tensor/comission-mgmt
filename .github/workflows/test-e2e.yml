@@ -33,4 +33,5 @@ jobs:
       - name: Install Playwright Chromium
         run: bunx playwright install --with-deps chromium
       - name: Run browser component + E2E suite
+        # Runs vitest.browser.config.ts (via the test:browser script).
         run: bun run test:browser

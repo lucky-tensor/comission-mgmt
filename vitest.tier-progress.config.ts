@@ -12,16 +12,11 @@
  * Issue: feat: producer tier progress display (#17)
  */
 import { defineConfig } from 'vitest/config';
-import { resolve } from 'path';
-
-const root = __dirname;
+import { vitestAliases } from './vitest.aliases';
 
 export default defineConfig({
   resolve: {
-    alias: [
-      { find: 'core/tier-progress', replacement: resolve(root, 'packages/core/tier-progress.ts') },
-      { find: 'core', replacement: resolve(root, 'packages/core/index.ts') },
-    ],
+    alias: vitestAliases(__dirname),
   },
   test: {
     globals: false,

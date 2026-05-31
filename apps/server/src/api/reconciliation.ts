@@ -167,11 +167,14 @@ export async function handleGetReconciliationReport(
     await sensitiveRead(
       adb,
       {
+        // A reconciliation report spans a period, not a single entity; scope the
+        // audit row to the org (entity_id is a UUID column) and record the period
+        // in the action verb.
         orgId: claims.org_id,
         actorId: claims.user_id,
-        action: 'reconciliation.read',
+        action: `reconciliation.read:${periodStart!}:${periodEnd!}`,
         entityType: 'reconciliation_report',
-        entityId: `${periodStart!}:${periodEnd!}`,
+        entityId: claims.org_id,
       },
       async () => undefined,
     );

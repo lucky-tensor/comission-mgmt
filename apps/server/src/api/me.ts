@@ -133,8 +133,7 @@ export async function handleGetMyCommissionRecords(
         entityType: 'commission_record',
         entityId: claims.user_id,
       },
-      () =>
-        listCommissionRecordsByContributor(db, claims.org_id, claims.user_id, statusFilter),
+      () => listCommissionRecordsByContributor(db, claims.org_id, claims.user_id, statusFilter),
     );
     // For phase-blocked records, enrich with phase info so producers can see
     // which phase is blocking their payout and why.

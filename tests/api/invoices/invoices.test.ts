@@ -620,7 +620,7 @@ describe('GET /commission-records?reason=collection_gate (AC#4)', () => {
     const reqWithUrl = new Request('http://localhost/commission-records?reason=collection_gate', {
       method: 'GET',
     });
-    const res = await handleListAllCommissionRecords(reqWithUrl, claimsA, testSql);
+    const res = await handleListAllCommissionRecords(reqWithUrl, claimsA, testSql, testSql);
     expect(res.status).toBe(200);
 
     const body = (await jsonBody(res)) as {
@@ -659,7 +659,7 @@ describe('GET /commission-records?reason=collection_gate (AC#4)', () => {
     const reqWithUrl = new Request('http://localhost/commission-records?reason=collection_gate', {
       method: 'GET',
     });
-    const res = await handleListAllCommissionRecords(reqWithUrl, claimsA, testSql);
+    const res = await handleListAllCommissionRecords(reqWithUrl, claimsA, testSql, testSql);
     expect(res.status).toBe(200);
 
     const body = (await jsonBody(res)) as {
@@ -707,7 +707,7 @@ describe('GET /commission-records?reason=collection_gate (AC#4)', () => {
     const reqWithUrl = new Request('http://localhost/commission-records?reason=collection_gate', {
       method: 'GET',
     });
-    const res = await handleListAllCommissionRecords(reqWithUrl, claimsA, testSql);
+    const res = await handleListAllCommissionRecords(reqWithUrl, claimsA, testSql, testSql);
     const body = (await jsonBody(res)) as {
       commission_records: Array<{ id: string; status: string }>;
     };

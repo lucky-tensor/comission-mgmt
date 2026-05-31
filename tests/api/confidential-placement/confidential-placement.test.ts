@@ -340,7 +340,7 @@ describe('AC#2 & AC#3 — Role differentiation: masking by role', () => {
   }, 30_000);
 
   test('Finance Admin sees unmasked job_title and client_entity_id', async () => {
-    const res = await handleGetPlacement(confidentialPlacementId, financeAdmin, testSql);
+    const res = await handleGetPlacement(confidentialPlacementId, financeAdmin, testSql, auditSql);
     expect(res.status).toBe(200);
     const body = (await jsonBody(res)) as Record<string, unknown>;
     expect(body.job_title).toBe(JOB_TITLE);
@@ -349,7 +349,7 @@ describe('AC#2 & AC#3 — Role differentiation: masking by role', () => {
   });
 
   test('Producer sees masked job_title="Confidential" and null client_entity_id', async () => {
-    const res = await handleGetPlacement(confidentialPlacementId, producer, testSql);
+    const res = await handleGetPlacement(confidentialPlacementId, producer, testSql, auditSql);
     expect(res.status).toBe(200);
     const body = (await jsonBody(res)) as Record<string, unknown>;
     expect(body.job_title).toBe('Confidential');
@@ -387,7 +387,7 @@ describe('AC#2 — GET /me/payouts masking for Producer on confidential placemen
 
   test('Producer /me/payouts returns position_title="Confidential" and client_name="Confidential"', async () => {
     const req = makeRequest({ path: '/me/payouts' });
-    const res = await handleGetMyPayouts(req, producer, testSql);
+    const res = await handleGetMyPayouts(req, producer, testSql, auditSql);
     expect(res.status).toBe(200);
     const body = (await jsonBody(res)) as { payouts: Array<Record<string, unknown>> };
     const payout = body.payouts.find((p) => p.placement_id === confidentialPlacementId);

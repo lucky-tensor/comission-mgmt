@@ -296,7 +296,7 @@ describe('GET /me/commission-records — own records only (AC#1)', () => {
     expect(recordIds.length).toBeGreaterThan(0);
 
     const req = makeRequest({ path: '/me/commission-records' });
-    const res = await handleGetMyCommissionRecords(req, producerClaims, testSql);
+    const res = await handleGetMyCommissionRecords(req, producerClaims, testSql, testSql);
     expect(res.status).toBe(200);
 
     const body = (await jsonBody(res)) as {
@@ -331,7 +331,7 @@ describe('GET /me/commission-records — explanation presence (AC#2)', () => {
     await calculateFor(testSql, financeAdminA, placementId);
 
     const req = makeRequest({ path: '/me/commission-records' });
-    const res = await handleGetMyCommissionRecords(req, producerClaims, testSql);
+    const res = await handleGetMyCommissionRecords(req, producerClaims, testSql, testSql);
     expect(res.status).toBe(200);
 
     const body = (await jsonBody(res)) as {
@@ -374,7 +374,7 @@ describe('GET /me/commission-records?status=Held — held filter (AC#3)', () => 
 
     // GET /me/commission-records?status=Held
     const req = makeRequest({ path: '/me/commission-records?status=Held' });
-    const res = await handleGetMyCommissionRecords(req, producerClaims, testSql);
+    const res = await handleGetMyCommissionRecords(req, producerClaims, testSql, testSql);
     expect(res.status).toBe(200);
 
     const body = (await jsonBody(res)) as {
@@ -403,7 +403,7 @@ describe('GET /me/commission-records?status=Held — held filter (AC#3)', () => 
 
     // No placements or commission records created — producer has no records at all
     const req = makeRequest({ path: '/me/commission-records?status=Held' });
-    const res = await handleGetMyCommissionRecords(req, producerClaims, testSql);
+    const res = await handleGetMyCommissionRecords(req, producerClaims, testSql, testSql);
     expect(res.status).toBe(200);
 
     const body = (await jsonBody(res)) as { commission_records: unknown[] };
@@ -446,7 +446,7 @@ describe('GET /me/commission-records — producer isolation (AC#4)', () => {
 
     // Producer A sees only their records
     const reqA = makeRequest({ path: '/me/commission-records' });
-    const resA = await handleGetMyCommissionRecords(reqA, claimsProducerA, testSql);
+    const resA = await handleGetMyCommissionRecords(reqA, claimsProducerA, testSql, testSql);
     expect(resA.status).toBe(200);
     const bodyA = (await jsonBody(resA)) as {
       commission_records: Array<{ id: string; contributor_id: string }>;
@@ -462,7 +462,7 @@ describe('GET /me/commission-records — producer isolation (AC#4)', () => {
 
     // Producer B sees only their records
     const reqB = makeRequest({ path: '/me/commission-records' });
-    const resB = await handleGetMyCommissionRecords(reqB, claimsProducerB, testSql);
+    const resB = await handleGetMyCommissionRecords(reqB, claimsProducerB, testSql, testSql);
     expect(resB.status).toBe(200);
     const bodyB = (await jsonBody(resB)) as {
       commission_records: Array<{ id: string; contributor_id: string }>;
@@ -508,7 +508,7 @@ describe('GET /me/payouts — approved payouts only (AC#5)', () => {
     ]);
 
     const req = makeRequest({ path: '/me/payouts' });
-    const res = await handleGetMyPayouts(req, producerClaims, testSql);
+    const res = await handleGetMyPayouts(req, producerClaims, testSql, testSql);
     expect(res.status).toBe(200);
 
     const body = (await jsonBody(res)) as {
@@ -539,7 +539,7 @@ describe('GET /me/payouts — approved payouts only (AC#5)', () => {
     };
 
     const req = makeRequest({ path: '/me/payouts' });
-    const res = await handleGetMyPayouts(req, producerClaims, testSql);
+    const res = await handleGetMyPayouts(req, producerClaims, testSql, testSql);
     expect(res.status).toBe(200);
 
     const body = (await jsonBody(res)) as { payouts: unknown[] };
@@ -561,7 +561,7 @@ describe('GET /me/payouts — approved payouts only (AC#5)', () => {
     };
 
     const req = makeRequest({ path: '/me/payouts' });
-    const res = await handleGetMyPayouts(req, producerBWithSameId, testSql);
+    const res = await handleGetMyPayouts(req, producerBWithSameId, testSql, testSql);
     expect(res.status).toBe(200);
 
     const body = (await jsonBody(res)) as { payouts: unknown[] };
@@ -749,7 +749,7 @@ describe('End-to-end: placement → calculate → /me/commission-records', () =>
     expect(recordIds.length).toBeGreaterThan(0);
 
     const req = makeRequest({ path: '/me/commission-records' });
-    const res = await handleGetMyCommissionRecords(req, producerClaims, testSql);
+    const res = await handleGetMyCommissionRecords(req, producerClaims, testSql, testSql);
     expect(res.status).toBe(200);
 
     const body = (await jsonBody(res)) as {

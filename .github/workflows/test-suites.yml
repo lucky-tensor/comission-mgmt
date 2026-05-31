@@ -1,0 +1,79 @@
+name: Test Suites
+
+# Runs every root vitest.*.config.ts so that no suite is orphaned from CI
+# (TEST-C-007/008, PROCESS-C-021/023). The coverage self-check job fails if a
+# config exists on disk but is referenced by no workflow, or vice-versa.
+
+on:
+  push:
+    branches: [main, 'feat/**', 'fix/**', 'chore/**']
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+      - '.agents/**'
+      - 'CLAUDE.md'
+      - 'AGENTS.md'
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+      - '.agents/**'
+      - 'CLAUDE.md'
+      - 'AGENTS.md'
+  workflow_dispatch:
+
+jobs:
+  # Fails on any orphaned or stale vitest config reference.
+  coverage-self-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - name: Install dependencies
+        run: bun install --frozen-lockfile --ignore-scripts
+      - name: Vitest suite-coverage self-check
+        run: bun run check:vitest-coverage
+
+  # Real-Postgres suites — one job per config. Docker is available on
+  # ubuntu-latest, which the DIY pg-container testcontainer needs.
+  postgres-suites:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - vitest.attribution.config.ts
+          - vitest.audit-ordering.config.ts
+          - vitest.auth.config.ts
+          - vitest.billing-phases.config.ts
+          - vitest.calculate.config.ts
+          - vitest.clawback.config.ts
+          - vitest.commission-runs.config.ts
+          - vitest.confidential-placement.config.ts
+          - vitest.contributors.config.ts
+          - vitest.disputes.config.ts
+          - vitest.exceptions.config.ts
+          - vitest.executive-analytics.config.ts
+          - vitest.exports.config.ts
+          - vitest.guarantee-tracking.config.ts
+          - vitest.invoices.config.ts
+          - vitest.leadership-visibility.config.ts
+          - vitest.manager-view.config.ts
+          - vitest.migration.config.ts
+          - vitest.plans.config.ts
+          - vitest.producer-portal.config.ts
+          - vitest.reconciliation.config.ts
+          - vitest.security.config.ts
+          - vitest.tasks.config.ts
+          - vitest.tier-progress.config.ts
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - name: Install dependencies
+        run: bun install --frozen-lockfile --ignore-scripts
+      - name: Run ${{ matrix.config }}
+        run: bun --bun vitest run --config ${{ matrix.config }}
+
+  # The browser-mode suite (vitest.browser.config.ts) is run by test-e2e.yml,
+  # which installs Playwright Chromium and invokes `bun run test:browser`.
