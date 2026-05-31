@@ -52,6 +52,7 @@ import {
   handleApproveRunRecord,
   handleApproveCommissionRun,
 } from '../../../apps/server/src/api/commission-runs';
+import { handleCreateInvoice, handleUpdateInvoice } from '../../../apps/server/src/api/invoices';
 import {
   handleGetMyCommissionRecords,
   handleGetMyPayouts,
@@ -625,8 +626,38 @@ describe('GET /me/tier-progress — returns production total and tier (issue #17
     const assignRes = await handleCreatePlanAssignment(plan.id, assignReq, financeAdminA, testSql);
     expect(assignRes.status).toBe(201);
 
-    // Create a placement and calculate commissions
+    // Create a placement and pay its invoice so commission records are Accrued
+    // (not Held). The tier-progress query only counts Accrued/Approved/Payable
+    // records; without a paid invoice the record is collection-gated (Held).
     const placementId = await createPlacementWithContributor(testSql, financeAdminA, producerId);
+
+    const invoiceReq = makeRequest({
+      path: '/invoices',
+      method: 'POST',
+      body: {
+        placement_id: placementId,
+        invoice_number: `INV-TIER-${Date.now()}-${Math.random()}`,
+        amount_billed: '20000',
+      },
+    });
+    const invoiceRes = await handleCreateInvoice(invoiceReq, financeAdminA, testSql, testSql);
+    expect(invoiceRes.status).toBe(201);
+    const { id: invoiceId } = (await jsonBody(invoiceRes)) as { id: string };
+
+    const patchReq = makeRequest({
+      path: `/invoices/${invoiceId}`,
+      method: 'PATCH',
+      body: { status: 'Paid', amount_collected: '20000' },
+    });
+    const patchRes = await handleUpdateInvoice(
+      invoiceId,
+      patchReq,
+      financeAdminA,
+      testSql,
+      testSql,
+    );
+    expect(patchRes.status).toBe(200);
+
     await calculateFor(testSql, financeAdminA, placementId);
 
     const req = makeRequest({ path: '/me/tier-progress' });

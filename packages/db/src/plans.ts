@@ -577,7 +577,7 @@ export async function getTierProgressForProducer(
     JOIN contributors c ON c.id = cr.contributor_id
     WHERE cr.org_id = $1
       AND c.producer_id = $2
-      AND cr.status IN ('Accrued', 'Held', 'PendingApproval', 'Approved', 'Payable')
+      AND cr.status IN ('Accrued', 'PendingApproval', 'Approved', 'Payable')
       ${periodFilter}
     `,
     periodEnd ? [orgId, producerId, periodStart, periodEnd] : [orgId, producerId, periodStart],
