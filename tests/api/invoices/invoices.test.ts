@@ -22,7 +22,7 @@
  *
  * Uses ephemeral Postgres via pg-container (Docker required).
  * All route handlers are called directly with an injectable sql client.
- * No vi.fn / vi.mock / vi.spyOn (TEST-C-001).
+ * No Vitest mocking helpers are used — real Postgres only (TEST-C-001).
  *
  * Canonical docs: docs/prd.md §5.5, §7.2
  * Issue: feat: invoice and collection tracking (#12)
@@ -620,7 +620,7 @@ describe('GET /commission-records?reason=collection_gate (AC#4)', () => {
     const reqWithUrl = new Request('http://localhost/commission-records?reason=collection_gate', {
       method: 'GET',
     });
-    const res = await handleListAllCommissionRecords(reqWithUrl, claimsA, testSql);
+    const res = await handleListAllCommissionRecords(reqWithUrl, claimsA, testSql, testSql);
     expect(res.status).toBe(200);
 
     const body = (await jsonBody(res)) as {
@@ -659,7 +659,7 @@ describe('GET /commission-records?reason=collection_gate (AC#4)', () => {
     const reqWithUrl = new Request('http://localhost/commission-records?reason=collection_gate', {
       method: 'GET',
     });
-    const res = await handleListAllCommissionRecords(reqWithUrl, claimsA, testSql);
+    const res = await handleListAllCommissionRecords(reqWithUrl, claimsA, testSql, testSql);
     expect(res.status).toBe(200);
 
     const body = (await jsonBody(res)) as {
@@ -707,7 +707,7 @@ describe('GET /commission-records?reason=collection_gate (AC#4)', () => {
     const reqWithUrl = new Request('http://localhost/commission-records?reason=collection_gate', {
       method: 'GET',
     });
-    const res = await handleListAllCommissionRecords(reqWithUrl, claimsA, testSql);
+    const res = await handleListAllCommissionRecords(reqWithUrl, claimsA, testSql, testSql);
     const body = (await jsonBody(res)) as {
       commission_records: Array<{ id: string; status: string }>;
     };

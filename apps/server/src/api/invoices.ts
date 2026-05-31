@@ -43,6 +43,7 @@ import {
 } from 'db/invoices';
 import { releasePhaseCollectionGate } from 'db/billing-phases';
 import type { SessionClaims } from 'core/auth';
+import { sensitiveRead } from '../audit/sensitive-read';
 
 type SqlClient = Sql;
 
@@ -601,14 +602,27 @@ export async function handleListAllCommissionRecords(
   req: Request,
   claims: SessionClaims,
   sqlClient?: SqlClient,
+  auditSqlClient?: SqlClient,
 ): Promise<Response> {
   const db = sqlClient ?? defaultSql;
+  const adb = auditSqlClient ?? defaultAuditSql;
   const url = new URL(req.url);
   const reason = url.searchParams.get('reason');
 
   try {
     if (reason) {
-      const records = await listHeldCommissionRecordsByReason(db, claims.org_id, reason);
+      // Audit-before-read: a failed audit write denies the read (DATA-D-010).
+      const records = await sensitiveRead(
+        adb,
+        {
+          orgId: claims.org_id,
+          actorId: claims.user_id,
+          action: 'commission_record.list',
+          entityType: 'commission_record',
+          entityId: claims.org_id,
+        },
+        () => listHeldCommissionRecordsByReason(db, claims.org_id, reason),
+      );
       return jsonResponse({
         commission_records: records.map((r: HeldCommissionRecordRow) => ({
           id: r.id,

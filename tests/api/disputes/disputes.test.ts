@@ -16,7 +16,7 @@
  *
  * Uses ephemeral Postgres via pg-container (Docker required).
  * All route handlers are called directly with an injectable sql client.
- * No vi.fn / vi.mock / vi.spyOn (TEST-C-001).
+ * No Vitest mocking helpers are used — real Postgres only (TEST-C-001).
  *
  * Canonical docs: docs/prd.md §5.8, §4
  * Issue: feat: payout dispute and question submission (#18)
@@ -352,7 +352,7 @@ describe('GET /disputes — producer scoping (AC#2)', () => {
 
     // GET /disputes as Producer A — should see only A's disputes
     const listReqA = makeRequest({ path: '/disputes' });
-    const listResA = await handleListDisputes(listReqA, claimsA, testSql);
+    const listResA = await handleListDisputes(listReqA, claimsA, testSql, testSql);
     expect(listResA.status).toBe(200);
     const listBodyA = (await jsonBody(listResA)) as { disputes: Array<{ id: string }> };
     const idListA = listBodyA.disputes.map((d) => d.id);
@@ -361,7 +361,7 @@ describe('GET /disputes — producer scoping (AC#2)', () => {
 
     // GET /disputes as Producer B — should see only B's disputes
     const listReqB = makeRequest({ path: '/disputes' });
-    const listResB = await handleListDisputes(listReqB, claimsB, testSql);
+    const listResB = await handleListDisputes(listReqB, claimsB, testSql, testSql);
     expect(listResB.status).toBe(200);
     const listBodyB = (await jsonBody(listResB)) as { disputes: Array<{ id: string }> };
     const idListB = listBodyB.disputes.map((d) => d.id);
@@ -423,7 +423,7 @@ describe('GET /disputes — Finance Admin sees all tenant disputes (AC#3)', () =
 
     // Finance Admin sees both disputes
     const adminListReq = makeRequest({ path: '/disputes' });
-    const adminListRes = await handleListDisputes(adminListReq, financeAdminA, testSql);
+    const adminListRes = await handleListDisputes(adminListReq, financeAdminA, testSql, testSql);
     expect(adminListRes.status).toBe(200);
     const adminListBody = (await jsonBody(adminListRes)) as { disputes: Array<{ id: string }> };
     const adminIds = adminListBody.disputes.map((d) => d.id);
@@ -694,7 +694,7 @@ describe('Multi-tenant isolation', () => {
 
     // Org B producer should not see Org A's dispute
     const listReq = makeRequest({ path: '/disputes' });
-    const listRes = await handleListDisputes(listReq, claimsOrgB, testSql);
+    const listRes = await handleListDisputes(listReq, claimsOrgB, testSql, testSql);
     expect(listRes.status).toBe(200);
     const listBody = (await jsonBody(listRes)) as { disputes: Array<{ id: string }> };
     const ids = listBody.disputes.map((d) => d.id);

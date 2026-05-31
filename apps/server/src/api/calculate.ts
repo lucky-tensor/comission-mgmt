@@ -33,6 +33,7 @@ import { getPlacement } from 'db/placements';
 import { listContributors } from 'db/contributors';
 import {
   sql as defaultSql,
+  auditSql as defaultAuditSql,
   createCommissionRecord,
   listCommissionRecords,
   getCommissionRecord,
@@ -41,6 +42,7 @@ import {
 import { isCommissionRecordInApprovedRun } from 'db/commission-runs';
 import type { SessionClaims } from 'core/auth';
 import type { Sql } from 'postgres';
+import { sensitiveRead } from '../audit/sensitive-read';
 import {
   CommissionCalculationEngine,
   runCalculationPipeline,
@@ -525,12 +527,25 @@ export async function handleGetCommissionRecord(
   recordId: string,
   claims: SessionClaims,
   sqlClient?: SqlClient,
+  auditSqlClient?: SqlClient,
 ): Promise<Response> {
   const db = sqlClient ?? defaultSql;
+  const adb = auditSqlClient ?? defaultAuditSql;
 
   let record;
   try {
-    record = await getCommissionRecord(db, claims.org_id, recordId);
+    // Audit-before-read: a failed audit write denies the read (DATA-D-010).
+    record = await sensitiveRead(
+      adb,
+      {
+        orgId: claims.org_id,
+        actorId: claims.user_id,
+        action: 'commission_record.read',
+        entityType: 'commission_record',
+        entityId: recordId,
+      },
+      () => getCommissionRecord(db, claims.org_id, recordId),
+    );
   } catch (err: unknown) {
     console.error('[commission-records] get error:', err);
     return errorResponse('Failed to retrieve commission record', 500);

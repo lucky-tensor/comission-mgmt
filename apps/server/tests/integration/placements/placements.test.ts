@@ -16,7 +16,7 @@
  *
  * Uses ephemeral Postgres via pg-container (Docker required).
  * All route handlers are called directly with an injectable sql client.
- * No vi.fn / vi.mock / vi.spyOn (TEST-C-001).
+ * No Vitest mocking helpers are used — real Postgres only (TEST-C-001).
  *
  * Canonical docs: docs/prd.md §5.1
  */
@@ -82,7 +82,10 @@ beforeAll(async () => {
   pg = await startPostgres();
   testSql = postgres(pg.url, { max: 5 });
 
-  await migrate({ databaseUrl: pg.url, auditDatabaseUrl: null, analyticsDatabaseUrl: null });
+  // Audit schema is migrated into the same container so sensitive reads (which
+  // write an audit_log_entries row before returning) can pass testSql as the
+  // audit client (#81 audit-before-read).
+  await migrate({ databaseUrl: pg.url, auditDatabaseUrl: pg.url, analyticsDatabaseUrl: null });
 
   // Inject deterministic encryption so tests run without env config
   const adapter = new LocalDevKmsAdapter();
@@ -414,7 +417,7 @@ describe('GET /placements — multi-tenant isolation', () => {
 
     // Fetch list as tenant A
     const listReq = makeRequest({ path: '/placements', method: 'GET' });
-    const listRes = await handleListPlacements(listReq, claimsA, testSql);
+    const listRes = await handleListPlacements(listReq, claimsA, testSql, testSql);
     expect(listRes.status).toBe(200);
     const listBody = (await listRes.json()) as Record<string, unknown>[];
 
@@ -424,7 +427,7 @@ describe('GET /placements — multi-tenant isolation', () => {
 
     // Verify the placement really belongs to tenant B (sanity check)
     const listReqB = makeRequest({ path: '/placements', method: 'GET' });
-    const listResB = await handleListPlacements(listReqB, claimsB, testSql);
+    const listResB = await handleListPlacements(listReqB, claimsB, testSql, testSql);
     expect(listResB.status).toBe(200);
     const listBodyB = (await listResB.json()) as Record<string, unknown>[];
     const tenantBItem = listBodyB.find((p) => p.id === tenantBPlacementId);
@@ -450,7 +453,7 @@ describe('GET /placements — multi-tenant isolation', () => {
     const placementId = created.id as string;
 
     // Attempt to get the placement as tenant A — should get 404
-    const getRes = await handleGetPlacement(placementId, claimsA, testSql);
+    const getRes = await handleGetPlacement(placementId, claimsA, testSql, testSql);
     expect(getRes.status).toBe(404);
   });
 });
@@ -479,7 +482,7 @@ describe('GET /placements and GET /placements/:id', () => {
     }
 
     const listReq = makeRequest({ path: '/placements', method: 'GET' });
-    const listRes = await handleListPlacements(listReq, claimsA, testSql);
+    const listRes = await handleListPlacements(listReq, claimsA, testSql, testSql);
     expect(listRes.status).toBe(200);
 
     const list = (await listRes.json()) as Record<string, unknown>[];
@@ -507,7 +510,7 @@ describe('GET /placements and GET /placements/:id', () => {
     expect(createRes.status).toBe(201);
     const created = (await createRes.json()) as Record<string, unknown>;
 
-    const getRes = await handleGetPlacement(created.id as string, claimsA, testSql);
+    const getRes = await handleGetPlacement(created.id as string, claimsA, testSql, testSql);
     expect(getRes.status).toBe(200);
 
     const p = (await getRes.json()) as Record<string, unknown>;
@@ -521,7 +524,7 @@ describe('GET /placements and GET /placements/:id', () => {
 
   test('GET /placements/:id returns 404 for a non-existent placement', async () => {
     const nonExistentId = crypto.randomUUID();
-    const res = await handleGetPlacement(nonExistentId, claimsA, testSql);
+    const res = await handleGetPlacement(nonExistentId, claimsA, testSql, testSql);
     expect(res.status).toBe(404);
   });
 });

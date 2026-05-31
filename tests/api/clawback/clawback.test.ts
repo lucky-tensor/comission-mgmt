@@ -20,7 +20,7 @@
  *
  * Uses ephemeral Postgres via pg-container (Docker required).
  * All route handlers called directly with injectable sql clients.
- * No vi.fn / vi.mock / vi.spyOn (TEST-C-001).
+ * No Vitest mocking helpers are used — real Postgres only (TEST-C-001).
  *
  * Canonical docs: docs/prd.md §5.6, docs/architecture/phase-post-placement-risk.md
  * Issue: feat: clawback and holdback event handling (#20)
@@ -506,7 +506,7 @@ describe('GET /me/clawback-exposure', () => {
     expect(triggerRes.status).toBe(201);
 
     // Now check the producer's exposure
-    const exposureRes = await handleGetMyClawbackExposure(producer, testSql);
+    const exposureRes = await handleGetMyClawbackExposure(producer, testSql, testSql);
     expect(exposureRes.status).toBe(200);
 
     const body = (await exposureRes.json()) as {
@@ -521,7 +521,7 @@ describe('GET /me/clawback-exposure', () => {
   }, 60_000);
 
   test('returns 403 when caller is not Producer role', async () => {
-    const res = await handleGetMyClawbackExposure(financeAdmin, testSql);
+    const res = await handleGetMyClawbackExposure(financeAdmin, testSql, testSql);
     expect(res.status).toBe(403);
   }, 10_000);
 
@@ -535,7 +535,7 @@ describe('GET /me/clawback-exposure', () => {
       exp: Math.floor(Date.now() / 1000) + 3600,
     };
 
-    const res = await handleGetMyClawbackExposure(newProducer, testSql);
+    const res = await handleGetMyClawbackExposure(newProducer, testSql, testSql);
     expect(res.status).toBe(200);
     const body = (await res.json()) as { total_exposure: number };
     expect(body.total_exposure).toBe(0);

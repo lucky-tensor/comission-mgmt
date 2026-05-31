@@ -19,7 +19,7 @@
  *
  * Uses ephemeral Postgres via pg-container (Docker required).
  * All route handlers are called directly with an injectable sql client.
- * No vi.fn / vi.mock / vi.spyOn (TEST-C-001).
+ * No Vitest mocking helpers are used — real Postgres only (TEST-C-001).
  *
  * Canonical docs: docs/prd.md §5.3
  * Issue: feat: commission calculation engine (#10)
@@ -602,7 +602,7 @@ describe('GET /commission-records/:id — explainability (issue #11)', () => {
     const recordId = calcBody.commission_records[0].id;
 
     // GET /commission-records/:id
-    const getRes = await handleGetCommissionRecord(recordId, claimsA, testSql);
+    const getRes = await handleGetCommissionRecord(recordId, claimsA, testSql, testSql);
     expect(getRes.status).toBe(200);
 
     const body = (await jsonBody(getRes)) as { id: string; explanation: string };
@@ -637,7 +637,7 @@ describe('GET /commission-records/:id — explainability (issue #11)', () => {
     expect(calcBody.commission_records[0].status).toBe('Held');
     const recordId = calcBody.commission_records[0].id;
 
-    const getRes = await handleGetCommissionRecord(recordId, claimsA, testSql);
+    const getRes = await handleGetCommissionRecord(recordId, claimsA, testSql, testSql);
     expect(getRes.status).toBe(200);
 
     const body = (await jsonBody(getRes)) as { explanation: string; status: string };
@@ -674,7 +674,7 @@ describe('GET /commission-records/:id — explainability (issue #11)', () => {
     expect(calcBody.commission_records[0].status).toBe('Held');
     const recordId = calcBody.commission_records[0].id;
 
-    const getRes = await handleGetCommissionRecord(recordId, claimsA, testSql);
+    const getRes = await handleGetCommissionRecord(recordId, claimsA, testSql, testSql);
     expect(getRes.status).toBe(200);
 
     const body = (await jsonBody(getRes)) as { explanation: string };
@@ -683,7 +683,7 @@ describe('GET /commission-records/:id — explainability (issue #11)', () => {
 
   test('GET /commission-records/:id returns 404 for unknown record', async () => {
     const fakeId = crypto.randomUUID();
-    const getRes = await handleGetCommissionRecord(fakeId, claimsA, testSql);
+    const getRes = await handleGetCommissionRecord(fakeId, claimsA, testSql, testSql);
     expect(getRes.status).toBe(404);
   });
 
@@ -712,7 +712,7 @@ describe('GET /commission-records/:id — explainability (issue #11)', () => {
     const recordId = calcBody.commission_records[0].id;
 
     // Try to fetch record as org A — should 404 (multi-tenant isolation)
-    const getRes = await handleGetCommissionRecord(recordId, claimsA, testSql);
+    const getRes = await handleGetCommissionRecord(recordId, claimsA, testSql, testSql);
     expect(getRes.status).toBe(404);
   });
 
@@ -741,7 +741,7 @@ describe('GET /commission-records/:id — explainability (issue #11)', () => {
     const recordId = calcBody.commission_records[0].id;
 
     // GET /commission-records/:id — explanation must be present and non-empty
-    const getRes = await handleGetCommissionRecord(recordId, claimsA, testSql);
+    const getRes = await handleGetCommissionRecord(recordId, claimsA, testSql, testSql);
     expect(getRes.status).toBe(200);
 
     const getBody = (await jsonBody(getRes)) as {

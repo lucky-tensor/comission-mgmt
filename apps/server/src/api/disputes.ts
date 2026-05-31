@@ -33,6 +33,7 @@ import {
   resolveDispute,
 } from 'db/index';
 import type { SessionClaims } from 'core/auth';
+import { sensitiveRead } from '../audit/sensitive-read';
 
 type SqlClient = Sql;
 
@@ -210,17 +211,28 @@ export async function handleListDisputes(
   _req: Request,
   claims: SessionClaims,
   sqlClient?: SqlClient,
+  auditSqlClient?: SqlClient,
 ): Promise<Response> {
   const db = sqlClient ?? defaultSql;
+  const adb = auditSqlClient ?? defaultAuditSql;
 
   try {
-    let rows;
-    if (claims.role === 'FinanceAdmin') {
-      rows = await listDisputes(db, claims.org_id);
-    } else {
-      // All non-admin roles (including Producer) see only their own disputes
-      rows = await listDisputesByProducer(db, claims.org_id, claims.user_id);
-    }
+    // Audit-before-read: a failed audit write denies the read (DATA-D-010).
+    const rows = await sensitiveRead(
+      adb,
+      {
+        orgId: claims.org_id,
+        actorId: claims.user_id,
+        action: 'dispute.list',
+        entityType: 'dispute',
+        entityId: claims.org_id,
+      },
+      () =>
+        claims.role === 'FinanceAdmin'
+          ? listDisputes(db, claims.org_id)
+          : // All non-admin roles (including Producer) see only their own disputes
+            listDisputesByProducer(db, claims.org_id, claims.user_id),
+    );
 
     return jsonResponse({ disputes: rows.map(formatDispute) });
   } catch (err: unknown) {

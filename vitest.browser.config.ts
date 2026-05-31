@@ -16,33 +16,14 @@
 
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
-import { resolve } from 'path';
+import { vitestAliases } from './vitest.aliases';
 
-const root = __dirname;
 const apiTarget = `http://localhost:${process.env.E2E_SERVER_PORT ?? 31999}`;
 
 export default defineConfig({
   plugins: [react()],
   resolve: {
-    alias: [
-      // core lives flat at packages/core/*.ts: index first, then a catch-all.
-      { find: /^core$/, replacement: resolve(root, 'packages/core/index.ts') },
-      { find: /^core\/(.+)$/, replacement: resolve(root, 'packages/core') + '/$1.ts' },
-      // db/* subpaths before the catch-all.
-      // db root-level entry points (live at packages/db/*.ts, not src/).
-      { find: 'db/revocation', replacement: resolve(root, 'packages/db/revocation.ts') },
-      { find: 'db/migrate', replacement: resolve(root, 'packages/db/migrate.ts') },
-      { find: 'db/ssl', replacement: resolve(root, 'packages/db/ssl.ts') },
-      { find: 'db/task-queue', replacement: resolve(root, 'packages/db/task-queue.ts') },
-      { find: 'db/worker-tokens', replacement: resolve(root, 'packages/db/worker-tokens.ts') },
-      { find: 'db/seed', replacement: resolve(root, 'packages/db/seed.ts') },
-      { find: 'db/passkeys', replacement: resolve(root, 'packages/db/passkeys.ts') },
-      { find: 'db/pg-container', replacement: resolve(root, 'packages/db/pg-container.ts') },
-      { find: /^db\/index$/, replacement: resolve(root, 'packages/db/index.ts') },
-      // Every other db/<name> subpath resolves to packages/db/src/<name>.ts.
-      { find: /^db\/(.+)$/, replacement: resolve(root, 'packages/db/src') + '/$1.ts' },
-      { find: /^db$/, replacement: resolve(root, 'packages/db/index.ts') },
-    ],
+    alias: vitestAliases(__dirname),
   },
   server: {
     proxy: {
