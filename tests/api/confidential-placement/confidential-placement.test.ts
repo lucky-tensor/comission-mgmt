@@ -15,7 +15,7 @@
  *
  * Uses ephemeral Postgres via pg-container (Docker required).
  * All route handlers are called directly with an injectable sql client.
- * No vi.fn / vi.mock / vi.spyOn (TEST-C-001).
+ * No Vitest mocking helpers are used — real Postgres only (TEST-C-001).
  *
  * Canonical docs: docs/prd.md §9, docs/architecture.md §4
  * Issue: feat: placement confidential flag and field masking (#64)

@@ -20,7 +20,7 @@
  *
  * Uses ephemeral Postgres via pg-container (Docker required).
  * All route handlers called directly with injectable sql clients.
- * No vi.fn / vi.mock / vi.spyOn (TEST-C-001).
+ * No Vitest mocking helpers are used — real Postgres only (TEST-C-001).
  *
  * Canonical docs: docs/prd.md §5.6, docs/architecture/phase-post-placement-risk.md
  * Issue: feat: clawback and holdback event handling (#20)

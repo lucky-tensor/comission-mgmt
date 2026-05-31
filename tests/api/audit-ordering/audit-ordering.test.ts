@@ -10,8 +10,8 @@
  *      the handler returns a non-2xx status and no data is returned.
  *
  * Uses ephemeral Postgres via pg-container (Docker required). All handlers are
- * called directly with injectable sql + auditSql clients. No vi.fn / vi.mock /
- * vi.spyOn (TEST-C-001).
+ * called directly with injectable sql + auditSql clients.
+ * No Vitest mocking helpers are used — real Postgres only (TEST-C-001).
  *
  * Canonical docs: docs/architecture.md — Audit Write Policy (audit-before-read)
  * Issue: feat: complete Superfield-adherence remediation (#81)
