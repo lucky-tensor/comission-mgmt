@@ -8,10 +8,15 @@
  * Both components use @simplewebauthn/browser to execute the browser-side
  * WebAuthn ceremony and forward the result to the server.
  *
+ * When the browser does not expose the WebAuthn API (PublicKeyCredential
+ * absent), each component renders a fallback message instead of a button so
+ * the page stays usable and the condition is testable.
+ *
  * RP_ID and ORIGIN are resolved dynamically from the server's begin response.
  *
  * Canonical docs: docs/prd.md
  * Issue: feat: sign-in page and WebAuthn passkey UX with demo bypass
+ * Issue: test: auth UI component tests — Login.tsx and PasskeyButton.tsx (#88)
  */
 
 import { useState } from 'react';
@@ -43,6 +48,22 @@ const btnDisabledStyle: React.CSSProperties = {
   cursor: 'not-allowed',
 };
 
+const unavailableStyle: React.CSSProperties = {
+  fontSize: '0.8125rem',
+  color: '#9ca3af',
+  textAlign: 'center',
+  padding: '0.625rem',
+};
+
+// ---------------------------------------------------------------------------
+// Availability helper
+// ---------------------------------------------------------------------------
+
+/** Returns true when the WebAuthn platform API is present in this browser. */
+function isWebAuthnAvailable(): boolean {
+  return typeof window !== 'undefined' && typeof window.PublicKeyCredential !== 'undefined';
+}
+
 // ---------------------------------------------------------------------------
 // RegisterPasskeyButton
 // ---------------------------------------------------------------------------
@@ -56,6 +77,7 @@ export interface RegisterPasskeyButtonProps {
 /**
  * Drives the full WebAuthn passkey registration ceremony.
  * Requires a username (email) to be provided by the parent form.
+ * Renders a fallback message when the browser does not support passkeys.
  */
 export function RegisterPasskeyButton({
   username,
@@ -63,6 +85,14 @@ export function RegisterPasskeyButton({
   onError,
 }: RegisterPasskeyButtonProps) {
   const [loading, setLoading] = useState(false);
+
+  if (!isWebAuthnAvailable()) {
+    return (
+      <p style={unavailableStyle} data-testid="passkey-unavailable">
+        Passkeys are not supported in this browser.
+      </p>
+    );
+  }
 
   async function handleRegister() {
     if (!username) {
@@ -118,6 +148,7 @@ export function RegisterPasskeyButton({
   return (
     <button
       type="button"
+      data-testid="register-passkey-btn"
       onClick={handleRegister}
       disabled={loading}
       style={loading ? btnDisabledStyle : btnStyle}
@@ -139,9 +170,18 @@ export interface PasskeyLoginButtonProps {
 /**
  * Drives the WebAuthn passkey assertion (login) ceremony using discoverable
  * credentials — no username input required.
+ * Renders a fallback message when the browser does not support passkeys.
  */
 export function PasskeyLoginButton({ onSuccess, onError }: PasskeyLoginButtonProps) {
   const [loading, setLoading] = useState(false);
+
+  if (!isWebAuthnAvailable()) {
+    return (
+      <p style={unavailableStyle} data-testid="passkey-unavailable">
+        Passkeys are not supported in this browser.
+      </p>
+    );
+  }
 
   async function handleLogin() {
     setLoading(true);
@@ -193,6 +233,7 @@ export function PasskeyLoginButton({ onSuccess, onError }: PasskeyLoginButtonPro
   return (
     <button
       type="button"
+      data-testid="login-passkey-btn"
       onClick={handleLogin}
       disabled={loading}
       style={loading ? btnDisabledStyle : btnStyle}

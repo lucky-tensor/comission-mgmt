@@ -279,7 +279,7 @@ export default function Login() {
   }
 
   return (
-    <div style={containerStyle}>
+    <div style={containerStyle} data-testid="login-container">
       <div style={cardStyle}>
         <h1 style={headingStyle}>Commission Management</h1>
         <p style={subheadingStyle}>Sign in to your account</p>
@@ -288,6 +288,7 @@ export default function Login() {
         <div style={tabRowStyle}>
           <button
             type="button"
+            data-testid="tab-register"
             style={tabStyle(tab === 'register')}
             onClick={() => {
               setTab('register');
@@ -298,6 +299,7 @@ export default function Login() {
           </button>
           <button
             type="button"
+            data-testid="tab-signin"
             style={tabStyle(tab === 'signin')}
             onClick={() => {
               setTab('signin');
@@ -309,7 +311,7 @@ export default function Login() {
         </div>
 
         {/* Error box */}
-        {error && <div style={errorBoxStyle}>{error}</div>}
+        {error && <div style={errorBoxStyle} data-testid="login-error">{error}</div>}
 
         {/* Register tab */}
         {tab === 'register' && (
@@ -348,13 +350,14 @@ export default function Login() {
 
         {/* Demo section — visible only when demo users are available */}
         {demoUsers.length > 0 && (
-          <div style={demoSectionStyle}>
+          <div style={demoSectionStyle} data-testid="demo-section">
             <p style={demoHeadingStyle}>Demo — one-click sign in</p>
             <div style={demoGridStyle}>
               {demoUsers.map((user) => (
                 <button
                   key={user.id}
                   type="button"
+                  data-testid={`demo-user-${user.id}`}
                   style={demoButtonStyle(demoLoading)}
                   disabled={demoLoading}
                   onClick={() => handleDemoSignIn(user.id)}
