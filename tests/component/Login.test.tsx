@@ -48,8 +48,9 @@ describe('Login', () => {
 
     // At least one demo user button is rendered.
     const demoSection = page.getByTestId('demo-section');
-    const firstDemoBtn = demoSection.getByRole('button').first();
-    await expect.element(firstDemoBtn).toBeInTheDocument();
+    const demoBtns = demoSection.getByRole('button').all();
+    expect(demoBtns.length).toBeGreaterThan(0);
+    await expect.element(demoBtns[0]).toBeInTheDocument();
   });
 
   test('demo-login path: /api/demo/session accepts the seeded producer id and returns 200', async () => {
@@ -90,8 +91,6 @@ describe('Login', () => {
 
     // The inline error box should appear with the validation message.
     await expect.element(page.getByTestId('login-error')).toBeInTheDocument();
-    await expect
-      .element(page.getByTestId('login-error'))
-      .toHaveTextContent('Username is required');
+    await expect.element(page.getByTestId('login-error')).toHaveTextContent('Username is required');
   });
 });

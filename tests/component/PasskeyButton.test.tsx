@@ -39,9 +39,7 @@ afterEach(() => mounted?.unmount());
 
 describe('RegisterPasskeyButton', () => {
   test('renders the register passkey button', async () => {
-    mounted = renderInBrowser(
-      <RegisterPasskeyButton username="test@example.com" />,
-    );
+    mounted = renderInBrowser(<RegisterPasskeyButton username="test@example.com" />);
     await expect.element(page.getByTestId('register-passkey-btn')).toBeInTheDocument();
     await expect
       .element(page.getByTestId('register-passkey-btn'))
@@ -84,9 +82,7 @@ describe('RegisterPasskeyButton', () => {
     });
 
     try {
-      mounted = renderInBrowser(
-        <RegisterPasskeyButton username="" />,
-      );
+      mounted = renderInBrowser(<RegisterPasskeyButton username="" />);
       await expect.element(page.getByTestId('passkey-unavailable')).toBeInTheDocument();
       await expect
         .element(page.getByTestId('passkey-unavailable'))

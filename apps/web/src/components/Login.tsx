@@ -311,7 +311,11 @@ export default function Login() {
         </div>
 
         {/* Error box */}
-        {error && <div style={errorBoxStyle} data-testid="login-error">{error}</div>}
+        {error && (
+          <div style={errorBoxStyle} data-testid="login-error">
+            {error}
+          </div>
+        )}
 
         {/* Register tab */}
         {tab === 'register' && (
