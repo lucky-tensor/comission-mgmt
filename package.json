@@ -32,6 +32,7 @@
     "test:confidential-placement": "bun --bun vitest run --config vitest.confidential-placement.config.ts",
     "test:disputes": "bun --bun vitest run --config vitest.disputes.config.ts",
     "test:leadership-visibility": "bun --bun vitest run --config vitest.leadership-visibility.config.ts",
+    "test:health": "bun --bun vitest run --config vitest.health.config.ts",
     "test:security": "bun --bun vitest run --config vitest.security.config.ts",
     "test:audit-ordering": "bun --bun vitest run --config vitest.audit-ordering.config.ts",
     "check:sql-injection": "bun run scripts/check-sql-injection.ts",
