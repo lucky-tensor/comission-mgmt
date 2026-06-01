@@ -177,9 +177,7 @@ export async function fetchHandler(req: Request): Promise<Response> {
   // routing. Health probes and passkey endpoints are accessed without the prefix
   // by k8s and the auth flow respectively.
   const isApiRequest =
-    rawPathname.startsWith('/api') ||
-    rawPathname === '/healthz' ||
-    rawPathname === '/readyz';
+    rawPathname.startsWith('/api') || rawPathname === '/healthz' || rawPathname === '/readyz';
   let pathname = rawPathname;
   if (pathname.startsWith('/api/')) pathname = pathname.slice(4);
   else if (pathname === '/api') pathname = '/';
