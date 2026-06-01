@@ -27,19 +27,30 @@ import { join } from 'node:path';
 import { homedir, networkInterfaces } from 'node:os';
 import { createConnection } from 'node:net';
 
+function pathHash(p: string): string {
+  let h = 0;
+  for (let i = 0; i < p.length; i++) h = (Math.imul(31, h) + p.charCodeAt(i)) | 0;
+  return Math.abs(h).toString(16).slice(0, 6);
+}
+
+function getRandomPort(min = 10000, max = 60000): number {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
 const REPO_ROOT = join(import.meta.dir, '..');
-const CLUSTER_NAME = 'commission-demo';
-const KUBECONFIG_PATH = process.env.KUBECONFIG ?? join(REPO_ROOT, '.k3d-kubeconfig-demo');
+const INSTANCE_ID = pathHash(REPO_ROOT);
+const CLUSTER_NAME = `commission-demo-${INSTANCE_ID}`;
+const KUBECONFIG_PATH = process.env.KUBECONFIG ?? join(REPO_ROOT, `.k3d-kubeconfig-${INSTANCE_ID}`);
 const NAMESPACE = 'default';
 
-const INGRESS_HOST_PORT = Number(process.env.COMMISSION_DEMO_PORT ?? 58080);
-const DB_HOST_PORT = Number(process.env.COMMISSION_DEMO_DB_PORT ?? 55432);
+const INGRESS_HOST_PORT = Number(process.env.COMMISSION_DEMO_PORT ?? getRandomPort());
+const DB_HOST_PORT = Number(process.env.COMMISSION_DEMO_DB_PORT ?? getRandomPort());
 const PUBLIC_URL = `http://localhost:${INGRESS_HOST_PORT}`;
 
-const APP_IMAGE = 'commission-demo-app:dev';
-const APP_NAME = 'commission-demo-app';
-const APP_SERVICE = 'commission-demo-app';
-const APP_SECRET = 'commission-demo-secrets';
+const APP_IMAGE = `commission-demo-app-${INSTANCE_ID}:dev`;
+const APP_NAME = `commission-demo-app-${INSTANCE_ID}`;
+const APP_SERVICE = `commission-demo-app-${INSTANCE_ID}`;
+const APP_SECRET = `commission-demo-secrets-${INSTANCE_ID}`;
 
 // In-cluster DB URL (used by the app pod)
 const APP_DB_URL = 'postgres://app_rw:app_rw_password@commission-dev-postgres:5432/commission_app';
