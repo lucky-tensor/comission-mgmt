@@ -49,6 +49,8 @@ const APP_NAME = `commission-demo-app-${INSTANCE_ID}`;
 const APP_SERVICE = `commission-demo-app-${INSTANCE_ID}`;
 const APP_SECRET = `commission-demo-secrets-${INSTANCE_ID}`;
 
+const WATCH_DIRS = ['apps/web', 'apps/server', 'apps/worker', 'packages'];
+
 // In-cluster DB URL (used by the app pod)
 const APP_DB_URL = 'postgres://app_rw:app_rw_password@commission-dev-postgres:5432/commission_app';
 // Host-side DB URL (used by migration runner over port-forward)
