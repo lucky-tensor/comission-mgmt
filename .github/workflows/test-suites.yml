@@ -57,6 +57,7 @@ jobs:
           - vitest.executive-analytics.config.ts
           - vitest.exports.config.ts
           - vitest.guarantee-tracking.config.ts
+          - vitest.health.config.ts
           - vitest.invoices.config.ts
           - vitest.leadership-visibility.config.ts
           - vitest.manager-view.config.ts
