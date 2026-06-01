@@ -225,7 +225,14 @@ async function runMigrations(): Promise<void> {
 
   try {
     await waitForPort('127.0.0.1', DB_HOST_PORT);
-    run(`DATABASE_URL=${HOST_DB_URL} bun run packages/db/migrate.ts`, { stdio: 'inherit' });
+    // Migration runs as app_rw (superuser) for all three DBs — the restricted
+    // analytics_w/audit_w roles have no DDL privileges and can't create tables.
+    const HOST_ANALYTICS_URL = `postgres://app_rw:app_rw_password@localhost:${DB_HOST_PORT}/commission_analytics`;
+    const HOST_AUDIT_URL = `postgres://app_rw:app_rw_password@localhost:${DB_HOST_PORT}/commission_audit`;
+    run(
+      `DATABASE_URL=${HOST_DB_URL} ANALYTICS_DATABASE_URL=${HOST_ANALYTICS_URL} AUDIT_DATABASE_URL=${HOST_AUDIT_URL} bun run packages/db/migrate.ts`,
+      { stdio: 'inherit' },
+    );
   } finally {
     if (!portForward.killed) {
       portForward.kill('SIGTERM');
@@ -315,15 +322,15 @@ spec:
             httpGet:
               path: /healthz
               port: 31415
-            initialDelaySeconds: 60
+            initialDelaySeconds: 20
             periodSeconds: 20
             timeoutSeconds: 5
           readinessProbe:
             httpGet:
-              path: /health/ready
+              path: /readyz
               port: 31415
-            initialDelaySeconds: 60
-            periodSeconds: 10
+            initialDelaySeconds: 10
+            periodSeconds: 5
             timeoutSeconds: 5
 ---
 apiVersion: v1
@@ -389,33 +396,34 @@ function waitForAppReady(): void {
 }
 
 /**
- * smokeTest — asserts internal pod probe returns HTTP 200 with {"status":"ok"}.
- * This is the CI-safe smoke test (no tunnel required).
+ * smokeTest — port-forwards to the app pod and probes /healthz from the host.
+ * Distroless images have no shell, so kubectl exec is not available.
  */
-function smokeTest(): void {
-  console.log('\nRunning internal pod smoke test...');
+async function smokeTest(): Promise<void> {
+  console.log('\nRunning smoke test...');
 
-  // Find a running pod
-  const podName = run(
-    `kubectl get pod -n ${NAMESPACE} -l app=${APP_NAME} -o jsonpath='{.items[0].metadata.name}'`,
-  ).trim();
+  const smokePort = await new Promise<number>((resolve) => {
+    // Pick a random high port for the temporary port-forward
+    const p = 30000 + Math.floor(Math.random() * 10000);
+    resolve(p);
+  });
 
-  if (!podName) {
-    throw new Error('No running pod found for smoke test');
-  }
-
-  console.log(`  Probing pod ${podName} at http://127.0.0.1:31415/healthz ...`);
-
-  // kubectl exec into the pod and curl the health endpoint internally
-  const result = run(
-    `kubectl exec -n ${NAMESPACE} ${podName} -- /bin/sh -c "wget -qO- http://127.0.0.1:31415/healthz 2>/dev/null || curl -sf http://127.0.0.1:31415/healthz"`,
+  const portForward = spawn(
+    'kubectl',
+    ['port-forward', `svc/${APP_SERVICE}`, `${smokePort}:80`, '-n', NAMESPACE],
+    { cwd: REPO_ROOT, env: { ...process.env }, stdio: ['ignore', 'pipe', 'pipe'] },
   );
 
-  if (!result.includes('"status":"ok"') && !result.includes('"status": "ok"')) {
-    throw new Error(`Internal pod probe returned unexpected response: ${result.slice(0, 200)}`);
+  try {
+    await waitForPort('127.0.0.1', smokePort, 15_000);
+    const result = run(`curl -sf http://127.0.0.1:${smokePort}/healthz`);
+    if (!result.includes('"status":"ok"') && !result.includes('"status": "ok"')) {
+      throw new Error(`Smoke test: unexpected response: ${result.slice(0, 200)}`);
+    }
+    console.log('  Smoke test: OK');
+  } finally {
+    if (!portForward.killed) portForward.kill('SIGTERM');
   }
-
-  console.log('  Internal pod probe: OK');
 }
 
 function waitForIngress(): void {
@@ -687,8 +695,7 @@ async function main(): Promise<void> {
   applyDemoApp();
   waitForAppReady();
 
-  // CI smoke test: internal pod probe (no tunnel needed)
-  smokeTest();
+  await smokeTest();
 
   waitForIngress();
 
