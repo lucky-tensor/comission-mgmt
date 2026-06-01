@@ -9,11 +9,12 @@
  *   2) Create/reuse a k3d cluster with a local registry
  *   3) Apply dev Postgres manifests and wait for readiness
  *   4) Run schema migration against the cluster Postgres (port-forward)
- *   5) Build latest app image (Dockerfile --target release) and import into k3d
- *   6) Apply demo app Service + Deployment + Ingress
- *   7) Wait for rollout; run smoke test (internal pod probe)
- *   8) Print public URL (commission-demo.superfield.co via host cloudflared)
- *   9) Enter interactive watch mode: Enter to redeploy, q to quit
+ *   5) Seed demo personas + commission demo data (port-forward, DEMO_MODE=true)
+ *   6) Build latest app image (Dockerfile --target release) and import into k3d
+ *   7) Apply demo app Service + Deployment + Ingress
+ *   8) Wait for rollout; run smoke test (internal pod probe)
+ *   9) Print public URL (commission-demo.superfield.co via host cloudflared)
+ *  10) Enter interactive watch mode: Enter to redeploy, q to quit
  *
  * Flags:
  *   --status      Print cluster status and exit
@@ -226,6 +227,65 @@ async function runMigrations(): Promise<void> {
       portForward.kill('SIGTERM');
     }
   }
+}
+
+/**
+ * runDemoSeed — seeds demo personas (and the full commission demo dataset) into
+ * the cluster Postgres over a temporary port-forward, mirroring runMigrations.
+ *
+ * Required so the Login page's one-click demo persona buttons appear: the demo
+ * bypass UX (apps/web/src/components/Login.tsx) renders persona buttons only
+ * when GET /api/demo/users returns a non-empty array, which in turn depends on
+ * users + org_memberships being populated. The seed (scripts/demo-seed.ts) is
+ * idempotent (ON CONFLICT DO NOTHING with deterministic UUIDs), so re-running
+ * local-demo.ts against an existing cluster neither duplicates personas nor errors.
+ *
+ * Canonical: docs/prd.md — Demo seed script
+ */
+async function runDemoSeed(): Promise<void> {
+  console.log('\nSeeding demo personas into demo Postgres...');
+  console.log(
+    `Starting temporary port-forward: svc/commission-dev-postgres ${DB_HOST_PORT}:5432 (namespace ${NAMESPACE})`,
+  );
+
+  const portForward = spawn(
+    'kubectl',
+    ['port-forward', 'svc/commission-dev-postgres', `${DB_HOST_PORT}:5432`, '-n', NAMESPACE],
+    {
+      cwd: REPO_ROOT,
+      env: { ...process.env },
+      stdio: ['ignore', 'pipe', 'pipe'],
+    },
+  );
+
+  portForward.stdout.on('data', (chunk) => {
+    process.stdout.write(String(chunk));
+  });
+  portForward.stderr.on('data', (chunk) => {
+    process.stderr.write(String(chunk));
+  });
+
+  try {
+    await waitForPort('127.0.0.1', DB_HOST_PORT);
+    // demo-seed runs as app_rw against commission_app (the same DB the app pod
+    // uses, just reached over the port-forward). DEMO_MODE=true is the seed's
+    // required safety guard.
+    run(`DEMO_MODE=true DATABASE_URL=${HOST_DB_URL} bun run scripts/demo-seed.ts`, {
+      stdio: 'inherit',
+    });
+  } finally {
+    if (!portForward.killed) {
+      portForward.kill('SIGTERM');
+    }
+  }
+
+  console.log('  Seeded demo personas (one per role):');
+  console.log('    - Finance Admin (FinanceAdmin)');
+  console.log('    - Producer (Producer)');
+  console.log('    - Manager (Manager)');
+  console.log('    - Executive (Executive)');
+  console.log('    - HR (HR)');
+  console.log('    - External Partner (ExternalPartner)');
 }
 
 function buildAndImportImage(): void {
@@ -559,6 +619,7 @@ async function main(): Promise<void> {
   ensureCluster();
   applyPostgres();
   await runMigrations();
+  await runDemoSeed();
   buildAndImportImage();
   applyDemoApp();
   waitForAppReady();
