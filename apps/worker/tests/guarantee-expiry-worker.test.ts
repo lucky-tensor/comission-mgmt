@@ -27,9 +27,7 @@ import {
   _resetEncryptorForTest as _resetCommRecordEncryptorForTest,
 } from '../../../packages/db/src/commission-records';
 import { createCommissionRecord } from '../../../packages/db/src/commission-records';
-import {
-  createGuaranteePeriod,
-} from '../../../packages/db/src/guarantee-periods';
+import { createGuaranteePeriod } from '../../../packages/db/src/guarantee-periods';
 import { processGuaranteeExpiredRecalc } from '../../../apps/server/src/api/guarantee-expiry-worker';
 import { handleCreatePlacement } from '../../../apps/server/src/api/placements';
 import type { SessionClaims } from 'core/auth';
@@ -210,10 +208,9 @@ describe('guarantee-expiry worker: isolated processing', () => {
     expect(result.placement_advanced).toBe(true);
 
     // 9. Verify placement status is GuaranteeExpired in DB
-    const [placement] = (await testSql.unsafe(
-      `SELECT status FROM placements WHERE id = $1`,
-      [placementId],
-    )) as unknown as Array<{ status: string }>;
+    const [placement] = (await testSql.unsafe(`SELECT status FROM placements WHERE id = $1`, [
+      placementId,
+    ])) as unknown as Array<{ status: string }>;
     expect(placement.status).toBe('GuaranteeExpired');
 
     // 10. Verify commission record is Payable
@@ -328,7 +325,9 @@ describe('crash recovery: stale claimed task re-queued after worker death', () =
     expect(recovered[0].claimed_by).toBeNull();
 
     // 3. Confirm in DB
-    const [dbRow] = await testSql<{ status: string; claimed_by: string | null; next_retry_at: Date | null }[]>`
+    const [dbRow] = await testSql<
+      { status: string; claimed_by: string | null; next_retry_at: Date | null }[]
+    >`
       SELECT status, claimed_by, next_retry_at FROM task_queue WHERE id = ${taskRow.id}
     `;
     expect(dbRow.status).toBe('pending');

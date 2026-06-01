@@ -107,7 +107,9 @@ describe('ping agent: enqueue → execute → heartbeat written to DB', () => {
     expect(result.echoed_payload).toEqual(payload);
 
     // 4. Write the result to task_queue (simulates worker submit path)
-    const [completed] = await sql<{ id: string; status: string; result: Record<string, unknown> }[]>`
+    const [completed] = await sql<
+      { id: string; status: string; result: Record<string, unknown> }[]
+    >`
       UPDATE task_queue
       SET status     = 'completed',
           result     = ${sql.json(result as never)},
@@ -118,7 +120,9 @@ describe('ping agent: enqueue → execute → heartbeat written to DB', () => {
 
     expect(completed.status).toBe('completed');
     expect(completed.result.pong).toBe(true);
-    expect((completed.result.echoed_payload as Record<string, unknown>).placement_id).toBe('pl-heartbeat-001');
+    expect((completed.result.echoed_payload as Record<string, unknown>).placement_id).toBe(
+      'pl-heartbeat-001',
+    );
 
     // 5. Verify in DB — heartbeat record is persisted
     const [dbRow] = await sql<{ status: string; result: Record<string, unknown> }[]>`
