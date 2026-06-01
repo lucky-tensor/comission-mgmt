@@ -430,8 +430,6 @@ function waitForIngress(): void {
   console.warn(`  Ingress did not respond within timeout: ${PUBLIC_URL}`);
 }
 
-/**
-
 function rolloutApp(): void {
   buildAndImportImage();
   run(`kubectl rollout restart deployment/${APP_NAME}`, { stdio: 'inherit' });
