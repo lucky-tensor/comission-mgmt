@@ -46,6 +46,7 @@ jobs:
           - vitest.attribution.config.ts
           - vitest.audit-ordering.config.ts
           - vitest.auth.config.ts
+          - vitest.cron.config.ts
           - vitest.billing-phases.config.ts
           - vitest.calculate.config.ts
           - vitest.clawback.config.ts
