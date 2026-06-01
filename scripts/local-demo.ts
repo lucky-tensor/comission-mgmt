@@ -12,7 +12,7 @@
  *   5) Build latest app image (Dockerfile --target release) and import into k3d
  *   6) Apply demo app Service + Deployment + Ingress
  *   7) Wait for rollout; run smoke test (internal pod probe)
- *   8) Start cloudflared tunnel (unless --no-tunnel); print public URL
+ *   8) Deploy cloudflared named tunnel pod (unless --no-tunnel); print public URL
  *   9) Enter interactive watch mode: Enter to redeploy, q to quit
  *
  * Flags:
@@ -21,10 +21,10 @@
  */
 
 import { execSync, spawn } from 'node:child_process';
-import { existsSync, watch } from 'node:fs';
+import { existsSync, readFileSync, watch } from 'node:fs';
 import { createInterface, type Interface as ReadlineInterface } from 'node:readline';
 import { join } from 'node:path';
-import { networkInterfaces } from 'node:os';
+import { homedir, networkInterfaces } from 'node:os';
 import { createConnection } from 'node:net';
 
 const REPO_ROOT = join(import.meta.dir, '..');
@@ -47,6 +47,11 @@ const APP_DB_URL = 'postgres://app_rw:app_rw_password@commission-dev-postgres:54
 const HOST_DB_URL = `postgres://app_rw:app_rw_password@localhost:${DB_HOST_PORT}/commission_app`;
 
 const WATCH_DIRS = ['apps/web', 'apps/server', 'apps/worker', 'packages'];
+
+const CLOUDFLARED_TUNNEL_ID = '15c623a2-9298-459b-b11a-8dd1770f7270';
+const CLOUDFLARED_CREDENTIALS_PATH = join(homedir(), '.cloudflared', `${CLOUDFLARED_TUNNEL_ID}.json`);
+const CLOUDFLARED_SECRET = 'cloudflared-credentials';
+const CLOUDFLARED_PUBLIC_URL = 'https://commission-demo.superfield.co';
 
 process.env.KUBECONFIG = KUBECONFIG_PATH;
 
@@ -84,9 +89,9 @@ function checkPrerequisites(noTunnel: boolean): void {
   if (!commandExists('k3d')) missing.push('k3d');
   if (!commandExists('kubectl')) missing.push('kubectl');
   if (!commandExists('bun')) missing.push('bun');
-  if (!noTunnel && !commandExists('cloudflared')) {
+  if (!noTunnel && !existsSync(CLOUDFLARED_CREDENTIALS_PATH)) {
     console.warn(
-      '  cloudflared not found — tunnel will be skipped. Install from https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/',
+      `  cloudflared credentials not found (~/.cloudflared/${CLOUDFLARED_TUNNEL_ID}.json) — tunnel will be skipped.`,
     );
     // Non-fatal: degrade gracefully to --no-tunnel behaviour.
   }
@@ -423,71 +428,121 @@ function waitForIngress(): void {
 }
 
 /**
- * startCloudflaredTunnel — launches cloudflared tunnel --url http://localhost:<port>
- * and waits for the trycloudflare.com URL to appear in stdout/stderr.
+ * applyCloudflared — deploys the named cloudflared tunnel as a k3d pod.
  *
- * Returns the public URL, or undefined if the tunnel could not be established.
+ * Creates the cloudflared-credentials Secret from the local credentials file,
+ * then applies a ConfigMap + Deployment inline (same pattern as applyDemoApp).
+ * Returns the fixed public URL, or undefined if the credentials file is missing.
  */
-async function startCloudflaredTunnel(): Promise<string | undefined> {
-  if (!commandExists('cloudflared')) {
+function applyCloudflared(): string | undefined {
+  if (!existsSync(CLOUDFLARED_CREDENTIALS_PATH)) {
     console.warn(
-      '\ncloudflared not found — skipping tunnel. Run with --no-tunnel to suppress this warning.',
+      `\ncloudflared credentials not found at ${CLOUDFLARED_CREDENTIALS_PATH} — skipping tunnel.`,
     );
     return undefined;
   }
 
-  console.log('\nStarting cloudflared tunnel...');
+  console.log('\nApplying cloudflared tunnel resources...');
 
-  return new Promise((resolve) => {
-    const proc = spawn(
-      'cloudflared',
-      ['tunnel', '--url', `http://localhost:${INGRESS_HOST_PORT}`],
-      {
-        stdio: ['ignore', 'pipe', 'pipe'],
-        env: { ...process.env },
-      },
-    ) as unknown as import('node:events').EventEmitter & {
-      stdout: import('node:events').EventEmitter | null;
-      stderr: import('node:events').EventEmitter | null;
-      killed: boolean;
-      kill(signal?: string): boolean;
-    };
+  const credentialsJson = readFileSync(CLOUDFLARED_CREDENTIALS_PATH, 'utf-8');
 
-    const urlPattern = /https:\/\/[a-z0-9-]+\.trycloudflare\.com/;
-    let resolved = false;
+  // Create the credentials Secret idempotently
+  run(
+    [
+      `kubectl create secret generic ${CLOUDFLARED_SECRET}`,
+      `--from-literal=credentials.json=${credentialsJson}`,
+      '--dry-run=client -o yaml | kubectl apply -f -',
+    ].join(' '),
+    { stdio: 'inherit' },
+  );
 
-    const onData = (chunk: Buffer | string) => {
-      const text = String(chunk);
-      process.stdout.write(text);
-      if (!resolved) {
-        const match = urlPattern.exec(text);
-        if (match) {
-          resolved = true;
-          resolve(match[0]);
-        }
-      }
-    };
+  const manifest = `
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cloudflared-config
+  labels:
+    app: cloudflared
+data:
+  config.yaml: |
+    tunnel: ${CLOUDFLARED_TUNNEL_ID}
+    credentials-file: /etc/cloudflared/credentials.json
+    ingress:
+      - hostname: commission-demo.superfield.co
+        service: http://${APP_SERVICE}.${NAMESPACE}.svc.cluster.local:80
+      - service: http_status:404
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudflared
+  labels:
+    app: cloudflared
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cloudflared
+  template:
+    metadata:
+      labels:
+        app: cloudflared
+    spec:
+      containers:
+        - name: cloudflared
+          image: cloudflare/cloudflared:latest
+          args:
+            - tunnel
+            - --config
+            - /etc/cloudflared/config.yaml
+            - run
+          livenessProbe:
+            httpGet:
+              path: /ready
+              port: 2000
+            initialDelaySeconds: 10
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 2000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "200m"
+              memory: "128Mi"
+          volumeMounts:
+            - name: config
+              mountPath: /etc/cloudflared/config.yaml
+              subPath: config.yaml
+              readOnly: true
+            - name: credentials
+              mountPath: /etc/cloudflared/credentials.json
+              subPath: credentials.json
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: cloudflared-config
+        - name: credentials
+          secret:
+            secretName: ${CLOUDFLARED_SECRET}
+`;
 
-    proc.stdout?.on('data', onData);
-    proc.stderr?.on('data', onData);
+  run(`kubectl apply -f - <<'YAML'\n${manifest}\nYAML`, { stdio: 'inherit' });
 
-    proc.on('close', () => {
-      if (!resolved) resolve(undefined);
-    });
+  console.log('Waiting for cloudflared rollout...');
+  run('kubectl rollout status deployment/cloudflared --timeout=120s', { stdio: 'inherit' });
 
-    // Register for cleanup on exit
-    process.on('exit', () => {
-      if (!proc.killed) proc.kill('SIGTERM');
-    });
-
-    // Time out after 60s if no URL appears
-    setTimeout(() => {
-      if (!resolved) {
-        console.warn('  cloudflared did not produce a URL within 60s — continuing without tunnel.');
-        resolve(undefined);
-      }
-    }, 60_000);
-  });
+  return CLOUDFLARED_PUBLIC_URL;
 }
 
 function rolloutApp(): void {
@@ -638,12 +693,12 @@ async function main(): Promise<void> {
   }
   console.log(`  KUBECONFIG: ${KUBECONFIG_PATH}`);
 
-  // Start cloudflared tunnel unless --no-tunnel flag is set
+  // Deploy cloudflared named tunnel unless --no-tunnel flag is set
   if (!noTunnel) {
-    const tunnelUrl = await startCloudflaredTunnel();
+    const tunnelUrl = applyCloudflared();
     if (tunnelUrl) {
       console.log(`\n  Public URL: ${tunnelUrl}`);
-      console.log('  (Cloudflare Tunnel — valid until this process exits)\n');
+      console.log('  (Cloudflare Tunnel — commission-demo.superfield.co)\n');
     }
   } else {
     console.log('\n  --no-tunnel: skipping cloudflared.');

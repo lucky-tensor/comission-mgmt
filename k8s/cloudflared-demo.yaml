@@ -1,0 +1,115 @@
+# cloudflared-demo.yaml — Cloudflare Tunnel for the demo environment.
+#
+# Exposes commission-demo.superfield.co → commission-app Service in the
+# commission-demo namespace. The tunnel terminates TLS at Cloudflare; traffic
+# inside the cluster is plain HTTP on port 80.
+#
+# Prerequisites (run once per tunnel, outside the cluster):
+#   cloudflared tunnel login
+#   cloudflared tunnel create commission-demo
+#   # Copy the tunnel ID and credentials JSON path from the output, then:
+#   kubectl create secret generic cloudflared-credentials \
+#     -n commission-demo \
+#     --from-file=credentials.json=~/.cloudflared/15c623a2-9298-459b-b11a-8dd1770f7270.json
+#   # Add a CNAME in Cloudflare DNS:
+#   #   commission-demo.superfield.co → 15c623a2-9298-459b-b11a-8dd1770f7270.cfargotunnel.com
+#
+# Apply order:
+#   kubectl apply -f k8s/namespaces.yaml
+#   kubectl apply -n commission-demo -f k8s/cloudflared-demo.yaml
+#
+# To verify tunnel health:
+#   kubectl logs -n commission-demo -l app=cloudflared
+#
+# Blueprint refs:
+#   DEPLOY-C-001  three-namespace model
+
+---
+# ── ConfigMap ─────────────────────────────────────────────────────────────────
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cloudflared-config
+  namespace: commission-demo
+  labels:
+    app: cloudflared
+    environment: demo
+data:
+  config.yaml: |
+    tunnel: 15c623a2-9298-459b-b11a-8dd1770f7270
+    credentials-file: /etc/cloudflared/credentials.json
+
+    ingress:
+      - hostname: commission-demo.superfield.co
+        service: http://commission-app.commission-demo.svc.cluster.local:80
+      # Catch-all: reject any request that doesn't match the above.
+      - service: http_status:404
+
+---
+# ── Deployment ────────────────────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudflared
+  namespace: commission-demo
+  labels:
+    app: cloudflared
+    environment: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cloudflared
+  template:
+    metadata:
+      labels:
+        app: cloudflared
+        environment: demo
+    spec:
+      containers:
+        - name: cloudflared
+          image: cloudflare/cloudflared:latest
+          args:
+            - tunnel
+            - --config
+            - /etc/cloudflared/config.yaml
+            - run
+          livenessProbe:
+            httpGet:
+              path: /ready
+              port: 2000
+            initialDelaySeconds: 10
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 2000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: '50m'
+              memory: '64Mi'
+            limits:
+              cpu: '200m'
+              memory: '128Mi'
+          volumeMounts:
+            - name: config
+              mountPath: /etc/cloudflared/config.yaml
+              subPath: config.yaml
+              readOnly: true
+            - name: credentials
+              mountPath: /etc/cloudflared/credentials.json
+              subPath: credentials.json
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: cloudflared-config
+        - name: credentials
+          secret:
+            secretName: cloudflared-credentials
