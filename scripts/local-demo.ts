@@ -40,7 +40,7 @@ const NAMESPACE = 'default';
 
 // Fixed port — matches the cloudflared host config entry for commission-demo.superfield.co.
 const INGRESS_HOST_PORT = Number(process.env.COMMISSION_DEMO_PORT ?? 4600);
-const DB_HOST_PORT = Number(process.env.COMMISSION_DEMO_DB_PORT ?? getRandomPort());
+const DB_HOST_PORT = Number(process.env.COMMISSION_DEMO_DB_PORT ?? (10000 + Math.floor(Math.random() * 50000)));
 const PUBLIC_URL = `http://localhost:${INGRESS_HOST_PORT}`;
 const PUBLIC_TUNNEL_URL = 'https://commission-demo.superfield.co';
 
