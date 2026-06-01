@@ -141,13 +141,33 @@ describe('Negative flow: 403 forbidden — producer accessing manager route', ()
 
 // -------------------------------------------------------------------------
 // 3. Non-existent route → 404 with a parseable error body
+//
+// RBAC is evaluated before route dispatch: a Producer session on an unknown
+// path gets 403 (not in Producer's permission list). To reach the server's
+// 404 catch-all, the request must pass auth + RBAC first. The FinanceAdmin
+// role has a wildcard permission (`{ method: '*', pathPrefix: '/' }`) so any
+// authenticated FinanceAdmin request on an unmatched path reaches the 404
+// handler.
 // -------------------------------------------------------------------------
 describe('Negative flow: 404 not found', () => {
+  beforeAll(async () => {
+    // Sign in as the seeded FinanceAdmin so the wildcard RBAC rule passes and
+    // requests reach the route-dispatch layer (and the 404 catch-all).
+    const res = await fetch('/api/demo/session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: SEEDED.adminId }),
+    });
+    expect(res.ok).toBe(true);
+  });
+
   test('GET /api/does-not-exist returns 404 with non-blank error body', async () => {
     // Any API surface that returns 404 must include a parseable error body.
     // A blank 404 would cause apiClient JSON parse to throw an unhandled error,
     // which surfaces as a blank screen in the portal.
-    const res = await fetch('/api/does-not-exist');
+    const res = await fetch('/api/does-not-exist', {
+      credentials: 'same-origin',
+    });
 
     expect(res.status).toBe(404);
 
@@ -158,7 +178,9 @@ describe('Negative flow: 404 not found', () => {
 
   test('GET /api/unknown/nested/path returns 404 with non-blank error body', async () => {
     // Verify the catch-all 404 handler covers deeply-nested unknown paths too.
-    const res = await fetch('/api/unknown/nested/path/that/does/not/exist');
+    const res = await fetch('/api/unknown/nested/path/that/does/not/exist', {
+      credentials: 'same-origin',
+    });
 
     expect(res.status).toBe(404);
 
@@ -227,18 +249,14 @@ describe('Negative flow: dispute submission failure', () => {
 
     // Inline error must be visible — no blank screen.
     await expect.element(page.getByTestId('dispute-error')).toBeInTheDocument();
-    await expect
-      .element(page.getByTestId('dispute-error'))
-      .toHaveTextContent(serverErrorMessage);
+    await expect.element(page.getByTestId('dispute-error')).toHaveTextContent(serverErrorMessage);
 
     // Form must still be mounted and usable after the error.
     await expect.element(page.getByTestId('dispute-form')).toBeInTheDocument();
     await expect.element(page.getByTestId('dispute-submit')).not.toBeDisabled();
 
     // Confirmation screen must NOT appear — error != success.
-    expect(
-      container.querySelector('[data-testid="dispute-confirmation"]'),
-    ).toBeNull();
+    expect(container.querySelector('[data-testid="dispute-confirmation"]')).toBeNull();
   });
 
   test('DisputeForm shows dispute-error and keeps form usable when onSubmit rejects with generic Error', async () => {
@@ -271,16 +289,11 @@ describe('Negative flow: dispute submission failure', () => {
 
     await expect.element(page.getByTestId('dispute-form')).toBeInTheDocument();
 
-    await userEvent.fill(
-      page.getByTestId('dispute-description'),
-      'Testing network error path.',
-    );
+    await userEvent.fill(page.getByTestId('dispute-description'), 'Testing network error path.');
     await userEvent.click(page.getByTestId('dispute-submit'));
 
     await expect.element(page.getByTestId('dispute-error')).toBeInTheDocument();
-    await expect
-      .element(page.getByTestId('dispute-error'))
-      .toHaveTextContent(networkErrorMessage);
+    await expect.element(page.getByTestId('dispute-error')).toHaveTextContent(networkErrorMessage);
 
     // Form stays usable after network error.
     await expect.element(page.getByTestId('dispute-form')).toBeInTheDocument();
