@@ -25,6 +25,7 @@ import { SEEDED } from './fixtures/ids';
 import { ProducerPortal } from '../../apps/web/src/components/portal/ProducerPortal';
 import { DisputeForm } from '../../apps/web/src/components/portal/DisputeForm';
 import { ApiError } from '../../apps/web/src/lib/apiClient';
+import type { CommissionRecord } from 'core/producer-portal';
 
 // -------------------------------------------------------------------------
 // Container helpers — each test renders into its own div so renders don't
@@ -189,7 +190,7 @@ describe('Negative flow: dispute submission failure', () => {
     });
     expect(recordsRes.ok).toBe(true);
     const { commission_records } = (await recordsRes.json()) as {
-      commission_records: Array<{ id: string; status: string; net_payable: number }>;
+      commission_records: CommissionRecord[];
     };
     expect(commission_records.length).toBeGreaterThan(0);
 
@@ -247,7 +248,7 @@ describe('Negative flow: dispute submission failure', () => {
       credentials: 'same-origin',
     });
     const { commission_records } = (await recordsRes.json()) as {
-      commission_records: Array<{ id: string; status: string; net_payable: number }>;
+      commission_records: CommissionRecord[];
     };
 
     const networkErrorMessage = 'Failed to fetch';
