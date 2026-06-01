@@ -172,7 +172,17 @@ const sql = postgres(DATABASE_URL, {
  */
 export async function fetchHandler(req: Request): Promise<Response> {
   const url = new URL(req.url);
-  const { pathname } = url;
+  const rawPathname = url.pathname;
+  // The SPA's apiClient prefixes all API calls with /api; strip it for internal
+  // routing. Health probes and passkey endpoints are accessed without the prefix
+  // by k8s and the auth flow respectively.
+  const isApiRequest =
+    rawPathname.startsWith('/api') ||
+    rawPathname === '/healthz' ||
+    rawPathname === '/readyz';
+  let pathname = rawPathname;
+  if (pathname.startsWith('/api/')) pathname = pathname.slice(4);
+  else if (pathname === '/api') pathname = '/';
   const traceId = getCurrentTraceId();
 
   log('info', 'request', {
@@ -241,6 +251,21 @@ export async function fetchHandler(req: Request): Promise<Response> {
     }
     if (req.method === 'POST' && pathname === '/demo/session') {
       return handleDemoSession(req);
+    }
+  }
+
+  // Static file serving + SPA fallback (release image: apps/web/dist is baked in).
+  // Placed before requireAuth so the login page and JS/CSS assets are served
+  // without a session. Only non-/api paths reach this block.
+  if (!isApiRequest) {
+    const webDist = `${import.meta.dir}/../apps/web/dist`;
+    const indexFile = Bun.file(`${webDist}/index.html`);
+    if (await indexFile.exists()) {
+      if (rawPathname.includes('.')) {
+        const asset = Bun.file(`${webDist}${rawPathname}`);
+        if (await asset.exists()) return new Response(asset);
+      }
+      return new Response(indexFile, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
     }
   }
 
