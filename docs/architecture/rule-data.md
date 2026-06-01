@@ -280,7 +280,7 @@ This blueprint is the most load-bearing in the entire project: the commission pl
 
 - **Type:** checklist
 - **Applicable:** yes
-- **Technology implication:** Local dev runs app + PostgreSQL via Docker Compose / kind (k3d), not on host — matches the plan's docker-compose and local-demo (k3d) scripts.
+- **Technology implication:** Local dev runs app + PostgreSQL via k3d (`bun run local-demo`), not on host — matches the local-demo (k3d) script and k8s/dev manifests.
 - **Risk:** Host-run dev diverges from production isolation and masks role/network constraints.
 
 ### DATA-C-005: parameterized-queries-only

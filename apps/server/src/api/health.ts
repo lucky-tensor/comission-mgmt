@@ -30,7 +30,7 @@ export interface ReadyzResponse {
  * GET /healthz — liveness probe.
  *
  * Returns 200 if the server process is running. Never touches the DB.
- * Kubernetes/docker-compose restarts the container only when this fails.
+ * Kubernetes restarts the container only when this fails.
  */
 export function handleHealthz(): Response {
   const body: HealthzResponse = { status: 'ok' };
@@ -42,7 +42,7 @@ export function handleHealthz(): Response {
  *
  * Returns 200 when the server is ready to serve traffic (DB reachable).
  * Returns 503 when the DB pool cannot be reached.
- * Kubernetes/docker-compose stops routing traffic when this fails.
+ * Kubernetes stops routing traffic when this fails.
  *
  * @param sql - The primary commission_app postgres client.
  */

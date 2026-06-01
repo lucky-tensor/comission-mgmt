@@ -17,7 +17,7 @@ Build a deal-level economic ledger for recruiting and staffing firms that makes 
 Goal: Establish the monorepo scaffold, CI pipeline, three-database schema, passkey auth, and field encryption that all later modules depend on. Tech stack: TypeScript + Bun, PostgreSQL 16, WebAuthn passkeys, distroless containers, k3s. Reference implementation: smart-crm.
 
 - [ ] Dev-scout: commission domain data model, field encryption registry, tenancy approach, analytics/audit event taxonomy
-- [ ] Monorepo scaffold — Bun workspace (apps/server, apps/web, apps/worker, packages/core, packages/db, packages/ui), multi-stage distroless Dockerfile, docker-compose, /healthz + /readyz endpoints, trace ID middleware, structured JSON logging
+- [ ] Monorepo scaffold — Bun workspace (apps/server, apps/web, apps/worker, packages/core, packages/db, packages/ui), multi-stage distroless Dockerfile, k3d local dev (scripts/local-demo.ts), /healthz + /readyz endpoints, trace ID middleware, structured JSON logging
 - [ ] Core schema — three PostgreSQL 16 databases (commission_app, commission_analytics, commission_audit), three DB roles (app_rw, analytics_w, audit_w), all placement-lifecycle entity tables with org_id tenancy column, packages/db migration runner
 - [ ] Authentication and RBAC — WebAuthn passkey registration and assertion (no passwords), HTTP-only Secure SameSite=Strict session cookies with JTI revocation, six application roles enforced in middleware
 - [ ] Field-level encryption and KMS — FieldEncryptor with per-entity-type KMS keys, DEK cache (5 min TTL), GCP Cloud KMS in production, dev stub, encrypted BYTEA columns for financial fields

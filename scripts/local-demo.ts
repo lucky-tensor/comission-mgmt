@@ -12,11 +12,10 @@
  *   5) Build latest app image (Dockerfile --target release) and import into k3d
  *   6) Apply demo app Service + Deployment + Ingress
  *   7) Wait for rollout; run smoke test (internal pod probe)
- *   8) Start cloudflared tunnel (unless --no-tunnel); print public URL
+ *   8) Print public URL (commission-demo.superfield.co via host cloudflared)
  *   9) Enter interactive watch mode: Enter to redeploy, q to quit
  *
  * Flags:
- *   --no-tunnel   Skip cloudflared; print localhost URL only (used by CI smoke tests)
  *   --status      Print cluster status and exit
  */
 
@@ -27,26 +26,37 @@ import { join } from 'node:path';
 import { networkInterfaces } from 'node:os';
 import { createConnection } from 'node:net';
 
+function pathHash(p: string): string {
+  let h = 0;
+  for (let i = 0; i < p.length; i++) h = (Math.imul(31, h) + p.charCodeAt(i)) | 0;
+  return Math.abs(h).toString(16).slice(0, 6);
+}
+
 const REPO_ROOT = join(import.meta.dir, '..');
-const CLUSTER_NAME = 'commission-demo';
-const KUBECONFIG_PATH = process.env.KUBECONFIG ?? join(REPO_ROOT, '.k3d-kubeconfig-demo');
+const INSTANCE_ID = pathHash(REPO_ROOT);
+const CLUSTER_NAME = `commission-demo-${INSTANCE_ID}`;
+const KUBECONFIG_PATH = process.env.KUBECONFIG ?? join(REPO_ROOT, `.k3d-kubeconfig-${INSTANCE_ID}`);
 const NAMESPACE = 'default';
 
-const INGRESS_HOST_PORT = Number(process.env.COMMISSION_DEMO_PORT ?? 58080);
-const DB_HOST_PORT = Number(process.env.COMMISSION_DEMO_DB_PORT ?? 55432);
+// Fixed port — matches the cloudflared host config entry for commission-demo.superfield.co.
+const INGRESS_HOST_PORT = Number(process.env.COMMISSION_DEMO_PORT ?? 4600);
+const DB_HOST_PORT = Number(
+  process.env.COMMISSION_DEMO_DB_PORT ?? 10000 + Math.floor(Math.random() * 50000),
+);
 const PUBLIC_URL = `http://localhost:${INGRESS_HOST_PORT}`;
+const PUBLIC_TUNNEL_URL = 'https://commission-demo.superfield.co';
 
-const APP_IMAGE = 'commission-demo-app:dev';
-const APP_NAME = 'commission-demo-app';
-const APP_SERVICE = 'commission-demo-app';
-const APP_SECRET = 'commission-demo-secrets';
+const APP_IMAGE = `commission-demo-app-${INSTANCE_ID}:dev`;
+const APP_NAME = `commission-demo-app-${INSTANCE_ID}`;
+const APP_SERVICE = `commission-demo-app-${INSTANCE_ID}`;
+const APP_SECRET = `commission-demo-secrets-${INSTANCE_ID}`;
+
+const WATCH_DIRS = ['apps/web', 'apps/server', 'apps/worker', 'packages'];
 
 // In-cluster DB URL (used by the app pod)
 const APP_DB_URL = 'postgres://app_rw:app_rw_password@commission-dev-postgres:5432/commission_app';
 // Host-side DB URL (used by migration runner over port-forward)
 const HOST_DB_URL = `postgres://app_rw:app_rw_password@localhost:${DB_HOST_PORT}/commission_app`;
-
-const WATCH_DIRS = ['apps/web', 'apps/server', 'apps/worker', 'packages'];
 
 process.env.KUBECONFIG = KUBECONFIG_PATH;
 
@@ -76,7 +86,7 @@ function commandExists(cmd: string): boolean {
   }
 }
 
-function checkPrerequisites(noTunnel: boolean): void {
+function checkPrerequisites(): void {
   console.log('\nChecking prerequisites...');
   const missing: string[] = [];
 
@@ -84,12 +94,6 @@ function checkPrerequisites(noTunnel: boolean): void {
   if (!commandExists('k3d')) missing.push('k3d');
   if (!commandExists('kubectl')) missing.push('kubectl');
   if (!commandExists('bun')) missing.push('bun');
-  if (!noTunnel && !commandExists('cloudflared')) {
-    console.warn(
-      '  cloudflared not found — tunnel will be skipped. Install from https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/',
-    );
-    // Non-fatal: degrade gracefully to --no-tunnel behaviour.
-  }
 
   if (missing.length > 0) {
     console.error(`Missing prerequisites: ${missing.join(', ')}`);
@@ -209,7 +213,14 @@ async function runMigrations(): Promise<void> {
 
   try {
     await waitForPort('127.0.0.1', DB_HOST_PORT);
-    run(`DATABASE_URL=${HOST_DB_URL} bun run packages/db/migrate.ts`, { stdio: 'inherit' });
+    // Migration runs as app_rw (superuser) for all three DBs — the restricted
+    // analytics_w/audit_w roles have no DDL privileges and can't create tables.
+    const HOST_ANALYTICS_URL = `postgres://app_rw:app_rw_password@localhost:${DB_HOST_PORT}/commission_analytics`;
+    const HOST_AUDIT_URL = `postgres://app_rw:app_rw_password@localhost:${DB_HOST_PORT}/commission_audit`;
+    run(
+      `DATABASE_URL=${HOST_DB_URL} ANALYTICS_DATABASE_URL=${HOST_ANALYTICS_URL} AUDIT_DATABASE_URL=${HOST_AUDIT_URL} bun run packages/db/migrate.ts`,
+      { stdio: 'inherit' },
+    );
   } finally {
     if (!portForward.killed) {
       portForward.kill('SIGTERM');
@@ -299,15 +310,15 @@ spec:
             httpGet:
               path: /healthz
               port: 31415
-            initialDelaySeconds: 60
+            initialDelaySeconds: 20
             periodSeconds: 20
             timeoutSeconds: 5
           readinessProbe:
             httpGet:
-              path: /health/ready
+              path: /readyz
               port: 31415
-            initialDelaySeconds: 60
-            periodSeconds: 10
+            initialDelaySeconds: 10
+            periodSeconds: 5
             timeoutSeconds: 5
 ---
 apiVersion: v1
@@ -373,33 +384,34 @@ function waitForAppReady(): void {
 }
 
 /**
- * smokeTest — asserts internal pod probe returns HTTP 200 with {"status":"ok"}.
- * This is the CI-safe smoke test (no tunnel required).
+ * smokeTest — port-forwards to the app pod and probes /healthz from the host.
+ * Distroless images have no shell, so kubectl exec is not available.
  */
-function smokeTest(): void {
-  console.log('\nRunning internal pod smoke test...');
+async function smokeTest(): Promise<void> {
+  console.log('\nRunning smoke test...');
 
-  // Find a running pod
-  const podName = run(
-    `kubectl get pod -n ${NAMESPACE} -l app=${APP_NAME} -o jsonpath='{.items[0].metadata.name}'`,
-  ).trim();
+  const smokePort = await new Promise<number>((resolve) => {
+    // Pick a random high port for the temporary port-forward
+    const p = 30000 + Math.floor(Math.random() * 10000);
+    resolve(p);
+  });
 
-  if (!podName) {
-    throw new Error('No running pod found for smoke test');
-  }
-
-  console.log(`  Probing pod ${podName} at http://127.0.0.1:31415/healthz ...`);
-
-  // kubectl exec into the pod and curl the health endpoint internally
-  const result = run(
-    `kubectl exec -n ${NAMESPACE} ${podName} -- /bin/sh -c "wget -qO- http://127.0.0.1:31415/healthz 2>/dev/null || curl -sf http://127.0.0.1:31415/healthz"`,
+  const portForward = spawn(
+    'kubectl',
+    ['port-forward', `svc/${APP_SERVICE}`, `${smokePort}:80`, '-n', NAMESPACE],
+    { cwd: REPO_ROOT, env: { ...process.env }, stdio: ['ignore', 'pipe', 'pipe'] },
   );
 
-  if (!result.includes('"status":"ok"') && !result.includes('"status": "ok"')) {
-    throw new Error(`Internal pod probe returned unexpected response: ${result.slice(0, 200)}`);
+  try {
+    await waitForPort('127.0.0.1', smokePort, 15_000);
+    const result = run(`curl -sf http://127.0.0.1:${smokePort}/healthz`);
+    if (!result.includes('"status":"ok"') && !result.includes('"status": "ok"')) {
+      throw new Error(`Smoke test: unexpected response: ${result.slice(0, 200)}`);
+    }
+    console.log('  Smoke test: OK');
+  } finally {
+    if (!portForward.killed) portForward.kill('SIGTERM');
   }
-
-  console.log('  Internal pod probe: OK');
 }
 
 function waitForIngress(): void {
@@ -420,74 +432,6 @@ function waitForIngress(): void {
   }
 
   console.warn(`  Ingress did not respond within timeout: ${PUBLIC_URL}`);
-}
-
-/**
- * startCloudflaredTunnel — launches cloudflared tunnel --url http://localhost:<port>
- * and waits for the trycloudflare.com URL to appear in stdout/stderr.
- *
- * Returns the public URL, or undefined if the tunnel could not be established.
- */
-async function startCloudflaredTunnel(): Promise<string | undefined> {
-  if (!commandExists('cloudflared')) {
-    console.warn(
-      '\ncloudflared not found — skipping tunnel. Run with --no-tunnel to suppress this warning.',
-    );
-    return undefined;
-  }
-
-  console.log('\nStarting cloudflared tunnel...');
-
-  return new Promise((resolve) => {
-    const proc = spawn(
-      'cloudflared',
-      ['tunnel', '--url', `http://localhost:${INGRESS_HOST_PORT}`],
-      {
-        stdio: ['ignore', 'pipe', 'pipe'],
-        env: { ...process.env },
-      },
-    ) as unknown as import('node:events').EventEmitter & {
-      stdout: import('node:events').EventEmitter | null;
-      stderr: import('node:events').EventEmitter | null;
-      killed: boolean;
-      kill(signal?: string): boolean;
-    };
-
-    const urlPattern = /https:\/\/[a-z0-9-]+\.trycloudflare\.com/;
-    let resolved = false;
-
-    const onData = (chunk: Buffer | string) => {
-      const text = String(chunk);
-      process.stdout.write(text);
-      if (!resolved) {
-        const match = urlPattern.exec(text);
-        if (match) {
-          resolved = true;
-          resolve(match[0]);
-        }
-      }
-    };
-
-    proc.stdout?.on('data', onData);
-    proc.stderr?.on('data', onData);
-
-    proc.on('close', () => {
-      if (!resolved) resolve(undefined);
-    });
-
-    // Register for cleanup on exit
-    process.on('exit', () => {
-      if (!proc.killed) proc.kill('SIGTERM');
-    });
-
-    // Time out after 60s if no URL appears
-    setTimeout(() => {
-      if (!resolved) {
-        console.warn('  cloudflared did not produce a URL within 60s — continuing without tunnel.');
-        resolve(undefined);
-      }
-    }, 60_000);
-  });
 }
 
 function rolloutApp(): void {
@@ -588,14 +532,12 @@ async function main(): Promise<void> {
   console.log('\n=== Commission Management — Local Demo ===\n');
 
   const args = process.argv.slice(2);
-  const noTunnel = args.includes('--no-tunnel');
-
   if (args.includes('--status')) {
     console.log(`k3d cluster '${CLUSTER_NAME}': ${clusterExists() ? 'running' : 'not found'}`);
     return;
   }
 
-  checkPrerequisites(noTunnel);
+  checkPrerequisites();
 
   let teardownRan = false;
   const runTeardownOnce = () => {
@@ -621,8 +563,7 @@ async function main(): Promise<void> {
   applyDemoApp();
   waitForAppReady();
 
-  // CI smoke test: internal pod probe (no tunnel needed)
-  smokeTest();
+  await smokeTest();
 
   waitForIngress();
 
@@ -638,16 +579,7 @@ async function main(): Promise<void> {
   }
   console.log(`  KUBECONFIG: ${KUBECONFIG_PATH}`);
 
-  // Start cloudflared tunnel unless --no-tunnel flag is set
-  if (!noTunnel) {
-    const tunnelUrl = await startCloudflaredTunnel();
-    if (tunnelUrl) {
-      console.log(`\n  Public URL: ${tunnelUrl}`);
-      console.log('  (Cloudflare Tunnel — valid until this process exits)\n');
-    }
-  } else {
-    console.log('\n  --no-tunnel: skipping cloudflared.');
-  }
+  console.log(`  Public URL: ${PUBLIC_TUNNEL_URL}`);
 
   const rl = createInterface({ input: process.stdin, output: process.stdout });
   process.on('exit', () => {

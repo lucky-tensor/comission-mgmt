@@ -39,12 +39,12 @@ This blueprint is highly load-bearing for the commission management platform bec
 - **Technology implication:** apps/server holds three separate connection pools (app_rw, analytics_w, audit_w). Plan's packages/db (and apps/server db.ts per IMPL-DATA-027) must instantiate three distinct pools, each bound to its role's credentials.
 - **Risk:** A single shared pool would collapse the role isolation, allowing audit/analytics writes to share the transactional credential and defeating IMPL-DATA-003/043.
 
-### IMPL-DATA-005: dev-environment-docker-compose
+### IMPL-DATA-005: dev-environment-k3d
 
 - **Type:** implementation
 - **Applicable:** yes
-- **Technology implication:** Docker Compose runs a distroless PostgreSQL image; an init.sql creates the three databases and three roles on first start; secrets via env vars. Plan Phase 1 lists docker-compose and distroless containers; the infra/ layout (IMPL-DATA-027) places docker-compose.yml and init.sql there.
-- **Risk:** Without init.sql provisioning all three DBs/roles, local dev would diverge from the production three-database topology, hiding role-isolation bugs until deployment.
+- **Technology implication:** k3d runs a PostgreSQL StatefulSet (k8s/dev/postgres.yaml); init SQL scripts in scripts/dev-postgres-init/ create the three databases and three roles on first start; secrets via ConfigMap (k8s/dev/dev-secrets.yaml). Local dev is launched via `bun run local-demo` (scripts/local-demo.ts).
+- **Risk:** Without init SQL provisioning all three DBs/roles, local dev would diverge from the production three-database topology, hiding role-isolation bugs until deployment.
 
 ### IMPL-DATA-006: initial-migration
 
@@ -197,7 +197,7 @@ This blueprint is highly load-bearing for the commission management platform bec
 
 - **Type:** implementation
 - **Applicable:** yes
-- **Technology implication:** packages/data with db / crypto / kms / analytics / audit submodules; apps/server with migrations/ and db.ts; infra with docker-compose.yml + init.sql; packages/core/types/data.ts for record/event types. Plan's monorepo names packages/db, packages/core, apps/server/worker — close but not identical; the project should reconcile packages/data vs packages/db naming during scaffold.
+- **Technology implication:** packages/data with db / crypto / kms / analytics / audit submodules; apps/server with migrations/ and db.ts; k8s/dev/ with Postgres StatefulSet + init SQL; packages/core/types/data.ts for record/event types. Plan's monorepo names packages/db, packages/core, apps/server/worker — close but not identical; the project should reconcile packages/data vs packages/db naming during scaffold.
 - **Risk:** Scattering crypto/audit/analytics across packages erodes the credential-isolation (024) and interceptor (012) guarantees that depend on clear module boundaries.
 
 ### IMPL-DATA-028: kms-client-interface
