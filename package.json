@@ -13,6 +13,7 @@
     "test:migration": "bun --bun vitest run --config vitest.migration.config.ts",
     "test:api": "bun --bun vitest run --config vitest.auth.config.ts",
     "test:tasks": "bun --bun vitest run --config vitest.tasks.config.ts",
+    "test:worker": "bun --bun vitest run --config vitest.worker.config.ts",
     "test:contributors": "bun --bun vitest run --config vitest.contributors.config.ts",
     "test:attribution": "bun --bun vitest run --config vitest.attribution.config.ts",
     "test:plans": "bun --bun vitest run --config vitest.plans.config.ts",
