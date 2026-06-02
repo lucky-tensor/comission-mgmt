@@ -423,8 +423,7 @@ describe('SplitApproval — role gating via app-shell (real server)', () => {
     await expect.element(page.getByTestId('forbidden-surface')).toBeInTheDocument();
   });
 
-  test('Manager demo-login shows split-approval surface at /manager', async () => {
-    // Demo-login as admin (FinanceAdmin can access /manager per roleRoutes)
+  test('FinanceAdmin navigating to /manager sees Forbidden surface', async () => {
     const res = await fetch('/api/demo/session', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -435,8 +434,7 @@ describe('SplitApproval — role gating via app-shell (real server)', () => {
     navigate(ROUTES.MANAGER);
     mounted = renderInBrowser(<App />);
 
-    // FinanceAdmin can reach /manager and sees the real manager home
-    await expect.element(page.getByTestId('manager-home')).toBeInTheDocument();
-    await expect.element(page.getByTestId('split-approval')).toBeInTheDocument();
+    await expect.element(page.getByTestId('forbidden-surface')).toBeInTheDocument();
+    expect(page.getByTestId('split-approval').elements()).toHaveLength(0);
   });
 });

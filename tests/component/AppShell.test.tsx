@@ -100,7 +100,7 @@ describe('NavShell — per-role nav items', () => {
     expect(page.getByTestId('nav-item-manager').elements()).toHaveLength(0);
   });
 
-  test('FinanceAdmin nav shows Finance Home and Manager View', async () => {
+  test('FinanceAdmin nav shows Finance Home but not Manager View', async () => {
     mounted = renderInBrowser(
       <NavShell role="FinanceAdmin" currentPath="/finance" onNavigate={() => {}}>
         <div />
@@ -108,6 +108,16 @@ describe('NavShell — per-role nav items', () => {
     );
 
     await expect.element(page.getByTestId('nav-item-finance')).toBeInTheDocument();
+    expect(page.getByTestId('nav-item-manager').elements()).toHaveLength(0);
+  });
+
+  test('Manager nav shows Team View', async () => {
+    mounted = renderInBrowser(
+      <NavShell role="Manager" currentPath="/manager" onNavigate={() => {}}>
+        <div />
+      </NavShell>,
+    );
+
     await expect.element(page.getByTestId('nav-item-manager')).toBeInTheDocument();
   });
 
