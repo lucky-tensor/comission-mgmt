@@ -108,7 +108,9 @@ async function jsonBody(res: Response): Promise<unknown> {
  * Creates a plan with one Draft version, activates it, and returns
  * { planId, versionId }.
  */
-async function createActivePlan(claims: SessionClaims): Promise<{ planId: string; versionId: string }> {
+async function createActivePlan(
+  claims: SessionClaims,
+): Promise<{ planId: string; versionId: string }> {
   const createRes = await handleCreatePlan(
     makeRequest({
       path: '/plans',
@@ -123,7 +125,10 @@ async function createActivePlan(claims: SessionClaims): Promise<{ planId: string
     testSql,
   );
   expect(createRes.status).toBe(201);
-  const createData = (await jsonBody(createRes)) as { plan: { id: string }; version: { id: string } };
+  const createData = (await jsonBody(createRes)) as {
+    plan: { id: string };
+    version: { id: string };
+  };
   const planId = createData.plan.id;
   const versionId = createData.version.id;
 
@@ -260,13 +265,7 @@ describe('POST /plans/:id/versions/:vid/acknowledge', () => {
   test('role gating: non-Producer (HR) cannot acknowledge on behalf of a producer — returns 403', async () => {
     const { planId, versionId } = await createActivePlan(hrClaims);
 
-    const res = await handleAcknowledgePlanVersion(
-      planId,
-      versionId,
-      hrClaims,
-      testSql,
-      auditSql,
-    );
+    const res = await handleAcknowledgePlanVersion(planId, versionId, hrClaims, testSql, auditSql);
 
     expect(res.status).toBe(403);
   });

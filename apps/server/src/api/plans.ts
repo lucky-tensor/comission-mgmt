@@ -611,12 +611,7 @@ export async function handleAcknowledgePlanVersion(
   }
 
   // Check whether this is a new acknowledgment (for audit log)
-  const existing = await getPlanVersionAcknowledgment(
-    db,
-    claims.org_id,
-    versionId,
-    claims.user_id,
-  );
+  const existing = await getPlanVersionAcknowledgment(db, claims.org_id, versionId, claims.user_id);
   const isNew = existing === null;
 
   const ack = await acknowledgePlanVersion(db, {
