@@ -48,6 +48,7 @@ import {
   handleListIncompletePlacements,
   handleUpdatePlacement,
   handleGetPartnerPlacement,
+  handleListPartnerPlacements,
   handleGetPlacementGuarantee,
 } from './api/placements';
 import {
@@ -316,6 +317,11 @@ export async function fetchHandler(req: Request): Promise<Response> {
   const placementPatchMatch = pathname.match(/^\/placements\/([^/]+)$/);
   if (req.method === 'PATCH' && placementPatchMatch) {
     return handleUpdatePlacement(placementPatchMatch[1], req, authResult.claims);
+  }
+
+  // External Partner placement list — GET /partner/placements (scoped to partner, masked)
+  if (req.method === 'GET' && pathname === '/partner/placements') {
+    return handleListPartnerPlacements(req, authResult.claims);
   }
 
   // External Partner placement view — GET /partner/placements/:id (masked if confidential)

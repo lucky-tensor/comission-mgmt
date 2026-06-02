@@ -55,6 +55,7 @@ jobs:
           - vitest.commission-runs.config.ts
           - vitest.confidential-placement.config.ts
           - vitest.contributors.config.ts
+          - vitest.partner.config.ts
           - vitest.disputes.config.ts
           - vitest.exceptions.config.ts
           - vitest.executive-analytics.config.ts
