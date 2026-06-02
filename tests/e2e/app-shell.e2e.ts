@@ -14,34 +14,48 @@
  *        landing (#100)
  */
 
-import { describe, test, expect, beforeEach } from 'vitest';
+import { describe, test, expect, afterEach } from 'vitest';
 import { page } from '@vitest/browser/context';
-import { createRoot } from 'react-dom/client';
+import { createRoot, type Root } from 'react-dom/client';
 import { act, createElement } from 'react';
 import { SEEDED } from './fixtures/ids';
 import App, { navigate } from '../../apps/web/src/App';
 
+interface Mounted {
+  unmount: () => void;
+}
+
 /** Mount the root App into the document and return an unmount callback. */
-function mountApp(): () => void {
+function mountApp(): Mounted {
   const container = document.createElement('div');
-  container.id = 'app-shell-e2e-root';
+  container.id = `app-e2e-${Date.now()}`;
   document.body.appendChild(container);
+  let root: Root;
   act(() => {
-    createRoot(container).render(createElement(App));
+    root = createRoot(container);
+    root.render(createElement(App));
   });
-  return () => {
-    container.remove();
+  return {
+    unmount: () => {
+      act(() => root.unmount());
+      container.remove();
+    },
   };
 }
 
+let current: Mounted | undefined;
+
+afterEach(() => {
+  try {
+    current?.unmount();
+  } catch {
+    // already unmounted
+  }
+  current = undefined;
+  navigate('/');
+});
+
 describe('App shell E2E — role-based routing', () => {
-  let unmount: () => void;
-
-  beforeEach(() => {
-    // Return to root before each test.
-    navigate('/');
-  });
-
   test('Finance Admin demo-login lands on /finance', async () => {
     // Log in as finance admin at the API level first.
     const res = await fetch('/api/demo/session', {
@@ -51,8 +65,8 @@ describe('App shell E2E — role-based routing', () => {
     });
     expect(res.ok).toBe(true);
 
-    // Mount the App — it calls GET /me, reads FinanceAdmin role, redirects to /finance.
-    unmount = mountApp();
+    navigate('/');
+    current = mountApp();
 
     // The nav shell renders with the Finance Home surface.
     await expect.element(page.getByTestId('nav-shell')).toBeInTheDocument();
@@ -63,8 +77,6 @@ describe('App shell E2E — role-based routing', () => {
 
     // The current path in the browser should be /finance.
     expect(window.location.pathname).toBe('/finance');
-
-    unmount();
   });
 
   test('Producer demo-login lands on /portal', async () => {
@@ -77,7 +89,7 @@ describe('App shell E2E — role-based routing', () => {
     expect(res.ok).toBe(true);
 
     navigate('/');
-    unmount = mountApp();
+    current = mountApp();
 
     // The Producer Portal surface renders.
     await expect.element(page.getByTestId('nav-shell')).toBeInTheDocument();
@@ -88,8 +100,6 @@ describe('App shell E2E — role-based routing', () => {
 
     // The current path should be /portal.
     expect(window.location.pathname).toBe('/portal');
-
-    unmount();
   });
 
   test('Finance Admin and Producer land on different routes', async () => {
@@ -102,10 +112,11 @@ describe('App shell E2E — role-based routing', () => {
     expect(adminRes.ok).toBe(true);
 
     navigate('/');
-    let u = mountApp();
+    current = mountApp();
     await expect.element(page.getByTestId('finance-home')).toBeInTheDocument();
     const adminPath = window.location.pathname;
-    u();
+    current.unmount();
+    current = undefined;
 
     // Producer.
     const prodRes = await fetch('/api/demo/session', {
@@ -116,10 +127,9 @@ describe('App shell E2E — role-based routing', () => {
     expect(prodRes.ok).toBe(true);
 
     navigate('/');
-    u = mountApp();
+    current = mountApp();
     await expect.element(page.getByText('Producer Payout Portal')).toBeInTheDocument();
     const producerPath = window.location.pathname;
-    u();
 
     expect(adminPath).not.toBe(producerPath);
     expect(adminPath).toBe('/finance');
