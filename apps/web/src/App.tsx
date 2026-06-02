@@ -1,23 +1,41 @@
 /**
- * Root application component with minimal client-side routing.
+ * Root application component with role-based client-side routing.
  *
- * Routes:
- *   /portal — Producer Payout Portal (the first built role surface)
- *   /       — on load, probe the session; if authenticated redirect to /portal,
- *             otherwise render the Login screen (login no longer dead-ends at /).
+ * Routes (six role surfaces + login):
+ *   /          — probes session; redirects to role landing or stays on login
+ *   /portal    — Producer Payout Portal
+ *   /finance   — Finance Admin home (placeholder)
+ *   /manager   — Manager home (placeholder)
+ *   /executive — Executive dashboard (placeholder)
+ *   /hr        — HR home (placeholder)
+ *   /partner   — External Partner home (placeholder)
  *
  * Routing is intentionally tiny (no router dependency): the app reads
- * window.location.pathname and navigates with history.pushState. The portal
- * itself redirects back to / on a 401.
+ * window.location.pathname and navigates with history.pushState.
  *
- * Canonical docs: docs/prd.md §5.8 — Producer Payout Portal
- * Issue: feat: Producer Portal UI + headless-Chromium browser/E2E harness (#78)
+ * Role-gating: routes outside a user's permission set render the 403/Forbidden
+ * surface rather than another role's data. The role→routes map lives in a
+ * single module (lib/roleRoutes.ts).
+ *
+ * Canonical docs: docs/prd.md §3 (User Roles)
+ * Issue: feat: web app shell — role-based routing, navigation, and per-role
+ *        landing (#100)
  */
 
 import { useState, useEffect } from 'react';
 import Login from './components/Login';
 import { ProducerPortal } from './components/portal/ProducerPortal';
-import { ApiError, apiGet } from './lib/apiClient';
+import { NavShell } from './components/NavShell';
+import { Forbidden } from './components/Forbidden';
+import {
+  FinanceHome,
+  ManagerHome,
+  ExecutiveHome,
+  HrHome,
+  PartnerHome,
+} from './components/PlaceholderSurface';
+import { useSession } from './lib/useSession';
+import { isPathPermitted, landingPathForRole, ROUTES } from './lib/roleRoutes';
 
 /** Navigate to a path and notify listeners (pushState doesn't emit popstate). */
 export function navigate(path: string) {
@@ -25,8 +43,54 @@ export function navigate(path: string) {
   window.dispatchEvent(new PopStateEvent('popstate'));
 }
 
+// ---------------------------------------------------------------------------
+// Authenticated shell — rendered once session is known
+// ---------------------------------------------------------------------------
+
+interface AuthenticatedAppProps {
+  role: import('core/auth').AppRole;
+  path: string;
+}
+
+function AuthenticatedApp({ role, path }: AuthenticatedAppProps) {
+  const permitted = isPathPermitted(role, path);
+
+  function renderSurface() {
+    if (!permitted) {
+      return <Forbidden role={role} onNavigate={navigate} />;
+    }
+    switch (path) {
+      case ROUTES.PORTAL:
+        return <ProducerPortal onUnauthenticated={() => navigate(ROUTES.LOGIN)} />;
+      case ROUTES.FINANCE:
+        return <FinanceHome />;
+      case ROUTES.MANAGER:
+        return <ManagerHome />;
+      case ROUTES.EXECUTIVE:
+        return <ExecutiveHome />;
+      case ROUTES.HR:
+        return <HrHome />;
+      case ROUTES.PARTNER:
+        return <PartnerHome />;
+      default:
+        return <Forbidden role={role} onNavigate={navigate} />;
+    }
+  }
+
+  return (
+    <NavShell role={role} currentPath={path} onNavigate={navigate}>
+      {renderSurface()}
+    </NavShell>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Root app
+// ---------------------------------------------------------------------------
+
 export default function App() {
   const [path, setPath] = useState(window.location.pathname);
+  const { session, loading, unauthenticated } = useSession();
 
   useEffect(() => {
     const onPop = () => setPath(window.location.pathname);
@@ -34,29 +98,25 @@ export default function App() {
     return () => window.removeEventListener('popstate', onPop);
   }, []);
 
-  // On the root path, probe the session and redirect authenticated producers
-  // straight to the portal so login no longer dead-ends at /.
+  // Once session is resolved and user is authenticated, redirect from '/' to
+  // the role's landing page.
   useEffect(() => {
-    if (path !== '/') return;
-    let active = true;
-    apiGet('/me/commission-records')
-      .then(() => {
-        if (active) navigate('/portal');
-      })
-      .catch((err: unknown) => {
-        // 401 → stay on login. Any other outcome means the session is valid
-        // (e.g. a producer with no records still returns 200), so go to portal.
-        if (active && (!(err instanceof ApiError) || err.status !== 401)) {
-          navigate('/portal');
-        }
-      });
-    return () => {
-      active = false;
-    };
-  }, [path]);
+    if (loading || unauthenticated || !session) return;
+    if (path === ROUTES.LOGIN) {
+      navigate(landingPathForRole(session.role));
+    }
+  }, [loading, unauthenticated, session, path]);
 
-  if (path === '/portal') {
-    return <ProducerPortal onUnauthenticated={() => navigate('/')} />;
+  // Not yet resolved — render nothing (brief flash prevention).
+  if (loading) {
+    return null;
   }
-  return <Login />;
+
+  // No session — show login.
+  if (unauthenticated || !session) {
+    return <Login />;
+  }
+
+  // Authenticated — render the role-aware shell.
+  return <AuthenticatedApp role={session.role} path={path} />;
 }

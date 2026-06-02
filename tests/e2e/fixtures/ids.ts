@@ -14,4 +14,5 @@ export const SEEDED = {
   producerId: 'e2e00000-0000-0000-0000-0000000000b1',
   producerEmail: 'e2e-producer@demo.example',
   adminId: 'e2e00000-0000-0000-0000-0000000000c1',
+  adminEmail: 'e2e-admin@demo.example',
 } as const;
