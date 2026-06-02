@@ -55,10 +55,7 @@ import {
   handleGetPlacementClawback,
   handleGetMyClawbackExposure,
 } from './api/clawback';
-import {
-  handlePostAdjustment,
-  handleGetPlacementAdjustments,
-} from './api/adjustments';
+import { handlePostAdjustment, handleGetPlacementAdjustments } from './api/adjustments';
 import {
   handleAddContributor,
   handleListContributors,
