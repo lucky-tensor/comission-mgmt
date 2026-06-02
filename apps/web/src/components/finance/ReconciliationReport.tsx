@@ -413,7 +413,14 @@ function DiscrepancyRow({
             )}
           </div>
           <div
-            style={{ marginTop: '0.375rem', fontSize: '0.8125rem', color: '#6b7280', display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}
+            style={{
+              marginTop: '0.375rem',
+              fontSize: '0.8125rem',
+              color: '#6b7280',
+              display: 'flex',
+              gap: '1.5rem',
+              flexWrap: 'wrap',
+            }}
           >
             {discrepancy.ledger_amount_billed != null && (
               <span>
@@ -423,8 +430,7 @@ function DiscrepancyRow({
             )}
             {discrepancy.ar_amount_billed != null && (
               <span>
-                AR:{' '}
-                <strong style={{ color: '#111827' }}>{discrepancy.ar_amount_billed}</strong>
+                AR: <strong style={{ color: '#111827' }}>{discrepancy.ar_amount_billed}</strong>
               </span>
             )}
             {discrepancy.date_gap_days != null && (
@@ -636,9 +642,7 @@ export function ReconciliationReportView({
               <h2 style={headingStyle}>
                 Period: {phase.report.period_start} — {phase.report.period_end}
               </h2>
-              <dl
-                style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap', margin: '0 0 1rem' }}
-              >
+              <dl style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap', margin: '0 0 1rem' }}>
                 {[
                   ['Ledger invoices', String(phase.report.summary.total_ledger_invoices)],
                   ['AR records', String(phase.report.summary.total_ar_records)],
@@ -646,7 +650,10 @@ export function ReconciliationReportView({
                   ['Discrepancies', String(phase.report.summary.discrepancies)],
                   ['Unacknowledged', String(unacknowledgedCount)],
                 ].map(([label, value]) => (
-                  <div key={label} style={{ display: 'flex', flexDirection: 'column', gap: '0.125rem' }}>
+                  <div
+                    key={label}
+                    style={{ display: 'flex', flexDirection: 'column', gap: '0.125rem' }}
+                  >
                     <dt
                       style={{
                         fontSize: '0.6875rem',
@@ -658,11 +665,16 @@ export function ReconciliationReportView({
                       {label}
                     </dt>
                     <dd
-                      data-testid={label === 'Unacknowledged' ? 'recon-unacknowledged-count' : undefined}
+                      data-testid={
+                        label === 'Unacknowledged' ? 'recon-unacknowledged-count' : undefined
+                      }
                       style={{
                         fontSize: '1rem',
                         fontWeight: 700,
-                        color: label === 'Unacknowledged' && unacknowledgedCount > 0 ? '#b91c1c' : '#111827',
+                        color:
+                          label === 'Unacknowledged' && unacknowledgedCount > 0
+                            ? '#b91c1c'
+                            : '#111827',
                         margin: 0,
                       }}
                     >
@@ -712,16 +724,20 @@ export function ReconciliationReportView({
             </div>
 
             {/* Four discrepancy buckets */}
-            {(['ledger_only', 'system_only', 'amount_mismatch', 'date_gap'] as const).map((type) => (
-              <BucketCard
-                key={type}
-                type={type}
-                discrepancies={phase.report.discrepancies.filter((d) => d.discrepancy_type === type)}
-                onAcknowledge={onAcknowledge}
-                acknowledgingId={acknowledgingId}
-                acknowledgeErrors={acknowledgeErrors}
-              />
-            ))}
+            {(['ledger_only', 'system_only', 'amount_mismatch', 'date_gap'] as const).map(
+              (type) => (
+                <BucketCard
+                  key={type}
+                  type={type}
+                  discrepancies={phase.report.discrepancies.filter(
+                    (d) => d.discrepancy_type === type,
+                  )}
+                  onAcknowledge={onAcknowledge}
+                  acknowledgingId={acknowledgingId}
+                  acknowledgeErrors={acknowledgeErrors}
+                />
+              ),
+            )}
           </>
         )}
       </div>
@@ -778,9 +794,12 @@ export function ReconciliationReport() {
       return next;
     });
     try {
-      const updated = await apiPost<ReconciliationDiscrepancy>(`/reconciliation/${id}/acknowledge`, {
-        note,
-      });
+      const updated = await apiPost<ReconciliationDiscrepancy>(
+        `/reconciliation/${id}/acknowledge`,
+        {
+          note,
+        },
+      );
       // Update the discrepancy in the report in-place
       setPhase((prev) => {
         if (prev.kind !== 'data') return prev;
@@ -797,7 +816,11 @@ export function ReconciliationReport() {
       setUnacknowledgedCount((c) => Math.max(0, c - 1));
     } catch (err: unknown) {
       const message =
-        err instanceof ApiError ? err.message : (err instanceof Error ? err.message : 'Acknowledge failed');
+        err instanceof ApiError
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : 'Acknowledge failed';
       setAcknowledgeErrors((prev) => ({ ...prev, [id]: message }));
     } finally {
       setAcknowledgingId(null);

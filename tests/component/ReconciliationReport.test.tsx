@@ -177,7 +177,9 @@ describe('ReconciliationReportView — idle state', () => {
     );
 
     await expect.element(page.getByTestId('recon-fetch-error')).toBeInTheDocument();
-    await expect.element(page.getByText('Failed to load reconciliation report')).toBeInTheDocument();
+    await expect
+      .element(page.getByText('Failed to load reconciliation report'))
+      .toBeInTheDocument();
   });
 });
 
@@ -380,9 +382,7 @@ describe('ReconciliationReportView — acknowledge flow', () => {
 
     await expect.element(page.getByTestId('acknowledged-badge-disc-001')).toBeInTheDocument();
     await expect.element(page.getByTestId('acknowledged-note-disc-001')).toBeInTheDocument();
-    await expect
-      .element(page.getByText(/Timing difference confirmed/))
-      .toBeInTheDocument();
+    await expect.element(page.getByText(/Timing difference confirmed/)).toBeInTheDocument();
     // Acknowledge button should not appear for already-acknowledged discrepancy
     await expect.element(page.getByTestId('acknowledge-btn-disc-001')).not.toBeInTheDocument();
   });
@@ -437,9 +437,7 @@ describe('ReconciliationReportView — all-clear state', () => {
     );
 
     await expect.element(page.getByTestId('recon-all-clear')).toBeInTheDocument();
-    await expect
-      .element(page.getByText(/All discrepancies acknowledged/))
-      .toBeInTheDocument();
+    await expect.element(page.getByText(/All discrepancies acknowledged/)).toBeInTheDocument();
   });
 
   test('does not render the all-clear banner when unacknowledgedCount is > 0', async () => {
@@ -483,9 +481,7 @@ describe('ReconciliationReportView — clean reconciliation (no discrepancies)',
     );
 
     await expect.element(page.getByTestId('recon-clean')).toBeInTheDocument();
-    await expect
-      .element(page.getByText(/No discrepancies found/))
-      .toBeInTheDocument();
+    await expect.element(page.getByText(/No discrepancies found/)).toBeInTheDocument();
   });
 });
 
