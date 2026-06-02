@@ -58,20 +58,6 @@ function errorResponse(message: string, status: number): Response {
   return jsonResponse({ error: message }, status);
 }
 
-function notImplemented(description: string): Response {
-  return new Response(
-    JSON.stringify({
-      error: 'Not Implemented',
-      description,
-      scout: 'dev-scout stub — see docs/architecture/phase-producer-portal.md',
-    }),
-    {
-      status: 501,
-      headers: { 'Content-Type': 'application/json' },
-    },
-  );
-}
-
 // ---------------------------------------------------------------------------
 // GET /me — producer identity + active plan summary (stub)
 // ---------------------------------------------------------------------------
@@ -79,17 +65,24 @@ function notImplemented(description: string): Response {
 /**
  * GET /me
  *
- * Returns the authenticated producer's identity and active plan summary.
- * Scout stub — returns 501 Not Implemented.
+ * Returns the authenticated user's role and identity from session claims.
+ * This minimal implementation satisfies the app-shell routing requirement
+ * (issue #100) — every role can call this endpoint to learn their role
+ * immediately post-login without a DB round-trip.
  *
- * Planned implementation notes:
- *   - Resolves the active PlanVersion for the session user_id and org_id.
- *   - Returns producer_id, display name (via users table), role, and plan
- *     version metadata (tier thresholds, base rate).
- *   - Writes a commission_audit entry before returning (audit-log-first, DATA-D-010).
+ * The full producer identity + active plan summary (plan version metadata,
+ * tier thresholds, display name from the users table) is tracked as a
+ * separate planned enhancement.
+ *
+ * Issue: feat: web app shell — role-based routing, navigation, and per-role
+ *        landing (#100)
  */
-export function handleGetMe(_claims: SessionClaims): Response {
-  return notImplemented('Producer identity and active plan summary — not yet implemented');
+export function handleGetMe(claims: SessionClaims): Response {
+  return jsonResponse({
+    user_id: claims.user_id,
+    org_id: claims.org_id,
+    role: claims.role,
+  });
 }
 
 // ---------------------------------------------------------------------------

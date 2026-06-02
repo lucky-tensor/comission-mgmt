@@ -103,6 +103,8 @@ export const ROLE_PERMISSIONS: Record<AppRole, Permission[]> = {
     { method: 'GET', pathPrefix: '/invoices' },
     { method: 'GET', pathPrefix: '/exceptions' },
     { method: 'PATCH', pathPrefix: '/exceptions' },
+    // App shell — identity endpoint (issue #100)
+    { method: 'GET', pathPrefix: '/me' },
     // Manager Team View — issue #21
     { method: 'GET', pathPrefix: '/me/team' },
     { method: 'POST', pathPrefix: '/auth/logout' },
@@ -130,6 +132,8 @@ export const ROLE_PERMISSIONS: Record<AppRole, Permission[]> = {
     { method: 'GET', pathPrefix: '/contributors' },
     { method: 'GET', pathPrefix: '/commission-records' },
     { method: 'GET', pathPrefix: '/draw-balances' },
+    // App shell — identity endpoint (issue #100)
+    { method: 'GET', pathPrefix: '/me' },
     { method: 'POST', pathPrefix: '/auth/logout' },
     { method: 'GET', pathPrefix: '/healthz' },
     { method: 'GET', pathPrefix: '/readyz' },
@@ -140,6 +144,8 @@ export const ROLE_PERMISSIONS: Record<AppRole, Permission[]> = {
     { method: 'GET', pathPrefix: '/placements' },
     { method: 'GET', pathPrefix: '/partner/placements' },
     { method: 'GET', pathPrefix: '/invoices' },
+    // App shell — identity endpoint (issue #100)
+    { method: 'GET', pathPrefix: '/me' },
     { method: 'POST', pathPrefix: '/auth/logout' },
     { method: 'GET', pathPrefix: '/healthz' },
     { method: 'GET', pathPrefix: '/readyz' },
