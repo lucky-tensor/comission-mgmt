@@ -9,6 +9,8 @@
  *        landing (#100)
  */
 
+export { FinanceAdminSurface as FinanceHome } from './finance/FinanceAdminSurface';
+
 interface PlaceholderSurfaceProps {
   title: string;
   description: string;
@@ -65,16 +67,6 @@ export function PlaceholderSurface({ title, description, testId }: PlaceholderSu
 // ---------------------------------------------------------------------------
 // Named placeholder surfaces for each role home
 // ---------------------------------------------------------------------------
-
-export function FinanceHome() {
-  return (
-    <PlaceholderSurface
-      testId="finance-home"
-      title="Finance Admin Home"
-      description="Commission runs, placement management, payroll exports, and reconciliation. Coming soon."
-    />
-  );
-}
 
 export function ManagerHome() {
   return (
