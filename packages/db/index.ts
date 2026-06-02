@@ -21,6 +21,7 @@ export {
   createPlacement,
   getPlacement,
   listPlacements,
+  listPlacementsForPartner,
   updatePlacement,
   _setEncryptorForTest,
   _resetEncryptorForTest,

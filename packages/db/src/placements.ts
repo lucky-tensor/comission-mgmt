@@ -488,6 +488,49 @@ export async function checkPlacementsComplete(
 }
 
 // ---------------------------------------------------------------------------
+// listPlacementsForPartner — SELECT placements where partner holds a split
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns placements where the given partner (by producer_id / user_id) holds
+ * at least one contributor row within the org.
+ *
+ * Used by GET /partner/placements to give an ExternalPartner the list of deals
+ * they are involved in (PRD §5.11).
+ *
+ * Ordered by placement created_at descending.
+ *
+ * Issue: feat: external partner scoped deal-list endpoint (#125)
+ */
+export async function listPlacementsForPartner(
+  sql: Sql,
+  orgId: string,
+  partnerId: string,
+): Promise<Placement[]> {
+  const enc = await getEncryptor();
+
+  const rows = await sql.unsafe(
+    `
+    SELECT DISTINCT ON (p.id) p.id, p.org_id, p.candidate_id, p.client_entity_id, p.job_title,
+           p.compensation_base, p.fee_amount, p.status, p.start_date, p.guarantee_days,
+           p.guarantee_expiry_date, p.is_confidential,
+           p.created_at, p.updated_at
+    FROM placements p
+    JOIN contributors c ON c.placement_id = p.id AND c.org_id = p.org_id
+    WHERE p.org_id = $1
+      AND c.producer_id = $2
+    ORDER BY p.id, p.created_at DESC
+    `,
+    [orgId, partnerId],
+  );
+
+  if (!rows || rows.length === 0) return [];
+  return Promise.all(
+    (rows as unknown as PlacementRawRow[]).map((row) => decryptPlacementRow(enc, row)),
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Internal types and helper — decrypt a raw DB row
 // ---------------------------------------------------------------------------
 

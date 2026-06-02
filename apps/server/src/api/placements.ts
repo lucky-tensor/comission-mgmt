@@ -35,6 +35,7 @@ import {
   createPlacement,
   getPlacement,
   listPlacements,
+  listPlacementsForPartner,
   updatePlacement,
   listIncompletePlacements,
   checkPlacementsComplete,
@@ -871,6 +872,71 @@ export async function handleGetPartnerPlacement(
   } catch (err: unknown) {
     console.error('[partner/placements] get error:', err);
     return errorResponse('Failed to get placement', 500);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// GET /partner/placements — External Partner scoped deal-list (masked if confidential)
+// ---------------------------------------------------------------------------
+
+/**
+ * GET /partner/placements — returns the list of placements where the authenticated
+ * External Partner holds at least one split/contributor agreement.
+ *
+ * Each entry carries only the need-to-know fields (amount owed, payment trigger,
+ * payment status) with the same masking rules as GET /partner/placements/:id:
+ *   - position_title and client_entity_id masked to "Confidential" / null when
+ *     is_confidential=true and the caller is not FinanceAdmin/Manager.
+ *   - Other contributors' credit, internal margin, and draw fields are absent.
+ *
+ * Role gating: only ExternalPartner (and FinanceAdmin for admin queries) may call
+ * this endpoint. Other roles receive 403.
+ *
+ * Tenant isolation: only placements belonging to the session org are returned.
+ *
+ * Issue: feat: external partner scoped deal-list endpoint (#125)
+ *
+ * @param sqlClient - Optional injectable SQL client (for testing).
+ */
+export async function handleListPartnerPlacements(
+  _req: Request,
+  claims: SessionClaims,
+  sqlClient?: SqlClient,
+): Promise<Response> {
+  // Role gating: ExternalPartner and FinanceAdmin only
+  if (claims.role !== 'ExternalPartner' && claims.role !== 'FinanceAdmin') {
+    return errorResponse('Forbidden', 403);
+  }
+
+  const db = sqlClient ?? defaultSql;
+
+  try {
+    const placements = await listPlacementsForPartner(db, claims.org_id, claims.user_id);
+
+    return jsonResponse(
+      placements.map((p) => {
+        const masked = shouldMask(claims, p.isConfidential);
+        return {
+          id: p.id,
+          org_id: p.orgId,
+          candidate_id: p.candidateId,
+          client_entity_id: masked ? null : p.clientEntityId,
+          job_title: masked ? 'Confidential' : p.jobTitle,
+          compensation_base: p.compensationBase,
+          fee_amount: p.feeAmount,
+          status: p.status,
+          start_date: formatDate(p.startDate),
+          guarantee_days: p.guaranteeDays,
+          guarantee_expiry_date: p.guaranteeExpiryDate,
+          is_confidential: p.isConfidential,
+          created_at: p.createdAt,
+          updated_at: p.updatedAt,
+        };
+      }),
+    );
+  } catch (err: unknown) {
+    console.error('[partner/placements] list error:', err);
+    return errorResponse('Failed to list partner placements', 500);
   }
 }
 
