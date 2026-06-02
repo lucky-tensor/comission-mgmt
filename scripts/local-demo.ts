@@ -47,6 +47,12 @@ const DB_HOST_PORT = Number(
 const PUBLIC_URL = `http://localhost:${INGRESS_HOST_PORT}`;
 const PUBLIC_TUNNEL_URL = 'https://commission-demo.superfield.co';
 
+// WebAuthn RP ID (registrable domain suffix) and origin derived from the tunnel
+// URL so they stay in sync with the served domain.  The server reads these via
+// getRpId() / getOrigin() in apps/server/src/auth/passkeys.ts:247-256.
+const WEBAUTHN_RP_ID = new URL(PUBLIC_TUNNEL_URL).hostname;
+const WEBAUTHN_ORIGIN = PUBLIC_TUNNEL_URL;
+
 const APP_IMAGE = `commission-demo-app-${INSTANCE_ID}:dev`;
 const APP_NAME = `commission-demo-app-${INSTANCE_ID}`;
 const APP_SERVICE = `commission-demo-app-${INSTANCE_ID}`;
@@ -308,6 +314,8 @@ function applyDemoApp(): void {
       `--from-literal=AUDIT_DATABASE_URL=postgres://audit_w:audit_w_dev_password@commission-dev-postgres:5432/commission_audit`,
       '--from-literal=JWT_SECRET=demo-dev-jwt-secret',
       '--from-literal=ENCRYPTION_MASTER_KEY=0000000000000000000000000000000000000000000000000000000000000001',
+      `--from-literal=WEBAUTHN_RP_ID=${WEBAUTHN_RP_ID}`,
+      `--from-literal=WEBAUTHN_ORIGIN=${WEBAUTHN_ORIGIN}`,
       '--dry-run=client -o yaml | kubectl apply -f -',
     ].join(' '),
     { stdio: 'inherit' },
@@ -366,6 +374,16 @@ spec:
                 secretKeyRef:
                   name: ${APP_SECRET}
                   key: ENCRYPTION_MASTER_KEY
+            - name: WEBAUTHN_RP_ID
+              valueFrom:
+                secretKeyRef:
+                  name: ${APP_SECRET}
+                  key: WEBAUTHN_RP_ID
+            - name: WEBAUTHN_ORIGIN
+              valueFrom:
+                secretKeyRef:
+                  name: ${APP_SECRET}
+                  key: WEBAUTHN_ORIGIN
           livenessProbe:
             httpGet:
               path: /healthz
