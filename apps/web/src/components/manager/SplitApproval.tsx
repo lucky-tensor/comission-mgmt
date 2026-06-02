@@ -27,9 +27,9 @@
  */
 
 import { useState } from 'react';
-import { ApiError, apiGet, apiPost } from '../../lib/apiClient';
+import { ApiError, apiDelete, apiGet, apiPost } from '../../lib/apiClient';
 import { useAsync } from '../../lib/useAsync';
-import { LoadingState, ErrorState, EmptyState, PortalCard } from '../portal/states';
+import { LoadingState, ErrorState, EmptyState } from '../portal/states';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -122,15 +122,105 @@ const rejectBtn: React.CSSProperties = {
 interface ContributorTableProps {
   placementId: string;
   onLoad: (placementId: string) => Promise<ContributorsResponse>;
+  onUpdateContributor: (
+    placementId: string,
+    contributor: Contributor,
+    splitPct: number,
+  ) => Promise<void>;
 }
 
-function ContributorTable({ placementId, onLoad }: ContributorTableProps) {
-  const { data, loading, error } = useAsync(() => onLoad(placementId), [placementId]);
+interface ContributorRowProps {
+  contributor: Contributor;
+  onSave: (contributor: Contributor, splitPct: number) => Promise<void>;
+}
+
+function ContributorRow({ contributor, onSave }: ContributorRowProps) {
+  const [splitPercent, setSplitPercent] = useState(String(Math.round(contributor.split_pct * 100)));
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSave() {
+    const percent = Number(splitPercent);
+    if (!Number.isFinite(percent) || percent <= 0 || percent > 100) {
+      setError('Split must be between 1 and 100.');
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+    try {
+      await onSave(contributor, percent / 100);
+    } catch (err: unknown) {
+      const msg = err instanceof ApiError ? err.message : 'Split update failed';
+      setError(msg);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <tr data-testid={`contributor-row-${contributor.id}`}>
+      <td style={{ padding: '0.375rem 0.5rem', color: '#374151' }}>{contributor.producer_id}</td>
+      <td style={{ padding: '0.375rem 0.5rem', color: '#374151' }}>{contributor.role}</td>
+      <td
+        data-testid={`split-pct-${contributor.id}`}
+        style={{ padding: '0.375rem 0.5rem', textAlign: 'right', color: '#374151' }}
+      >
+        {(contributor.split_pct * 100).toFixed(0)}%
+      </td>
+      <td style={{ padding: '0.375rem 0.5rem', textAlign: 'right' }}>
+        <input
+          data-testid={`split-input-${contributor.id}`}
+          type="number"
+          min="1"
+          max="100"
+          value={splitPercent}
+          onChange={(e) => setSplitPercent(e.target.value)}
+          style={{
+            width: '4.5rem',
+            fontSize: '0.8125rem',
+            padding: '0.25rem 0.375rem',
+            border: '1px solid #d1d5db',
+            borderRadius: '0.375rem',
+            textAlign: 'right',
+          }}
+        />
+        <button
+          data-testid={`save-split-btn-${contributor.id}`}
+          type="button"
+          disabled={saving}
+          onClick={handleSave}
+          style={{ ...btnBase, marginLeft: '0.375rem', background: '#eff6ff', color: '#1d4ed8' }}
+        >
+          Save
+        </button>
+        {error && (
+          <div
+            role="alert"
+            data-testid={`split-update-error-${contributor.id}`}
+            style={{ marginTop: '0.25rem', color: '#b91c1c', fontSize: '0.75rem' }}
+          >
+            {error}
+          </div>
+        )}
+      </td>
+    </tr>
+  );
+}
+
+function ContributorTable({ placementId, onLoad, onUpdateContributor }: ContributorTableProps) {
+  const [refresh, setRefresh] = useState(0);
+  const { data, loading, error } = useAsync(() => onLoad(placementId), [placementId, refresh]);
 
   if (loading) return <LoadingState label="contributors" />;
   if (error) return <ErrorState message={error} />;
   if (!data || data.contributors.length === 0)
     return <EmptyState message="No contributors assigned." />;
+
+  async function handleSave(contributor: Contributor, splitPct: number) {
+    await onUpdateContributor(placementId, contributor, splitPct);
+    setRefresh((value) => value + 1);
+  }
 
   return (
     <table
@@ -146,20 +236,14 @@ function ContributorTable({ placementId, onLoad }: ContributorTableProps) {
           <th style={{ textAlign: 'right', padding: '0.375rem 0.5rem', fontWeight: 500 }}>
             Split %
           </th>
+          <th style={{ textAlign: 'right', padding: '0.375rem 0.5rem', fontWeight: 500 }}>
+            Modify
+          </th>
         </tr>
       </thead>
       <tbody>
         {data.contributors.map((c) => (
-          <tr key={c.id} data-testid={`contributor-row-${c.id}`}>
-            <td style={{ padding: '0.375rem 0.5rem', color: '#374151' }}>{c.producer_id}</td>
-            <td style={{ padding: '0.375rem 0.5rem', color: '#374151' }}>{c.role}</td>
-            <td
-              data-testid={`split-pct-${c.id}`}
-              style={{ padding: '0.375rem 0.5rem', textAlign: 'right', color: '#374151' }}
-            >
-              {(c.split_pct * 100).toFixed(0)}%
-            </td>
-          </tr>
+          <ContributorRow key={c.id} contributor={c} onSave={handleSave} />
         ))}
       </tbody>
     </table>
@@ -175,10 +259,22 @@ interface DealRowProps {
   onApprove: (placementId: string) => Promise<void>;
   onReject: (placementId: string, reason: string) => Promise<void>;
   onLoadContributors: (placementId: string) => Promise<ContributorsResponse>;
+  onUpdateContributor: (
+    placementId: string,
+    contributor: Contributor,
+    splitPct: number,
+  ) => Promise<void>;
   onApproved: (placementId: string) => void;
 }
 
-function DealRow({ item, onApprove, onReject, onLoadContributors, onApproved }: DealRowProps) {
+function DealRow({
+  item,
+  onApprove,
+  onReject,
+  onLoadContributors,
+  onUpdateContributor,
+  onApproved,
+}: DealRowProps) {
   const [expanded, setExpanded] = useState(false);
   const [rejectMode, setRejectMode] = useState(false);
   const [reason, setReason] = useState('');
@@ -261,7 +357,11 @@ function DealRow({ item, onApprove, onReject, onLoadContributors, onApproved }: 
 
       {expanded && (
         <div style={{ marginTop: '0.75rem', paddingLeft: '0.5rem' }}>
-          <ContributorTable placementId={item.placement_id} onLoad={onLoadContributors} />
+          <ContributorTable
+            placementId={item.placement_id}
+            onLoad={onLoadContributors}
+            onUpdateContributor={onUpdateContributor}
+          />
         </div>
       )}
 
@@ -317,6 +417,11 @@ export interface SplitApprovalViewProps {
   onApprove: (placementId: string) => Promise<void>;
   onReject: (placementId: string, reason: string) => Promise<void>;
   onLoadContributors: (placementId: string) => Promise<ContributorsResponse>;
+  onUpdateContributor: (
+    placementId: string,
+    contributor: Contributor,
+    splitPct: number,
+  ) => Promise<void>;
   onApproved: (placementId: string) => void;
 }
 
@@ -325,6 +430,7 @@ export function SplitApprovalView({
   onApprove,
   onReject,
   onLoadContributors,
+  onUpdateContributor,
   onApproved,
 }: SplitApprovalViewProps) {
   return (
@@ -332,9 +438,7 @@ export function SplitApprovalView({
       <h2 style={headingStyle}>Pending Split Approvals</h2>
       {phase.kind === 'loading' && <LoadingState label="pending approvals" />}
       {phase.kind === 'error' && <ErrorState message={phase.message} />}
-      {phase.kind === 'empty' && (
-        <EmptyState message="No deals are awaiting split approval." />
-      )}
+      {phase.kind === 'empty' && <EmptyState message="No deals are awaiting split approval." />}
       {phase.kind === 'list' && (
         <div data-testid="pending-approvals-list">
           {phase.items.map((item) => (
@@ -344,6 +448,7 @@ export function SplitApprovalView({
               onApprove={onApprove}
               onReject={onReject}
               onLoadContributors={onLoadContributors}
+              onUpdateContributor={onUpdateContributor}
               onApproved={onApproved}
             />
           ))}
@@ -384,6 +489,20 @@ export function SplitApproval() {
     return apiGet<ContributorsResponse>(`/placements/${placementId}/contributors`);
   }
 
+  async function handleUpdateContributor(
+    placementId: string,
+    contributor: Contributor,
+    splitPct: number,
+  ): Promise<void> {
+    await apiDelete(`/placements/${placementId}/contributors/${contributor.id}`);
+    await apiPost(`/placements/${placementId}/contributors`, {
+      producer_id: contributor.producer_id,
+      role: contributor.role,
+      split_pct: splitPct,
+      split_override: true,
+    });
+  }
+
   function handleApproved(placementId: string) {
     setItems((prev) => (prev ? prev.filter((i) => i.placement_id !== placementId) : prev));
   }
@@ -394,6 +513,7 @@ export function SplitApproval() {
       onApprove={handleApprove}
       onReject={handleReject}
       onLoadContributors={handleLoadContributors}
+      onUpdateContributor={handleUpdateContributor}
       onApproved={handleApproved}
     />
   );

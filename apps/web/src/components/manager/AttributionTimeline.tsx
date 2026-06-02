@@ -26,7 +26,7 @@
 import { useState } from 'react';
 import { apiGet } from '../../lib/apiClient';
 import { useAsync } from '../../lib/useAsync';
-import { LoadingState, ErrorState, EmptyState, PortalCard } from '../portal/states';
+import { LoadingState, ErrorState, EmptyState } from '../portal/states';
 import { formatDate } from '../../lib/format';
 
 // ---------------------------------------------------------------------------
@@ -164,10 +164,7 @@ export function AttributionTimelineView({
         <EmptyState message="No attribution events recorded for this placement." />
       )}
       {phase.kind === 'timeline' && (
-        <ol
-          data-testid="timeline-events"
-          style={{ margin: 0, padding: 0, listStyle: 'none' }}
-        >
+        <ol data-testid="timeline-events" style={{ margin: 0, padding: 0, listStyle: 'none' }}>
           {phase.events.map((event, idx) => {
             const colorStyle = EVENT_TYPE_COLORS[event.event_type] ?? {
               background: '#f9fafb',
@@ -276,9 +273,7 @@ export function AttributionTimeline() {
 
   const { loading, error } = useAsync(async () => {
     if (!searchId) return;
-    const data = await apiGet<AttributionEvent[]>(
-      `/placements/${searchId}/attribution/timeline`,
-    );
+    const data = await apiGet<AttributionEvent[]>(`/placements/${searchId}/attribution/timeline`);
     setEvents(Array.isArray(data) ? data : []);
   }, [searchId]);
 

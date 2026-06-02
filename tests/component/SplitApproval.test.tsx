@@ -31,6 +31,7 @@ import {
   SplitApprovalView,
   type SplitApprovalViewProps,
   type PendingApprovalItem,
+  type Contributor,
   type ContributorsResponse,
 } from '../../apps/web/src/components/manager/SplitApproval';
 import App, { navigate } from '../../apps/web/src/App';
@@ -100,6 +101,7 @@ function defaultProps(): SplitApprovalViewProps {
     onApprove: noop,
     onReject: async () => {},
     onLoadContributors: noopContributors,
+    onUpdateContributor: async () => {},
     onApproved: () => {},
   };
 }
@@ -110,7 +112,9 @@ function defaultProps(): SplitApprovalViewProps {
 
 describe('SplitApprovalView — loading state', () => {
   test('renders the loading state', async () => {
-    mounted = renderInBrowser(<SplitApprovalView {...defaultProps()} phase={{ kind: 'loading' }} />);
+    mounted = renderInBrowser(
+      <SplitApprovalView {...defaultProps()} phase={{ kind: 'loading' }} />,
+    );
 
     await expect.element(page.getByTestId('split-approval')).toBeInTheDocument();
     await expect.element(page.getByTestId('loading-state')).toBeInTheDocument();
@@ -141,9 +145,7 @@ describe('SplitApprovalView — error state', () => {
 
 describe('SplitApprovalView — empty state', () => {
   test('renders the empty state when no pending approvals exist', async () => {
-    mounted = renderInBrowser(
-      <SplitApprovalView {...defaultProps()} phase={{ kind: 'empty' }} />,
-    );
+    mounted = renderInBrowser(<SplitApprovalView {...defaultProps()} phase={{ kind: 'empty' }} />);
 
     await expect.element(page.getByTestId('empty-state')).toBeInTheDocument();
     await expect
@@ -327,6 +329,42 @@ describe('SplitApprovalView — contributor table', () => {
     await expect.element(page.getByText('Primary')).toBeInTheDocument();
     await expect.element(page.getByText('Secondary')).toBeInTheDocument();
   });
+
+  test('saves a modified split credit for a contributor', async () => {
+    const items = [makePendingItem()];
+    const updates: Array<{ placementId: string; contributor: Contributor; splitPct: number }> = [];
+
+    async function loadContributors(): Promise<ContributorsResponse> {
+      return makeContributors();
+    }
+
+    async function updateContributor(
+      placementId: string,
+      contributor: Contributor,
+      splitPct: number,
+    ): Promise<void> {
+      updates.push({ placementId, contributor, splitPct });
+    }
+
+    mounted = renderInBrowser(
+      <SplitApprovalView
+        {...defaultProps()}
+        phase={{ kind: 'list', items }}
+        onLoadContributors={loadContributors}
+        onUpdateContributor={updateContributor}
+      />,
+    );
+
+    await page.getByTestId('expand-btn-pl-0000-0001').click();
+    await expect.element(page.getByTestId('contributors-table-pl-0000-0001')).toBeInTheDocument();
+    await page.getByTestId('split-input-c-0000-0001').fill('65');
+    await page.getByTestId('save-split-btn-c-0000-0001').click();
+
+    expect(updates).toHaveLength(1);
+    expect(updates[0].placementId).toBe('pl-0000-0001');
+    expect(updates[0].contributor.id).toBe('c-0000-0001');
+    expect(updates[0].splitPct).toBeCloseTo(0.65);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -344,18 +382,12 @@ describe('SplitApprovalView — team isolation', () => {
 
     // Manager A view
     const { container: containerA, unmount: unmountA } = renderInBrowser(
-      <SplitApprovalView
-        {...defaultProps()}
-        phase={{ kind: 'list', items: managerAItems }}
-      />,
+      <SplitApprovalView {...defaultProps()} phase={{ kind: 'list', items: managerAItems }} />,
     );
 
     // Manager B view (separate container)
     const { container: containerB, unmount: unmountB } = renderInBrowser(
-      <SplitApprovalView
-        {...defaultProps()}
-        phase={{ kind: 'list', items: managerBItems }}
-      />,
+      <SplitApprovalView {...defaultProps()} phase={{ kind: 'list', items: managerBItems }} />,
     );
 
     // Manager A sees only their deal
@@ -408,4 +440,3 @@ describe('SplitApproval — role gating via app-shell (real server)', () => {
     await expect.element(page.getByTestId('split-approval')).toBeInTheDocument();
   });
 });
-

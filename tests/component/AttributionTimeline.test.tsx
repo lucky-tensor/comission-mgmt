@@ -156,7 +156,12 @@ describe('AttributionTimelineView — timeline state', () => {
   test('renders ordered events in the timeline', async () => {
     const events: AttributionEvent[] = [
       makeEvent({ id: 'ae-0001', event_type: 'Submitted', actor_id: 'user-0001' }),
-      makeEvent({ id: 'ae-0002', event_type: 'Rejected', actor_id: 'manager-0001', reason: 'Splits incorrect' }),
+      makeEvent({
+        id: 'ae-0002',
+        event_type: 'Rejected',
+        actor_id: 'manager-0001',
+        reason: 'Splits incorrect',
+      }),
       makeEvent({ id: 'ae-0003', event_type: 'Submitted', actor_id: 'user-0001' }),
       makeEvent({ id: 'ae-0004', event_type: 'Approved', actor_id: 'manager-0001' }),
     ];
@@ -215,9 +220,7 @@ describe('AttributionTimelineView — timeline state', () => {
   });
 
   test('renders a single event with no connector line', async () => {
-    const events: AttributionEvent[] = [
-      makeEvent({ id: 'ae-0001', event_type: 'Approved' }),
-    ];
+    const events: AttributionEvent[] = [makeEvent({ id: 'ae-0001', event_type: 'Approved' })];
 
     mounted = renderInBrowser(
       <AttributionTimelineView {...defaultProps()} phase={{ kind: 'timeline', events }} />,
