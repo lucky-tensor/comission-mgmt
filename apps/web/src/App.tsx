@@ -5,7 +5,7 @@
  *   /          — probes session; redirects to role landing or stays on login
  *   /portal    — Producer Payout Portal
  *   /finance   — Finance Admin home (data-gap queue + commission run review + invoice tracking)
- *   /manager   — Manager home (placeholder)
+ *   /manager   — Manager home (split approval + attribution timeline)
  *   /executive — Executive dashboard (placeholder)
  *   /hr        — HR home (placeholder)
  *   /partner   — External Partner home (placeholder)
@@ -23,6 +23,7 @@
  *         feat: Finance Admin UI — data-gap / completeness review queue (#101)
  *         feat: Finance Admin UI — commission run review and batch approval (#102)
  *         feat: Finance Admin UI — invoice and collection tracking (per billing phase) (#103)
+ *         feat: Manager UI — split approval and attribution timeline (#107)
  */
 
 import { useState, useEffect } from 'react';
@@ -33,8 +34,9 @@ import { CommissionRunReview } from './components/finance/CommissionRunReview';
 import { ReconciliationReport } from './components/finance/ReconciliationReport';
 import { NavShell } from './components/NavShell';
 import { Forbidden } from './components/Forbidden';
-import { ManagerHome, ExecutiveHome, HrHome, PartnerHome } from './components/PlaceholderSurface';
 import { FinanceAdmin } from './components/finance/FinanceAdmin';
+import { ManagerHome } from './components/manager/ManagerHome';
+import { ExecutiveHome, HrHome, PartnerHome } from './components/PlaceholderSurface';
 import { useSession } from './lib/useSession';
 import { isPathPermitted, landingPathForRole, ROUTES } from './lib/roleRoutes';
 

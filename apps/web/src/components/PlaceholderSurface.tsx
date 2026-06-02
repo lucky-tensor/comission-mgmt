@@ -68,16 +68,6 @@ export function PlaceholderSurface({ title, description, testId }: PlaceholderSu
 // Named placeholder surfaces for each role home
 // ---------------------------------------------------------------------------
 
-export function ManagerHome() {
-  return (
-    <PlaceholderSurface
-      testId="manager-home"
-      title="Manager Home"
-      description="Team production view, split approvals, and attribution timeline. Coming soon."
-    />
-  );
-}
-
 export function ExecutiveHome() {
   return (
     <PlaceholderSurface
