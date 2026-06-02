@@ -141,8 +141,8 @@ describe('DataGapQueue — real server integration', () => {
     // The placement will appear in the incomplete queue with missing_fields=['start_date','contributors'].
     // candidate_id and client_entity_id are UUID columns — use valid UUIDs.
     const placement = await admin.post<{ id: string }>('/placements', {
-      candidate_id: 'dg000001-0000-0000-0000-000000000001',
-      client_entity_id: 'dg000001-0000-0000-0000-000000000002',
+      candidate_id: 'da000001-0000-0000-0000-000000000001',
+      client_entity_id: 'da000001-0000-0000-0000-000000000002',
       job_title: 'Data Gap Test Engineer',
       compensation_base: '120000',
       fee_amount: '15000',
@@ -180,8 +180,8 @@ describe('DataGapQueue — real server integration', () => {
     // Create a placement missing start_date (required for commission eligibility).
     // candidate_id and client_entity_id are UUID columns — use valid UUIDs.
     const placement = await admin.post<{ id: string }>('/placements', {
-      candidate_id: 'dg000002-0000-0000-0000-000000000001',
-      client_entity_id: 'dg000002-0000-0000-0000-000000000002',
+      candidate_id: 'da000002-0000-0000-0000-000000000001',
+      client_entity_id: 'da000002-0000-0000-0000-000000000002',
       job_title: 'Resolve Test Placement',
       compensation_base: '100000',
       fee_amount: '12000',
