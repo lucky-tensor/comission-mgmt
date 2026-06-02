@@ -4,7 +4,7 @@
  * Routes (six role surfaces + login):
  *   /          — probes session; redirects to role landing or stays on login
  *   /portal    — Producer Payout Portal
- *   /finance   — Finance Admin data-gap / completeness review queue
+ *   /finance   — Finance Admin home (data-gap queue + commission run review)
  *   /manager   — Manager home (placeholder)
  *   /executive — Executive dashboard (placeholder)
  *   /hr        — HR home (placeholder)
@@ -21,14 +21,16 @@
  * Issues: feat: web app shell — role-based routing, navigation, and per-role
  *         landing (#100)
  *         feat: Finance Admin UI — data-gap / completeness review queue (#101)
+ *         feat: Finance Admin UI — commission run review and batch approval (#102)
  */
 
 import { useState, useEffect } from 'react';
 import Login from './components/Login';
 import { ProducerPortal } from './components/portal/ProducerPortal';
+import { DataGapQueue } from './components/finance/DataGapQueue';
+import { CommissionRunReview } from './components/finance/CommissionRunReview';
 import { NavShell } from './components/NavShell';
 import { Forbidden } from './components/Forbidden';
-import { DataGapQueue } from './components/finance/DataGapQueue';
 import { ManagerHome, ExecutiveHome, HrHome, PartnerHome } from './components/PlaceholderSurface';
 import { useSession } from './lib/useSession';
 import { isPathPermitted, landingPathForRole, ROUTES } from './lib/roleRoutes';
@@ -59,7 +61,12 @@ function AuthenticatedApp({ role, path }: AuthenticatedAppProps) {
       case ROUTES.PORTAL:
         return <ProducerPortal onUnauthenticated={() => navigate(ROUTES.LOGIN)} />;
       case ROUTES.FINANCE:
-        return <DataGapQueue />;
+        return (
+          <>
+            <DataGapQueue />
+            <CommissionRunReview />
+          </>
+        );
       case ROUTES.MANAGER:
         return <ManagerHome />;
       case ROUTES.EXECUTIVE:

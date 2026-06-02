@@ -15,11 +15,13 @@
  *         feat: Finance Admin UI — data-gap / completeness review queue (#101)
  */
 
-/** Error thrown for non-2xx responses, carrying status + normalized message. */
+/** Error thrown for non-2xx responses, carrying status + normalized message + full parsed body. */
 export class ApiError extends Error {
   constructor(
     public readonly status: number,
     message: string,
+    /** Full parsed JSON response body (when the server returns JSON). */
+    public readonly body: unknown = null,
   ) {
     super(message);
     this.name = 'ApiError';
@@ -49,7 +51,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   const data = text ? (JSON.parse(text) as unknown) : null;
   if (!res.ok) {
     const msg = (data as { error?: string } | null)?.error ?? `Request failed (${res.status})`;
-    throw new ApiError(res.status, msg);
+    throw new ApiError(res.status, msg, data);
   }
   return data as T;
 }
