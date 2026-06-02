@@ -1,16 +1,18 @@
 /**
- * Thin typed fetch wrapper for the Producer Portal.
+ * Thin typed fetch wrapper for portal and admin surfaces.
  *
- * Every portal call site goes through `apiGet` / `apiPost` — no raw `fetch` is
- * duplicated in components. Responses are JSON-parsed and typed by the caller;
- * non-2xx responses throw an `ApiError` carrying the normalized server message.
+ * Every call site goes through `apiGet` / `apiPost` / `apiPatch` — no raw
+ * `fetch` is duplicated in components. Responses are JSON-parsed and typed by
+ * the caller; non-2xx responses throw an `ApiError` carrying the normalized
+ * server message.
  *
  * CSRF (double-submit, interoperates with the #77 wiring): the server sets a
  * readable `__Host-csrf-token` cookie on login. For mutating requests we echo
  * that value in the `X-CSRF-Token` header. GET requests need no token.
  *
  * Canonical docs: docs/prd.md §5.8 — Producer Payout Portal
- * Issue: feat: Producer Portal UI + headless-Chromium browser/E2E harness (#78)
+ * Issues: feat: Producer Portal UI + headless-Chromium browser/E2E harness (#78)
+ *         feat: Finance Admin UI — data-gap / completeness review queue (#101)
  */
 
 /** Error thrown for non-2xx responses, carrying status + normalized message. */
@@ -58,3 +60,7 @@ export const apiGet = <T>(path: string): Promise<T> => request<T>('GET', path);
 /** Typed POST against `/api<path>` with a JSON body. */
 export const apiPost = <T>(path: string, body: unknown): Promise<T> =>
   request<T>('POST', path, body);
+
+/** Typed PATCH against `/api<path>` with a JSON body. */
+export const apiPatch = <T>(path: string, body: unknown): Promise<T> =>
+  request<T>('PATCH', path, body);

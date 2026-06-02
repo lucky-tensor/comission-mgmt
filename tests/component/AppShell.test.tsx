@@ -168,8 +168,8 @@ describe('App — role-based routing (real server)', () => {
     navigate(ROUTES.LOGIN);
     mounted = renderInBrowser(<App />);
 
-    // Finance Home placeholder renders for FinanceAdmin.
-    await expect.element(page.getByTestId('finance-home')).toBeInTheDocument();
+    // Data Gap Queue renders for FinanceAdmin at /finance.
+    await expect.element(page.getByTestId('data-gap-queue')).toBeInTheDocument();
     expect(window.location.pathname).toBe('/finance');
   });
 
