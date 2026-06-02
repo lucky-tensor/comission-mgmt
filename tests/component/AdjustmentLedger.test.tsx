@@ -160,9 +160,8 @@ describe('AdjustmentLedgerView', () => {
     );
     await expect.element(page.getByTestId('adjustment-table')).toBeInTheDocument();
 
-    // Two adjustment rows
-    const rows = page.getByTestId('adjustment-row');
-    await expect.element(rows.first()).toBeInTheDocument();
+    // At least one adjustment row is present
+    await expect.element(page.getByTestId('adjustment-row')).toBeInTheDocument();
 
     // Amount rendered (newest-first: adj-0002 is newer, so -$750.00 appears first)
     await expect.element(page.getByText('-$750.00')).toBeInTheDocument();
