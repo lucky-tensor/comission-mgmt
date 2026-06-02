@@ -75,6 +75,7 @@ import {
   handleListPlanVersions,
   handleGetActivePlanVersion,
   handleActivatePlanVersion,
+  handleAcknowledgePlanVersion,
   handleCreatePlanAssignment,
   handleListPlanAssignments,
 } from './api/plans';
@@ -416,6 +417,17 @@ export async function fetchHandler(req: Request): Promise<Response> {
     return handleActivatePlanVersion(
       planVersionActivateMatch[1],
       planVersionActivateMatch[2],
+      authResult.claims,
+    );
+  }
+  // /plans/:id/versions/:vid/acknowledge — producer acceptance record (issue #123)
+  const planVersionAcknowledgeMatch = pathname.match(
+    /^\/plans\/([^/]+)\/versions\/([^/]+)\/acknowledge$/,
+  );
+  if (req.method === 'POST' && planVersionAcknowledgeMatch) {
+    return handleAcknowledgePlanVersion(
+      planVersionAcknowledgeMatch[1],
+      planVersionAcknowledgeMatch[2],
       authResult.claims,
     );
   }

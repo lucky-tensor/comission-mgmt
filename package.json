@@ -17,6 +17,7 @@
     "test:contributors": "bun --bun vitest run --config vitest.contributors.config.ts",
     "test:attribution": "bun --bun vitest run --config vitest.attribution.config.ts",
     "test:plans": "bun --bun vitest run --config vitest.plans.config.ts",
+    "test:plan-acknowledgment": "bun --bun vitest run --config vitest.plan-acknowledgment.config.ts",
     "test:calculate": "bun --bun vitest run --config vitest.calculate.config.ts",
     "test:invoices": "bun --bun vitest run --config vitest.invoices.config.ts",
     "test:commission-runs": "bun --bun vitest run --config vitest.commission-runs.config.ts",

@@ -81,6 +81,21 @@ export interface PlanAssignment {
   expiresAt: Date | null;
 }
 
+export interface PlanAcknowledgment {
+  id: string;
+  orgId: string;
+  planVersionId: string;
+  producerId: string;
+  acknowledgedBy: string;
+  acknowledgedAt: Date;
+}
+
+/** Assignment row enriched with acknowledgment status. */
+export interface PlanAssignmentWithAck extends PlanAssignment {
+  acknowledgedAt: Date | null;
+  acknowledgedBy: string | null;
+}
+
 // ---------------------------------------------------------------------------
 // Input types
 // ---------------------------------------------------------------------------
@@ -106,6 +121,13 @@ export interface CreatePlanAssignmentInput {
   planVersionId: string;
   producerId: string;
   expiresAt?: Date | null;
+}
+
+export interface AcknowledgePlanVersionInput {
+  orgId: string;
+  planVersionId: string;
+  producerId: string;
+  acknowledgedBy: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -446,6 +468,120 @@ export async function listPlanAssignments(
 }
 
 // ---------------------------------------------------------------------------
+// acknowledgePlanVersion — INSERT an acceptance record (idempotent per producer+version)
+// ---------------------------------------------------------------------------
+
+/**
+ * Records a producer's acknowledgment of a plan version.
+ *
+ * Idempotent: if the producer has already acknowledged this version, returns
+ * the existing record without modifying it (no timestamp update).
+ *
+ * Returns the acknowledgment record (new or existing).
+ *
+ * Issue: feat: commission plan acknowledgment (#123)
+ */
+export async function acknowledgePlanVersion(
+  sql: Sql,
+  input: AcknowledgePlanVersionInput,
+): Promise<PlanAcknowledgment> {
+  const rows = await sql.unsafe(
+    `
+    INSERT INTO plan_acknowledgments (
+      org_id, plan_version_id, producer_id, acknowledged_by
+    ) VALUES ($1, $2, $3, $4)
+    ON CONFLICT (plan_version_id, producer_id) DO NOTHING
+    RETURNING id, org_id, plan_version_id, producer_id, acknowledged_by, acknowledged_at
+    `,
+    [input.orgId, input.planVersionId, input.producerId, input.acknowledgedBy],
+  );
+
+  if (rows && rows.length > 0) {
+    return mapAcknowledgmentRow(rows[0] as unknown as RawAcknowledgmentRow);
+  }
+
+  // Already exists — fetch the existing record
+  const existing = await sql.unsafe(
+    `
+    SELECT id, org_id, plan_version_id, producer_id, acknowledged_by, acknowledged_at
+    FROM plan_acknowledgments
+    WHERE plan_version_id = $1 AND producer_id = $2
+    `,
+    [input.planVersionId, input.producerId],
+  );
+
+  if (!existing || existing.length === 0) {
+    throw new Error('acknowledgePlanVersion: record not found after conflict');
+  }
+  return mapAcknowledgmentRow(existing[0] as unknown as RawAcknowledgmentRow);
+}
+
+// ---------------------------------------------------------------------------
+// getPlanVersionAcknowledgment — fetch a single acknowledgment record
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns the acknowledgment record for a producer+version, or null if not found.
+ *
+ * Issue: feat: commission plan acknowledgment (#123)
+ */
+export async function getPlanVersionAcknowledgment(
+  sql: Sql,
+  orgId: string,
+  planVersionId: string,
+  producerId: string,
+): Promise<PlanAcknowledgment | null> {
+  const rows = await sql.unsafe(
+    `
+    SELECT id, org_id, plan_version_id, producer_id, acknowledged_by, acknowledged_at
+    FROM plan_acknowledgments
+    WHERE org_id = $1 AND plan_version_id = $2 AND producer_id = $3
+    `,
+    [orgId, planVersionId, producerId],
+  );
+
+  if (!rows || rows.length === 0) return null;
+  return mapAcknowledgmentRow(rows[0] as unknown as RawAcknowledgmentRow);
+}
+
+// ---------------------------------------------------------------------------
+// listPlanAssignmentsWithAck — SELECT assignments with acknowledgment status
+// ---------------------------------------------------------------------------
+
+/**
+ * Lists all producer assignments for a plan, enriched with acknowledgment status.
+ * The acknowledgedAt / acknowledgedBy fields are null when the producer has not yet
+ * acknowledged the assigned plan version.
+ *
+ * Issue: feat: commission plan acknowledgment (#123)
+ */
+export async function listPlanAssignmentsWithAck(
+  sql: Sql,
+  orgId: string,
+  planId: string,
+): Promise<PlanAssignmentWithAck[]> {
+  const rows = await sql.unsafe(
+    `
+    SELECT pa.id, pa.org_id, pa.plan_version_id, pa.producer_id,
+           pa.assigned_at, pa.expires_at,
+           ack.acknowledged_by AS ack_acknowledged_by,
+           ack.acknowledged_at AS ack_acknowledged_at
+    FROM plan_assignments pa
+    JOIN plan_versions pv ON pv.id = pa.plan_version_id
+    LEFT JOIN plan_acknowledgments ack
+           ON ack.plan_version_id = pa.plan_version_id
+          AND ack.producer_id = pa.producer_id
+    WHERE pa.org_id = $1 AND pv.plan_id = $2
+    ORDER BY pa.assigned_at DESC
+    `,
+    [orgId, planId],
+  );
+
+  if (!rows || rows.length === 0) return [];
+  return (rows as unknown as RawAssignmentWithAckRow[]).map(mapAssignmentWithAckRow);
+}
+
+// ---------------------------------------------------------------------------
 // Encryptor singleton for tier progress (lazy-initialised, mirrors commission-records.ts pattern)
 // ---------------------------------------------------------------------------
 
@@ -649,6 +785,20 @@ interface RawAssignmentRow {
   expires_at: Date | null;
 }
 
+interface RawAssignmentWithAckRow extends RawAssignmentRow {
+  ack_acknowledged_by: string | null;
+  ack_acknowledged_at: Date | null;
+}
+
+interface RawAcknowledgmentRow {
+  id: string;
+  org_id: string;
+  plan_version_id: string;
+  producer_id: string;
+  acknowledged_by: string;
+  acknowledged_at: Date;
+}
+
 function formatDate(value: string | Date | null | undefined): string | null {
   if (value == null) return null;
   const d = value instanceof Date ? value : new Date(value);
@@ -690,5 +840,29 @@ function mapAssignmentRow(row: RawAssignmentRow): PlanAssignment {
     producerId: row.producer_id,
     assignedAt: row.assigned_at,
     expiresAt: row.expires_at ?? null,
+  };
+}
+
+function mapAssignmentWithAckRow(row: RawAssignmentWithAckRow): PlanAssignmentWithAck {
+  return {
+    id: row.id,
+    orgId: row.org_id,
+    planVersionId: row.plan_version_id,
+    producerId: row.producer_id,
+    assignedAt: row.assigned_at,
+    expiresAt: row.expires_at ?? null,
+    acknowledgedBy: row.ack_acknowledged_by ?? null,
+    acknowledgedAt: row.ack_acknowledged_at ?? null,
+  };
+}
+
+function mapAcknowledgmentRow(row: RawAcknowledgmentRow): PlanAcknowledgment {
+  return {
+    id: row.id,
+    orgId: row.org_id,
+    planVersionId: row.plan_version_id,
+    producerId: row.producer_id,
+    acknowledgedBy: row.acknowledged_by,
+    acknowledgedAt: row.acknowledged_at,
   };
 }

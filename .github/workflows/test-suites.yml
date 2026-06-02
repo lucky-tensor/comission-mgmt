@@ -64,6 +64,7 @@ jobs:
           - vitest.leadership-visibility.config.ts
           - vitest.manager-view.config.ts
           - vitest.migration.config.ts
+          - vitest.plan-acknowledgment.config.ts
           - vitest.plans.config.ts
           - vitest.producer-portal.config.ts
           - vitest.reconciliation.config.ts
