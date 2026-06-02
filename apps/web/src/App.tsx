@@ -4,7 +4,7 @@
  * Routes (six role surfaces + login):
  *   /          — probes session; redirects to role landing or stays on login
  *   /portal    — Producer Payout Portal
- *   /finance   — Finance Admin home (data-gap queue + commission run review)
+ *   /finance   — Finance Admin home (data-gap queue + commission run review + invoice tracking)
  *   /manager   — Manager home (placeholder)
  *   /executive — Executive dashboard (placeholder)
  *   /hr        — HR home (placeholder)
@@ -22,6 +22,7 @@
  *         landing (#100)
  *         feat: Finance Admin UI — data-gap / completeness review queue (#101)
  *         feat: Finance Admin UI — commission run review and batch approval (#102)
+ *         feat: Finance Admin UI — invoice and collection tracking (per billing phase) (#103)
  */
 
 import { useState, useEffect } from 'react';
@@ -32,6 +33,7 @@ import { CommissionRunReview } from './components/finance/CommissionRunReview';
 import { NavShell } from './components/NavShell';
 import { Forbidden } from './components/Forbidden';
 import { ManagerHome, ExecutiveHome, HrHome, PartnerHome } from './components/PlaceholderSurface';
+import { FinanceAdmin } from './components/finance/FinanceAdmin';
 import { useSession } from './lib/useSession';
 import { isPathPermitted, landingPathForRole, ROUTES } from './lib/roleRoutes';
 
@@ -65,6 +67,7 @@ function AuthenticatedApp({ role, path }: AuthenticatedAppProps) {
           <>
             <DataGapQueue />
             <CommissionRunReview />
+            <FinanceAdmin />
           </>
         );
       case ROUTES.MANAGER:
