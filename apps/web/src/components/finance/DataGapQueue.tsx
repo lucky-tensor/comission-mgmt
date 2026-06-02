@@ -92,7 +92,14 @@ function ResolveRow({ placement, onResolved }: ResolveRowProps) {
         padding: '1rem 0',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem' }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'flex-start',
+          justifyContent: 'space-between',
+          gap: '1rem',
+        }}
+      >
         <div>
           <div style={{ fontWeight: 600, color: '#111827', fontSize: '0.9375rem' }}>
             {placement.job_title ?? 'Untitled placement'}
@@ -173,7 +180,13 @@ function ResolveRow({ placement, onResolved }: ResolveRowProps) {
             <div key={field} style={{ marginBottom: '0.75rem' }}>
               <label
                 htmlFor={`field-${placement.id}-${field}`}
-                style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: '#374151', marginBottom: '0.25rem' }}
+                style={{
+                  display: 'block',
+                  fontSize: '0.8125rem',
+                  fontWeight: 600,
+                  color: '#374151',
+                  marginBottom: '0.25rem',
+                }}
               >
                 {FIELD_LABELS[field] ?? field}
               </label>

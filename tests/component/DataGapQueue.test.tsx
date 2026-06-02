@@ -22,7 +22,10 @@ import { page } from '@vitest/browser/context';
 import { renderInBrowser, type Mounted } from './render';
 import { SEEDED } from '../e2e/fixtures/ids';
 import App, { navigate } from '../../apps/web/src/App';
-import { DataGapQueue, type IncompletePlacement } from '../../apps/web/src/components/finance/DataGapQueue';
+import {
+  DataGapQueue,
+  type IncompletePlacement,
+} from '../../apps/web/src/components/finance/DataGapQueue';
 import { ROUTES } from '../../apps/web/src/lib/roleRoutes';
 import { LoadingState, ErrorState, EmptyState } from '../../apps/web/src/components/portal/states';
 
@@ -60,7 +63,10 @@ class AdminSession {
   async post<T>(path: string, body?: unknown): Promise<T> {
     const res = await fetch(`/api${path}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...(this.cookie ? { cookie: this.cookie } : {}) },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(this.cookie ? { cookie: this.cookie } : {}),
+      },
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
     const text = await res.text();
@@ -71,7 +77,10 @@ class AdminSession {
   async patch<T>(path: string, body?: unknown): Promise<T> {
     const res = await fetch(`/api${path}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', ...(this.cookie ? { cookie: this.cookie } : {}) },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(this.cookie ? { cookie: this.cookie } : {}),
+      },
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
     const text = await res.text();

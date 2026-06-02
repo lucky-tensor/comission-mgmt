@@ -29,12 +29,7 @@ import { ProducerPortal } from './components/portal/ProducerPortal';
 import { NavShell } from './components/NavShell';
 import { Forbidden } from './components/Forbidden';
 import { DataGapQueue } from './components/finance/DataGapQueue';
-import {
-  ManagerHome,
-  ExecutiveHome,
-  HrHome,
-  PartnerHome,
-} from './components/PlaceholderSurface';
+import { ManagerHome, ExecutiveHome, HrHome, PartnerHome } from './components/PlaceholderSurface';
 import { useSession } from './lib/useSession';
 import { isPathPermitted, landingPathForRole, ROUTES } from './lib/roleRoutes';
 
