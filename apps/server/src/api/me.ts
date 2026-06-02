@@ -58,20 +58,6 @@ function errorResponse(message: string, status: number): Response {
   return jsonResponse({ error: message }, status);
 }
 
-function notImplemented(description: string): Response {
-  return new Response(
-    JSON.stringify({
-      error: 'Not Implemented',
-      description,
-      scout: 'dev-scout stub — see docs/architecture/phase-producer-portal.md',
-    }),
-    {
-      status: 501,
-      headers: { 'Content-Type': 'application/json' },
-    },
-  );
-}
-
 // ---------------------------------------------------------------------------
 // GET /me — producer identity + active plan summary (stub)
 // ---------------------------------------------------------------------------
