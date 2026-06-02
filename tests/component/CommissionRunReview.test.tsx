@@ -416,9 +416,7 @@ describe('CommissionRunReviewView — finalize 422 gate (blocked state)', () => 
     await expect.element(page.getByTestId('finalize-blocked')).toBeInTheDocument();
     await expect.element(page.getByTestId('discrepancy-count')).toBeInTheDocument();
     // Scope the count to the discrepancy-count element to avoid partial matches in the run heading.
-    await expect
-      .element(page.getByTestId('discrepancy-count').getByText('3'))
-      .toBeInTheDocument();
+    await expect.element(page.getByTestId('discrepancy-count').getByText('3')).toBeInTheDocument();
     // Hint text appears
     await expect.element(page.getByText(/Acknowledge all discrepancies/)).toBeInTheDocument();
   });
@@ -441,9 +439,7 @@ describe('CommissionRunReviewView — finalize 422 gate (blocked state)', () => 
     await expect.element(page.getByTestId('finalize-blocked')).toBeInTheDocument();
     await expect.element(page.getByTestId('unapproved-count')).toBeInTheDocument();
     // Scope the count to the unapproved-count element to avoid partial matches in date strings.
-    await expect
-      .element(page.getByTestId('unapproved-count').getByText('2'))
-      .toBeInTheDocument();
+    await expect.element(page.getByTestId('unapproved-count').getByText('2')).toBeInTheDocument();
   });
 
   test('renders finalize-blocked without counts when only error message is present', async () => {
