@@ -6,7 +6,8 @@
  *   /portal    — Producer Payout Portal
  *   /finance   — Finance Admin home (data-gap queue + commission run review + invoice tracking)
  *   /manager   — Manager home (split approval + attribution timeline, team commission view, cross-team split escalation / tiebreaker)
- *   /executive — Executive dashboard (firm financial position)
+ *   /executive              — Executive dashboard (firm financial position)
+ *   /executive/profitability — Executive profitability analytics (by client/recruiter/team/practice)
  *   /hr        — HR home (placeholder)
  *   /partner   — External Partner home (placeholder)
  *
@@ -27,6 +28,7 @@
  *         feat: Manager UI — team commission view (#108)
  *         feat: Manager UI — cross-team split escalation / tiebreaker (#109)
  *         feat: Executive UI — firm financial position dashboard (#110)
+ *         feat: Executive UI — profitability analytics surface (#111)
  */
 
 import { useState, useEffect } from 'react';
@@ -39,8 +41,9 @@ import { NavShell } from './components/NavShell';
 import { Forbidden } from './components/Forbidden';
 import { FinanceAdmin } from './components/finance/FinanceAdmin';
 import { HrHome, PartnerHome } from './components/PlaceholderSurface';
-import { ManagerPortal } from './components/manager/SplitEscalation';
+import { ManagerHome } from './components/manager/ManagerHome';
 import { ExecFinancialPosition } from './components/executive/ExecFinancialPosition';
+import { ExecProfitability } from './components/ExecProfitability';
 import { useSession } from './lib/useSession';
 import { isPathPermitted, landingPathForRole, ROUTES } from './lib/roleRoutes';
 
@@ -80,9 +83,11 @@ function AuthenticatedApp({ role, path }: AuthenticatedAppProps) {
       case ROUTES.RECONCILIATION:
         return <ReconciliationReport />;
       case ROUTES.MANAGER:
-        return <ManagerPortal />;
+        return <ManagerHome />;
       case ROUTES.EXECUTIVE:
         return <ExecFinancialPosition />;
+      case ROUTES.EXEC_PROFITABILITY:
+        return <ExecProfitability />;
       case ROUTES.HR:
         return <HrHome />;
       case ROUTES.PARTNER:
