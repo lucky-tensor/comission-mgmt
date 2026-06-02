@@ -7,6 +7,7 @@
  * id to demo-login as the seeded user.
  *
  * Issue: feat: Producer Portal UI + headless-Chromium browser/E2E harness (#78)
+ * Issue: feat: Executive UI — firm financial position dashboard (#110)
  */
 
 export const SEEDED = {
@@ -15,4 +16,6 @@ export const SEEDED = {
   producerEmail: 'e2e-producer@demo.example',
   adminId: 'e2e00000-0000-0000-0000-0000000000c1',
   adminEmail: 'e2e-admin@demo.example',
+  executiveId: 'e2e00000-0000-0000-0000-0000000000d1',
+  executiveEmail: 'e2e-executive@demo.example',
 } as const;
