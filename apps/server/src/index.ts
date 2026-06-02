@@ -56,6 +56,10 @@ import {
   handleGetMyClawbackExposure,
 } from './api/clawback';
 import {
+  handlePostAdjustment,
+  handleGetPlacementAdjustments,
+} from './api/adjustments';
+import {
   handleAddContributor,
   handleListContributors,
   handleDeleteContributor,
@@ -456,6 +460,18 @@ export async function fetchHandler(req: Request): Promise<Response> {
   const placementClawbackMatch = pathname.match(/^\/placements\/([^/]+)\/clawback$/);
   if (req.method === 'GET' && placementClawbackMatch) {
     return handleGetPlacementClawback(placementClawbackMatch[1], authResult.claims);
+  }
+
+  // POST /placements/:id/adjustments — post a refund/credit-memo adjustment (issue #122)
+  // GET  /placements/:id/adjustments — full ordered adjustment-ledger history (issue #122)
+  const placementAdjustmentsMatch = pathname.match(/^\/placements\/([^/]+)\/adjustments$/);
+  if (placementAdjustmentsMatch) {
+    if (req.method === 'POST') {
+      return handlePostAdjustment(placementAdjustmentsMatch[1], req, authResult.claims);
+    }
+    if (req.method === 'GET') {
+      return handleGetPlacementAdjustments(placementAdjustmentsMatch[1], authResult.claims);
+    }
   }
 
   // Commission calculation routes — POST /placements/:id/calculate
