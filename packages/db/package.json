@@ -30,7 +30,8 @@
     "./billing-phases": "./src/billing-phases.ts",
     "./reconciliation": "./src/reconciliation.ts",
     "./guarantee-periods": "./src/guarantee-periods.ts",
-    "./disputes": "./src/disputes.ts"
+    "./disputes": "./src/disputes.ts",
+    "./adjustments": "./src/adjustments.ts"
   },
   "scripts": {
     "build": "tsc --noEmit --project tsconfig.json"

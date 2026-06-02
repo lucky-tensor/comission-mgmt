@@ -49,6 +49,7 @@ jobs:
           - vitest.cron.config.ts
           - vitest.billing-phases.config.ts
           - vitest.calculate.config.ts
+          - vitest.adjustments.config.ts
           - vitest.clawback.config.ts
           - vitest.commission-runs.config.ts
           - vitest.confidential-placement.config.ts

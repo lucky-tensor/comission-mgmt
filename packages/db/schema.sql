@@ -866,3 +866,18 @@ CREATE TABLE IF NOT EXISTS clawback_recovery_schedules (
 
 CREATE INDEX IF NOT EXISTS idx_crs_org ON clawback_recovery_schedules (org_id);
 CREATE INDEX IF NOT EXISTS idx_crs_clawback_event ON clawback_recovery_schedules (clawback_event_id);
+
+-- =============================================================================
+-- Refund and credit-memo adjustment ledger entries (issue #122).
+-- Finance Admins post refund or credit-memo adjustments as append-only ledger
+-- entries. The reason column carries the required human-readable explanation.
+-- Canonical: docs/prd.md §4, §5.4, §9, docs/architecture/phase-finance-close.md
+-- =============================================================================
+
+-- commission_record_adjustments.reason: free-text human-readable reason for the
+-- adjustment (required for refund/credit-memo adjustments posted via issue #122).
+ALTER TABLE commission_record_adjustments ADD COLUMN IF NOT EXISTS reason TEXT;
+
+CREATE INDEX IF NOT EXISTS idx_cra_reason_code_type
+  ON commission_record_adjustments (org_id, reason_code)
+  WHERE reason_code IN ('refund', 'credit_memo');

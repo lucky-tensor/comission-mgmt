@@ -258,6 +258,18 @@ export type {
   TeamDisputeItem,
 } from './src/manager-team.js';
 
+// Refund and credit-memo adjustment ledger entries — issue #122
+export {
+  ADJUSTMENT_TYPES,
+  createRefundCreditAdjustment,
+  listPlacementAdjustments,
+} from './src/adjustments.js';
+export type {
+  AdjustmentType,
+  RefundCreditAdjustmentRow,
+  CreateRefundCreditAdjustmentInput,
+} from './src/adjustments.js';
+
 const DEFAULT_DATABASE_URLS = {
   app: 'postgres://app_rw:app_rw_password@localhost:5432/commission_app',
   audit: 'postgres://audit_w:audit_w_password@localhost:5432/commission_audit',

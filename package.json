@@ -37,6 +37,7 @@
     "test:security": "bun --bun vitest run --config vitest.security.config.ts",
     "test:audit-ordering": "bun --bun vitest run --config vitest.audit-ordering.config.ts",
     "test:cron": "bun --bun vitest run --config vitest.cron.config.ts",
+    "test:adjustments": "bun --bun vitest run --config vitest.adjustments.config.ts",
     "check:sql-injection": "bun run scripts/check-sql-injection.ts",
     "check:vitest-coverage": "bun run scripts/check-vitest-coverage.ts",
     "test:browser": "vitest run --config vitest.browser.config.ts",
