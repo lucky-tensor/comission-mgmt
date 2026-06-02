@@ -749,7 +749,6 @@ export function ReconciliationReport() {
 
   // Track live unacknowledged count — starts from the report summary, decremented on ACK.
   const [unacknowledgedCount, setUnacknowledgedCount] = useState(0);
-  const [currentPeriod, setCurrentPeriod] = useState<{ start: string; end: string } | null>(null);
 
   async function handleFetch(periodStart: string, periodEnd: string): Promise<void> {
     setFetching(true);
@@ -762,7 +761,6 @@ export function ReconciliationReport() {
       );
       setPhase({ kind: 'data', report });
       setUnacknowledgedCount(report.summary.unacknowledged);
-      setCurrentPeriod({ start: periodStart, end: periodEnd });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to load reconciliation report';
       setPhase({ kind: 'error', message });
