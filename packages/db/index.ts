@@ -57,6 +57,9 @@ export {
   getActivePlanVersion,
   createPlanAssignment,
   listPlanAssignments,
+  listPlanAssignmentsWithAck,
+  acknowledgePlanVersion,
+  getPlanVersionAcknowledgment,
   validateTiers,
   getTierProgressForProducer,
   _setTierEncryptorForTest,
@@ -67,12 +70,15 @@ export type {
   PlanVersion,
   PlanVersionState,
   PlanAssignment,
+  PlanAssignmentWithAck,
+  PlanAcknowledgment,
   PlanRules,
   TierRule,
   TierProgressResult,
   CreatePlanInput,
   CreatePlanVersionInput,
   CreatePlanAssignmentInput,
+  AcknowledgePlanVersionInput,
 } from './src/plans.js';
 
 export {

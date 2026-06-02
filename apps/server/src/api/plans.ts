@@ -2,14 +2,15 @@
  * Commission Plan API routes.
  *
  * Routes:
- *   POST   /plans                                — create a plan with initial rules
- *   GET    /plans                                — list all plans for the tenant
- *   POST   /plans/:id/versions                  — create a new plan version
- *   GET    /plans/:id/versions                  — list all versions for a plan
- *   GET    /plans/:id/active                    — get the currently active version
- *   POST   /plans/:id/versions/:vid/activate    — activate a draft version
- *   POST   /plans/:id/assignments               — assign a producer to a plan
- *   GET    /plans/:id/assignments               — list all producer assignments for a plan
+ *   POST   /plans                                    — create a plan with initial rules
+ *   GET    /plans                                    — list all plans for the tenant
+ *   POST   /plans/:id/versions                       — create a new plan version
+ *   GET    /plans/:id/versions                       — list all versions for a plan
+ *   GET    /plans/:id/active                         — get the currently active version
+ *   POST   /plans/:id/versions/:vid/activate         — activate a draft version
+ *   POST   /plans/:id/versions/:vid/acknowledge      — producer acknowledges a plan version
+ *   POST   /plans/:id/assignments                    — assign a producer to a plan
+ *   GET    /plans/:id/assignments                    — list producer assignments (with ack status)
  *
  * Multi-tenant isolation: all queries are scoped to the session org_id.
  * Tier validation: overlapping thresholds return 422.
@@ -18,8 +19,9 @@
  *   All handler functions accept an optional SqlClient so tests can inject
  *   an ephemeral Postgres connection without touching the module-level pool.
  *
- * Canonical docs: docs/prd.md §5.3, §8.3
+ * Canonical docs: docs/prd.md §5.3, §8.3, §4 (HR / People Ops)
  * Issue: feat: commission plan configuration and versioning (#9)
+ * Issue: feat: commission plan acknowledgment (#123)
  */
 
 import {
@@ -31,10 +33,12 @@ import {
   getPlan,
   getActivePlanVersion,
   createPlanAssignment,
-  listPlanAssignments,
+  listPlanAssignmentsWithAck,
+  acknowledgePlanVersion,
+  getPlanVersionAcknowledgment,
   validateTiers,
 } from 'db/plans';
-import { sql as defaultSql } from 'db/index';
+import { sql as defaultSql, auditSql as defaultAuditSql } from 'db/index';
 import type { SessionClaims } from 'core/auth';
 import type { Sql } from 'postgres';
 import type { PlanRules, TierRule } from 'db/plans';
@@ -499,7 +503,11 @@ export async function handleCreatePlanAssignment(
 // ---------------------------------------------------------------------------
 
 /**
- * GET /plans/:id/assignments — lists all producer assignments for a plan.
+ * GET /plans/:id/assignments — lists all producer assignments for a plan,
+ * enriched with acknowledgment status (acknowledgedAt / acknowledgedBy).
+ *
+ * Role access: HR (FinanceAdmin / HrAdmin) may read all assignments.
+ * A Producer may read their own assignment (producer_id == claims.user_id).
  */
 export async function handleListPlanAssignments(
   planId: string,
@@ -514,19 +522,140 @@ export async function handleListPlanAssignments(
   }
 
   try {
-    const assignments = await listPlanAssignments(db, claims.org_id, planId);
+    const assignments = await listPlanAssignmentsWithAck(db, claims.org_id, planId);
+
+    // Producers may only see their own assignment row.
+    const filtered =
+      claims.role === 'Producer'
+        ? assignments.filter((a) => a.producerId === claims.user_id)
+        : assignments;
+
     return jsonResponse(
-      assignments.map((a) => ({
+      filtered.map((a) => ({
         id: a.id,
         org_id: a.orgId,
         plan_version_id: a.planVersionId,
         producer_id: a.producerId,
         assigned_at: a.assignedAt,
         expires_at: a.expiresAt,
+        acknowledged_at: a.acknowledgedAt ?? null,
+        acknowledged_by: a.acknowledgedBy ?? null,
       })),
     );
   } catch (err: unknown) {
     console.error('[plans] list assignments error:', err);
     return errorResponse('Failed to list plan assignments', 500);
   }
+}
+
+// ---------------------------------------------------------------------------
+// POST /plans/:id/versions/:vid/acknowledge — producer acknowledges a plan version
+// ---------------------------------------------------------------------------
+
+/**
+ * POST /plans/:id/versions/:vid/acknowledge
+ *
+ * A Producer acknowledges their active assigned plan version. Creates a durable
+ * acceptance record (actor + plan version + timestamp). Idempotent: re-acknowledging
+ * the same version returns the existing record unchanged.
+ *
+ * Role gating:
+ *   - A Producer may acknowledge only a plan version they are currently assigned to.
+ *   - Non-Producer roles (HR/Admin) are not permitted to acknowledge on behalf of a producer.
+ *
+ * Writes an AuditLogEntry to commission_audit on first acknowledgment.
+ *
+ * Returns 200 with the acknowledgment record.
+ * Returns 403 if the producer is not assigned to this version.
+ * Returns 404 if the plan or version does not exist in the tenant.
+ *
+ * Canonical docs: docs/prd.md §4 (HR / People Ops)
+ * Issue: feat: commission plan acknowledgment (#123)
+ */
+export async function handleAcknowledgePlanVersion(
+  planId: string,
+  versionId: string,
+  claims: SessionClaims,
+  sqlClient?: SqlClient,
+  auditSqlClient?: SqlClient,
+): Promise<Response> {
+  // Only Producers may acknowledge; HR can read status but not write on behalf of a producer.
+  if (claims.role !== 'Producer') {
+    return errorResponse('Forbidden: only Producers may acknowledge a plan', 403);
+  }
+
+  const db = sqlClient ?? defaultSql;
+  const adb = auditSqlClient ?? defaultAuditSql;
+
+  // Verify plan exists in tenant
+  const plan = await getPlan(db, claims.org_id, planId);
+  if (!plan) {
+    return errorResponse('Plan not found', 404);
+  }
+
+  // Verify the producer has an assignment for this specific version
+  const assignmentRows = await db.unsafe(
+    `
+    SELECT pa.id
+    FROM plan_assignments pa
+    WHERE pa.org_id = $1
+      AND pa.plan_version_id = $2
+      AND pa.producer_id = $3
+    LIMIT 1
+    `,
+    [claims.org_id, versionId, claims.user_id],
+  );
+
+  if (!assignmentRows || assignmentRows.length === 0) {
+    return errorResponse('Forbidden: producer is not assigned to this plan version', 403);
+  }
+
+  // Check whether this is a new acknowledgment (for audit log)
+  const existing = await getPlanVersionAcknowledgment(db, claims.org_id, versionId, claims.user_id);
+  const isNew = existing === null;
+
+  const ack = await acknowledgePlanVersion(db, {
+    orgId: claims.org_id,
+    planVersionId: versionId,
+    producerId: claims.user_id,
+    acknowledgedBy: claims.user_id,
+  });
+
+  // Write audit log entry only on first acknowledgment (idempotent calls skip)
+  if (isNew) {
+    try {
+      await adb.unsafe(
+        `
+        INSERT INTO audit_log_entries (
+          org_id, actor_id, actor_type, action, entity_type, entity_id, before_json, after_json
+        ) VALUES ($1, $2, $3, $4, $5, $6, NULL, $7)
+        `,
+        [
+          claims.org_id,
+          claims.user_id,
+          'User',
+          'plan_version.acknowledged',
+          'plan_version',
+          versionId,
+          {
+            plan_id: planId,
+            plan_version_id: versionId,
+            producer_id: claims.user_id,
+            acknowledged_at: ack.acknowledgedAt,
+          } as never,
+        ],
+      );
+    } catch (err: unknown) {
+      console.error('[plans] acknowledge audit log write error (non-fatal):', err);
+    }
+  }
+
+  return jsonResponse({
+    id: ack.id,
+    org_id: ack.orgId,
+    plan_version_id: ack.planVersionId,
+    producer_id: ack.producerId,
+    acknowledged_by: ack.acknowledgedBy,
+    acknowledged_at: ack.acknowledgedAt,
+  });
 }

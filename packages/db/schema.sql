@@ -351,6 +351,24 @@ CREATE TABLE IF NOT EXISTS plan_assignments (
 CREATE INDEX IF NOT EXISTS idx_plan_assignments_org ON plan_assignments (org_id);
 CREATE INDEX IF NOT EXISTS idx_plan_assignments_producer ON plan_assignments (producer_id);
 
+-- Plan acknowledgments: durable, audited records of producer acceptance of a plan version.
+-- Immutable once created (idempotent per producer+plan_version_id — unique constraint).
+-- Canonical docs: docs/prd.md §4 (HR / People Ops)
+-- Issue: feat: commission plan acknowledgment (#123)
+CREATE TABLE IF NOT EXISTS plan_acknowledgments (
+  id               UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id           UUID        NOT NULL,
+  plan_version_id  UUID        NOT NULL REFERENCES plan_versions(id),
+  producer_id      UUID        NOT NULL,
+  acknowledged_by  UUID        NOT NULL,
+  acknowledged_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (plan_version_id, producer_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_plan_acknowledgments_org ON plan_acknowledgments (org_id);
+CREATE INDEX IF NOT EXISTS idx_plan_acknowledgments_producer ON plan_acknowledgments (producer_id);
+CREATE INDEX IF NOT EXISTS idx_plan_acknowledgments_version ON plan_acknowledgments (plan_version_id);
+
 -- Commission records: the calculated commission amount per contributor per placement.
 CREATE TABLE IF NOT EXISTS commission_records (
   id               UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
