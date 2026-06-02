@@ -4,7 +4,7 @@
  * Routes (six role surfaces + login):
  *   /          — probes session; redirects to role landing or stays on login
  *   /portal    — Producer Payout Portal
- *   /finance   — Finance Admin home (placeholder)
+ *   /finance   — Finance Admin data-gap / completeness review queue
  *   /manager   — Manager home (placeholder)
  *   /executive — Executive dashboard (placeholder)
  *   /hr        — HR home (placeholder)
@@ -18,8 +18,9 @@
  * single module (lib/roleRoutes.ts).
  *
  * Canonical docs: docs/prd.md §3 (User Roles)
- * Issue: feat: web app shell — role-based routing, navigation, and per-role
- *        landing (#100)
+ * Issues: feat: web app shell — role-based routing, navigation, and per-role
+ *         landing (#100)
+ *         feat: Finance Admin UI — data-gap / completeness review queue (#101)
  */
 
 import { useState, useEffect } from 'react';
@@ -27,13 +28,8 @@ import Login from './components/Login';
 import { ProducerPortal } from './components/portal/ProducerPortal';
 import { NavShell } from './components/NavShell';
 import { Forbidden } from './components/Forbidden';
-import {
-  FinanceHome,
-  ManagerHome,
-  ExecutiveHome,
-  HrHome,
-  PartnerHome,
-} from './components/PlaceholderSurface';
+import { DataGapQueue } from './components/finance/DataGapQueue';
+import { ManagerHome, ExecutiveHome, HrHome, PartnerHome } from './components/PlaceholderSurface';
 import { useSession } from './lib/useSession';
 import { isPathPermitted, landingPathForRole, ROUTES } from './lib/roleRoutes';
 
@@ -63,7 +59,7 @@ function AuthenticatedApp({ role, path }: AuthenticatedAppProps) {
       case ROUTES.PORTAL:
         return <ProducerPortal onUnauthenticated={() => navigate(ROUTES.LOGIN)} />;
       case ROUTES.FINANCE:
-        return <FinanceHome />;
+        return <DataGapQueue />;
       case ROUTES.MANAGER:
         return <ManagerHome />;
       case ROUTES.EXECUTIVE:
