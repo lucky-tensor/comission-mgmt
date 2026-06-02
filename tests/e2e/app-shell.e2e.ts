@@ -68,10 +68,11 @@ describe('App shell E2E — role-based routing', () => {
     navigate('/');
     current = mountApp();
 
-    // The nav shell renders with both Finance Home surfaces.
+    // The nav shell renders with all Finance Admin surfaces.
     await expect.element(page.getByTestId('nav-shell')).toBeInTheDocument();
     await expect.element(page.getByTestId('data-gap-queue')).toBeInTheDocument();
     await expect.element(page.getByTestId('commission-run-review')).toBeInTheDocument();
+    await expect.element(page.getByTestId('finance-admin')).toBeInTheDocument();
 
     // The nav badge shows the role.
     await expect.element(page.getByTestId('nav-role-badge')).toHaveTextContent('FinanceAdmin');
@@ -116,6 +117,7 @@ describe('App shell E2E — role-based routing', () => {
     current = mountApp();
     await expect.element(page.getByTestId('data-gap-queue')).toBeInTheDocument();
     await expect.element(page.getByTestId('commission-run-review')).toBeInTheDocument();
+    await expect.element(page.getByTestId('finance-admin')).toBeInTheDocument();
     const adminPath = window.location.pathname;
     current.unmount();
     current = undefined;
