@@ -348,7 +348,10 @@ describe('CommissionRunReviewView — queue phase', () => {
       <CommissionRunReviewView {...defaultProps()} phase={{ kind: 'queue', data }} />,
     );
 
-    await expect.element(page.getByText('Held')).toBeInTheDocument();
+    // Scope to the queue row to avoid the "Held" <dt> in the totals summary.
+    await expect
+      .element(page.getByTestId('queue-row-rec-0000-0001').getByText('Held'))
+      .toBeInTheDocument();
     await expect.element(page.getByText('Guarantee period active')).toBeInTheDocument();
   });
 
@@ -412,7 +415,10 @@ describe('CommissionRunReviewView — finalize 422 gate (blocked state)', () => 
 
     await expect.element(page.getByTestId('finalize-blocked')).toBeInTheDocument();
     await expect.element(page.getByTestId('discrepancy-count')).toBeInTheDocument();
-    await expect.element(page.getByText('3')).toBeInTheDocument();
+    // Scope the count to the discrepancy-count element to avoid partial matches in the run heading.
+    await expect
+      .element(page.getByTestId('discrepancy-count').getByText('3'))
+      .toBeInTheDocument();
     // Hint text appears
     await expect.element(page.getByText(/Acknowledge all discrepancies/)).toBeInTheDocument();
   });
@@ -434,7 +440,10 @@ describe('CommissionRunReviewView — finalize 422 gate (blocked state)', () => 
 
     await expect.element(page.getByTestId('finalize-blocked')).toBeInTheDocument();
     await expect.element(page.getByTestId('unapproved-count')).toBeInTheDocument();
-    await expect.element(page.getByText('2')).toBeInTheDocument();
+    // Scope the count to the unapproved-count element to avoid partial matches in date strings.
+    await expect
+      .element(page.getByTestId('unapproved-count').getByText('2'))
+      .toBeInTheDocument();
   });
 
   test('renders finalize-blocked without counts when only error message is present', async () => {
