@@ -44,6 +44,7 @@ export const ROUTES = {
   LOGIN: '/',
   PORTAL: '/portal',
   FINANCE: '/finance',
+  RECONCILIATION: '/reconciliation',
   MANAGER: '/manager',
   EXECUTIVE: '/executive',
   HR: '/hr',
@@ -65,6 +66,7 @@ export const ROLE_ROUTES: Record<AppRole, RoleRouteConfig> = {
     landing: ROUTES.FINANCE,
     permitted: new Set([
       ROUTES.FINANCE,
+      ROUTES.RECONCILIATION,
       ROUTES.PORTAL,
       ROUTES.MANAGER,
       ROUTES.EXECUTIVE,
@@ -73,6 +75,7 @@ export const ROLE_ROUTES: Record<AppRole, RoleRouteConfig> = {
     ]),
     navItems: [
       { path: ROUTES.FINANCE, label: 'Finance Home' },
+      { path: ROUTES.RECONCILIATION, label: 'Reconciliation' },
       { path: ROUTES.MANAGER, label: 'Manager View' },
       { path: ROUTES.EXECUTIVE, label: 'Executive View' },
     ],
