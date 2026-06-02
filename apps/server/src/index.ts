@@ -130,6 +130,8 @@ import {
   handleGetTeamPendingApprovals,
   handleGetTeamDisputes,
 } from './api/manager-team';
+// Per-producer draw balance and recovery schedule — issue #124
+import { handleGetProducerDrawBalance } from './api/draw-balance';
 
 // Re-export foundation modules so they continue to be verified at compile time.
 export * from './auth/jwt';
@@ -586,6 +588,16 @@ export async function fetchHandler(req: Request): Promise<Response> {
   }
   if (req.method === 'GET' && pathname === '/me/clawback-exposure') {
     return handleGetMyClawbackExposure(authResult.claims);
+  }
+
+  // Per-producer draw balance and recovery schedule — issue #124
+  // GET /producers/:id/draw-balance — HR or the producer themselves read draw balance + recovery.
+  {
+    const drawBalanceMatch = pathname.match(/^\/producers\/([^/]+)\/draw-balance$/);
+    if (req.method === 'GET' && drawBalanceMatch) {
+      const producerId = drawBalanceMatch[1]!;
+      return handleGetProducerDrawBalance(producerId, authResult.claims);
+    }
   }
 
   // Manager Team View routes — issue #21

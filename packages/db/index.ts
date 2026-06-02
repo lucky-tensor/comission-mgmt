@@ -276,6 +276,20 @@ export type {
   CreateRefundCreditAdjustmentInput,
 } from './src/adjustments.js';
 
+// Per-producer draw balance and recovery schedule — issue #124
+export {
+  getDrawBalanceForProducer,
+  listRecoverySchedulesForProducer,
+  createDrawBalance,
+  _setEncryptorForTest as _setDrawBalanceEncryptorForTest,
+  _resetEncryptorForTest as _resetDrawBalanceEncryptorForTest,
+} from './src/draw-balance.js';
+export type {
+  DrawBalanceResult,
+  ProducerRecoveryScheduleRow,
+  CreateDrawBalanceInput,
+} from './src/draw-balance.js';
+
 const DEFAULT_DATABASE_URLS = {
   app: 'postgres://app_rw:app_rw_password@localhost:5432/commission_app',
   audit: 'postgres://audit_w:audit_w_password@localhost:5432/commission_audit',
