@@ -37,7 +37,6 @@ import { TeamCommissionView } from './components/manager/TeamCommissionView';
 import { NavShell } from './components/NavShell';
 import { Forbidden } from './components/Forbidden';
 import { FinanceAdmin } from './components/finance/FinanceAdmin';
-import { ManagerHome } from './components/manager/ManagerHome';
 import { ExecutiveHome, HrHome, PartnerHome } from './components/PlaceholderSurface';
 import { useSession } from './lib/useSession';
 import { isPathPermitted, landingPathForRole, ROUTES } from './lib/roleRoutes';
