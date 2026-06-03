@@ -30,6 +30,7 @@ import Login from './components/Login';
 import { ProducerPortal } from './components/portal/ProducerPortal';
 import { DataGapQueue } from './components/finance/DataGapQueue';
 import { CommissionRunReview } from './components/finance/CommissionRunReview';
+import { ReconciliationReport } from './components/finance/ReconciliationReport';
 import { NavShell } from './components/NavShell';
 import { Forbidden } from './components/Forbidden';
 import { ManagerHome, ExecutiveHome, HrHome, PartnerHome } from './components/PlaceholderSurface';
@@ -70,6 +71,8 @@ function AuthenticatedApp({ role, path }: AuthenticatedAppProps) {
             <FinanceAdmin />
           </>
         );
+      case ROUTES.RECONCILIATION:
+        return <ReconciliationReport />;
       case ROUTES.MANAGER:
         return <ManagerHome />;
       case ROUTES.EXECUTIVE:
