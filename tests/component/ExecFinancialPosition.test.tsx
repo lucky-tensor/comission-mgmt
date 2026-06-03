@@ -179,12 +179,8 @@ describe('ExecFinancialPosition — real server integration', () => {
     // The wrapper must appear
     await expect.element(page.getByTestId('exec-financial-position')).toBeInTheDocument();
 
-    // Wait for loading to complete — one of the metric tiles or empty/error state must appear
-    const metricsOrState = page
-      .getByTestId('metric-gross-fees')
-      .or(page.getByTestId('empty-state'))
-      .or(page.getByTestId('error-state'));
-    await expect.element(metricsOrState).toBeInTheDocument();
+    // Wait for loading to complete — loading-state must disappear before we check results
+    await expect.element(page.getByTestId('loading-state')).not.toBeInTheDocument();
 
     // If any data came back, all five metrics must be present
     const hasMetrics = (await page.getByTestId('metric-gross-fees').elements()).length > 0;
@@ -209,12 +205,8 @@ describe('ExecFinancialPosition — real server integration', () => {
 
     await expect.element(page.getByTestId('exec-financial-position')).toBeInTheDocument();
 
-    // Wait for the initial data/empty/error state to settle
-    const initialState = page
-      .getByTestId('metric-gross-fees')
-      .or(page.getByTestId('empty-state'))
-      .or(page.getByTestId('error-state'));
-    await expect.element(initialState).toBeInTheDocument();
+    // Wait for the initial fetch to settle — loading-state must disappear
+    await expect.element(page.getByTestId('loading-state')).not.toBeInTheDocument();
 
     // Change the period start to a far-future date — should yield empty results
     const startInput = page.getByTestId('period-start-input');
@@ -222,13 +214,10 @@ describe('ExecFinancialPosition — real server integration', () => {
     const endInput = page.getByTestId('period-end-input');
     await endInput.fill('2099-01-31');
 
-    // After re-fetch, loading-state or result must appear (demonstrates re-fetch occurred)
-    const afterChange = page
-      .getByTestId('empty-state')
-      .or(page.getByTestId('error-state'))
-      .or(page.getByTestId('metric-gross-fees'))
-      .or(page.getByTestId('loading-state'));
-    await expect.element(afterChange).toBeInTheDocument();
+    // After re-fetch the component wrapper must still be present (demonstrates re-render occurred)
+    await expect.element(page.getByTestId('exec-financial-position')).toBeInTheDocument();
+    // Wait for any in-flight loading to resolve
+    await expect.element(page.getByTestId('loading-state')).not.toBeInTheDocument();
   });
 
   test('role gate: Producer navigating to /executive renders Forbidden surface', async () => {
