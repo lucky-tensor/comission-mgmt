@@ -172,9 +172,7 @@ describe('ExecFinancialPosition — real server integration', () => {
     expect(res.ok, `demo login failed: ${res.status}`).toBe(true);
 
     // Mount the connected component with the seeded period (cover the full seed month)
-    mounted = renderInBrowser(
-      <ExecFinancialPosition />,
-    );
+    mounted = renderInBrowser(<ExecFinancialPosition />);
 
     // The wrapper must appear
     await expect.element(page.getByTestId('exec-financial-position')).toBeInTheDocument();
