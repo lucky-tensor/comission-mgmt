@@ -329,24 +329,16 @@ describe('ExecDisputeApproval — real server integration', () => {
   });
 
   test('escalated disputes render for Executive from GET /disputes', async () => {
-    // Create a commission record to dispute (need a placement first)
-    const placement = await admin.post<{ id: string }>('/placements', {
-      candidate_id: 'ec000001-0000-0000-0000-000000000001',
-      client_entity_id: 'ec000001-0000-0000-0000-000000000002',
-      job_title: 'Exec Dispute Test Engineer',
-      compensation_base: '140000',
-      fee_amount: '18000',
-      start_date: '2025-06-01',
-    });
+    // Use the seeded producer's commission records (created by seedViaHttp in global-setup).
+    // GET /me/commission-records returns { commission_records: [...] } scoped to the producer.
+    const producerSession = new AdminSession();
+    await producerSession.login(SEEDED.producerId);
 
-    // Need a commission record to create a dispute; seed via plan/calculation
-    // For simplicity, create the dispute directly with a placeholder record ID
-    // by first creating an org plan and commission record.
-    // Since we need a real commission_record_id, use the admin to create one via the calc pipeline.
-    // Instead, we'll use the producer's own commission record from SEEDED data.
-    // Use the SEEDED producerId's commission records.
-    const payouts = await admin.get<{ records: Array<{ id: string }> }>('/me/payouts');
-    const recordId = payouts.records[0]?.id;
+    const { commission_records } = await producerSession.get<{
+      commission_records: Array<{ id: string }>;
+    }>('/me/commission-records');
+
+    const recordId = commission_records?.[0]?.id;
 
     if (!recordId) {
       // Skip if no commission records seeded yet
@@ -354,24 +346,14 @@ describe('ExecDisputeApproval — real server integration', () => {
       return;
     }
 
-    // Create a dispute as producer (submitted by producer)
-    const producerSession = new AdminSession();
-    await producerSession.login(SEEDED.producerId);
+    // Create a dispute as the producer against the seeded commission record
     const dispute = await producerSession.post<Dispute>('/me/disputes', {
       commission_record_id: recordId,
       description: 'Exec Dispute Integration Test',
     });
 
-    // Escalate: put in UnderReview state via Finance Admin
-    // The existing API transitions to Resolved, not UnderReview. However the
-    // DB state 'UnderReview' must be set directly for this test. Use admin
-    // to update it via the existing resolve endpoint or via direct DB update.
-    // Since there's no "escalate" endpoint, we'll use the admin to directly
-    // update via SQL (not available in browser context). Instead, we'll
-    // demonstrate the UI works with Submitted disputes too (filtering unresolved).
-    // The UI filters for UnderReview, but let's verify the list fetches correctly.
-
-    // Seed executive session in browser
+    // Seed executive session in browser and render App
+    // The UI shows all disputes from GET /disputes; verify the component renders.
     await fetch('/api/demo/session', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -384,14 +366,10 @@ describe('ExecDisputeApproval — real server integration', () => {
     await expect.element(page.getByTestId('exec-dispute-approval')).toBeInTheDocument();
     await expect.element(page.getByTestId('exec-dispute-heading')).toBeInTheDocument();
 
-    // Clean up dispute by resolving it via admin
+    // Clean up: resolve the dispute via admin so subsequent test runs start clean
     await admin.post(`/disputes/${dispute.id}/resolve`, {
       resolution_note: 'Integration test cleanup',
     });
-
-    // Clean up placement
-    // (No delete endpoint; leave it — ephemeral test DB)
-    void placement;
   });
 
   test('Producer role navigating to /executive renders Forbidden (role gate)', async () => {
