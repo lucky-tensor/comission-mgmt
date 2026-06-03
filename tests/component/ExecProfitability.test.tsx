@@ -16,7 +16,10 @@
 
 import { describe, test, expect, afterEach } from 'vitest';
 import { page } from '@vitest/browser/context';
-import { ExecProfitabilityView, type ExecProfitabilityViewProps } from '../../apps/web/src/components/ExecProfitability';
+import {
+  ExecProfitabilityView,
+  type ExecProfitabilityViewProps,
+} from '../../apps/web/src/components/ExecProfitability';
 import { renderInBrowser, type Mounted } from './render';
 import { SEEDED } from '../e2e/fixtures/ids';
 import App, { navigate } from '../../apps/web/src/App';
@@ -135,9 +138,7 @@ describe('ExecProfitabilityView — dimension render', () => {
   });
 
   test('recruiter dimension renders the profitability table', async () => {
-    mounted = renderInBrowser(
-      <ExecProfitabilityView {...viewProps({ dimension: 'recruiter' })} />,
-    );
+    mounted = renderInBrowser(<ExecProfitabilityView {...viewProps({ dimension: 'recruiter' })} />);
     await expect.element(page.getByTestId('profitability-table')).toBeInTheDocument();
     const rows = page.getByTestId('profitability-row').elements();
     expect(rows).toHaveLength(2);
@@ -151,9 +152,7 @@ describe('ExecProfitabilityView — dimension render', () => {
   });
 
   test('practice dimension renders the unavailable notice', async () => {
-    mounted = renderInBrowser(
-      <ExecProfitabilityView {...viewProps({ dimension: 'practice' })} />,
-    );
+    mounted = renderInBrowser(<ExecProfitabilityView {...viewProps({ dimension: 'practice' })} />);
     await expect.element(page.getByTestId('dimension-unavailable')).toBeInTheDocument();
   });
 

@@ -207,9 +207,7 @@ function ProfitabilityTable({ rows, sortDir, onSortToggle, dimension }: Profitab
   const burdenLabel = dimension === 'client' ? 'Commission Burden' : 'Net Payable';
 
   if (rows.length === 0) {
-    return (
-      <EmptyState message={`No ${dimension} profitability data for the selected period.`} />
-    );
+    return <EmptyState message={`No ${dimension} profitability data for the selected period.`} />;
   }
 
   return (
@@ -280,9 +278,7 @@ function ProfitabilityTable({ rows, sortDir, onSortToggle, dimension }: Profitab
                 background: i % 2 === 0 ? '#ffffff' : '#f9fafb',
               }}
             >
-              <td
-                style={{ padding: '0.5rem 0.75rem', color: '#111827', fontFamily: 'monospace' }}
-              >
+              <td style={{ padding: '0.5rem 0.75rem', color: '#111827', fontFamily: 'monospace' }}>
                 {row.label}
               </td>
               <td style={{ padding: '0.5rem 0.75rem', textAlign: 'right', color: '#111827' }}>
@@ -359,7 +355,7 @@ export function ExecProfitabilityView({
         <ErrorState message={state.error} />
       ) : !state.data ? (
         <EmptyState message="No analytics data available for the selected period." />
-      ) : (dimension === 'team' || dimension === 'practice') ? (
+      ) : dimension === 'team' || dimension === 'practice' ? (
         <div
           data-testid="dimension-unavailable"
           style={{
@@ -371,8 +367,8 @@ export function ExecProfitabilityView({
             color: '#92400e',
           }}
         >
-          The <strong>{dimension}</strong> dimension is not yet available in the analytics
-          response — a backend field is needed. Dimensions available: client, recruiter.
+          The <strong>{dimension}</strong> dimension is not yet available in the analytics response
+          — a backend field is needed. Dimensions available: client, recruiter.
         </div>
       ) : (
         <ProfitabilityTable
