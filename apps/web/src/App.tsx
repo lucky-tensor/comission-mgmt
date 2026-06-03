@@ -9,7 +9,7 @@
  *   /executive              — Executive dashboard (firm financial position + escalated dispute final-approval)
  *   /executive/profitability — Executive profitability analytics (by client/recruiter/team/practice)
  *   /executive/trends        — Executive exception & dispute rate trends
- *   /hr        — HR home (commission plan acknowledgment status)
+ *   /hr        — HR home (commission plan acknowledgment + draw balance and recovery schedule)
  *   /partner   — External Partner home (placeholder)
  *
  * Routing is intentionally tiny (no router dependency): the app reads
@@ -32,6 +32,7 @@
  *         feat: Executive UI — profitability analytics surface (#111)
  *         feat: Executive UI — exception and dispute-rate trends (#112)
  *         feat: Executive UI — escalated dispute final-approval (#113)
+ *         feat: HR/People Ops UI — draw balance and recovery schedule view (#115)
  */
 
 import { useState, useEffect } from 'react';
@@ -50,6 +51,7 @@ import { ExecFinancialPosition } from './components/executive/ExecFinancialPosit
 import { ExecProfitability } from './components/ExecProfitability';
 import { ExecDisputeApproval } from './components/executive/ExecDisputeApproval';
 import { PlanAcknowledgment } from './components/hr/PlanAcknowledgment';
+import { DrawBalanceView } from './components/hr/DrawBalanceView';
 import { useSession } from './lib/useSession';
 import { isPathPermitted, landingPathForRole, ROUTES } from './lib/roleRoutes';
 
@@ -102,7 +104,12 @@ function AuthenticatedApp({ role, path }: AuthenticatedAppProps) {
       case ROUTES.EXEC_TRENDS:
         return <ExecTrends />;
       case ROUTES.HR:
-        return <PlanAcknowledgment />;
+        return (
+          <>
+            <PlanAcknowledgment />
+            <DrawBalanceView />
+          </>
+        );
       case ROUTES.PARTNER:
         return <PartnerHome />;
       default:

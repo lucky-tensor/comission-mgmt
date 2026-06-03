@@ -8,6 +8,7 @@
  *
  * Issue: feat: Producer Portal UI + headless-Chromium browser/E2E harness (#78)
  * Issue: feat: Executive UI — firm financial position dashboard (#110)
+ * Issue: feat: HR/People Ops UI — draw balance and recovery schedule view (#115)
  */
 
 export const SEEDED = {
