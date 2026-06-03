@@ -12,6 +12,7 @@
  *      exercised — it just isn't enforced here),
  *   4. wait until /readyz is green.
  *   5. seed the finance-close fixture (commission run + invoice + AR discrepancy).
+ *   6. seed the External Partner fixture (own-deal + unrelated placement).
  *
  * The server listens on E2E_SERVER_PORT (default 31999); the Vitest dev server
  * proxies /api there (see vitest.browser.config.ts). Teardown stops both.
@@ -25,6 +26,7 @@
  *   test: E2E — Finance Admin month-end close (headless Chromium) (#117)
  *   test: E2E — Manager split-approval and dispute resolution (#118)
  *   test: E2E — Executive visibility and dispute final-approval (#119)
+ *   test: E2E — External Partner payout visibility and scope enforcement (#121)
  */
 
 import { spawn, type ChildProcess } from 'node:child_process';
@@ -35,6 +37,7 @@ import { migrateAndSeedIdentities, seedViaHttp } from './fixtures/seed-producer'
 import { seedFinanceClose } from './fixtures/seed-finance-close';
 import { migrateAndSeedManagerIdentities, seedManagerViaHttp } from './fixtures/seed-manager';
 import { seedExecutiveViaHttp } from './fixtures/seed-executive';
+import { seedPartnerFlow } from './fixtures/seed-partner';
 
 const PORT = Number(process.env.E2E_SERVER_PORT ?? 31999);
 const ROOT = resolve(__dirname, '../..');
@@ -97,20 +100,24 @@ export async function setup(): Promise<void> {
   process.env.E2E_CLOSE_RUN_ID = closeFixture.runId;
   process.env.E2E_CLOSE_INCOMPLETE_PLACEMENT_ID = closeFixture.incompletePlacementId;
 
-  // Also write to a JSON file so the browser-side test can fetch it via the
-  // /api/e2e-fixture endpoint (served by the test API server if available) or
-  // the Vite dev server plugin below.
+  // Phase 4: seed the External Partner fixture (own-deal + unrelated placement).
+  const partnerFixture = await seedPartnerFlow(`http://localhost:${PORT}`, pg.url);
+
+  // Write all fixture IDs to a JSON file so the browser-side tests can fetch
+  // them via the Vite dev server plugin (/__e2e_fixture__).
   const fixtureJson = JSON.stringify({
     closeRunId: closeFixture.runId,
     closeIncompletePlacementId: closeFixture.incompletePlacementId,
+    partnerPlacementId: partnerFixture.partnerPlacementId,
+    unrelatedPlacementId: partnerFixture.unrelatedPlacementId,
   });
   const fixturePath = resolve(ROOT, '.e2e-fixture.json');
   writeFileSync(fixturePath, fixtureJson, 'utf-8');
 
-  // Phase 4: seed manager team data — placements, contributors, disputes.
+  // Phase 5: seed manager team data — placements, contributors, disputes.
   await seedManagerViaHttp(`http://localhost:${PORT}`, pg.url);
 
-  // Phase 5: seed executive E2E data — escalated dispute for final-approval flow.
+  // Phase 6: seed executive E2E data — escalated dispute for final-approval flow.
   const execFixture = await seedExecutiveViaHttp(`http://localhost:${PORT}`, pg.url);
   process.env.E2E_EXEC_ESCALATED_DISPUTE_ID = execFixture.escalatedDisputeId;
   process.env.E2E_EXEC_ESCALATED_PLACEMENT_ID = execFixture.escalatedPlacementId;

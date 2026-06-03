@@ -12,6 +12,7 @@
  * Issue: feat: HR/People Ops UI — draw balance and recovery schedule view (#115)
  * Issue: test: E2E — Finance Admin month-end close (headless Chromium) (#117)
  * Issue: test: E2E — Manager split-approval and dispute resolution (#118)
+ * Issue: test: E2E — External Partner payout visibility and scope enforcement (#121)
  */
 
 export const SEEDED = {
@@ -31,6 +32,23 @@ export const SEEDED = {
   manager2Email: 'e2e-manager2@demo.example',
   producer2Id: 'e2e00000-0000-0000-0000-0000000000b2',
   producer2Email: 'e2e-producer2@demo.example',
+  // External Partner E2E persona (issue #121)
+  partnerId: 'e2e00000-0000-0000-0000-0000000000a1',
+  partnerEmail: 'e2e-partner@demo.example',
+} as const;
+
+/**
+ * External Partner fixture constants — pure data, no Node.js dependencies.
+ *
+ * The seeded External Partner holds a split on one placement (PARTNER.feeAmount
+ * with a start_date trigger) and must NOT see an unrelated placement seeded by
+ * the admin persona.
+ */
+export const PARTNER = {
+  /** Fee amount for the partner's own split deal. */
+  feeAmount: '8000',
+  /** Placement start date used as payment trigger. */
+  startDate: '2025-03-01',
 } as const;
 
 /**
