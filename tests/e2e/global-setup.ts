@@ -24,6 +24,7 @@
  *   feat: Producer Portal UI + headless-Chromium browser/E2E harness (#78)
  *   test: E2E — Finance Admin month-end close (headless Chromium) (#117)
  *   test: E2E — Manager split-approval and dispute resolution (#118)
+ *   test: E2E — Executive visibility and dispute final-approval (#119)
  */
 
 import { spawn, type ChildProcess } from 'node:child_process';
@@ -33,6 +34,7 @@ import { startPostgres, type PgContainer } from 'db/pg-container';
 import { migrateAndSeedIdentities, seedViaHttp } from './fixtures/seed-producer';
 import { seedFinanceClose } from './fixtures/seed-finance-close';
 import { migrateAndSeedManagerIdentities, seedManagerViaHttp } from './fixtures/seed-manager';
+import { seedExecutiveViaHttp } from './fixtures/seed-executive';
 
 const PORT = Number(process.env.E2E_SERVER_PORT ?? 31999);
 const ROOT = resolve(__dirname, '../..');
@@ -107,6 +109,11 @@ export async function setup(): Promise<void> {
 
   // Phase 4: seed manager team data — placements, contributors, disputes.
   await seedManagerViaHttp(`http://localhost:${PORT}`, pg.url);
+
+  // Phase 5: seed executive E2E data — escalated dispute for final-approval flow.
+  const execFixture = await seedExecutiveViaHttp(`http://localhost:${PORT}`, pg.url);
+  process.env.E2E_EXEC_ESCALATED_DISPUTE_ID = execFixture.escalatedDisputeId;
+  process.env.E2E_EXEC_ESCALATED_PLACEMENT_ID = execFixture.escalatedPlacementId;
 }
 
 export async function teardown(): Promise<void> {
