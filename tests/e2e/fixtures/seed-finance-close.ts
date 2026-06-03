@@ -27,22 +27,10 @@
 
 import postgres from 'postgres';
 import { upsertArIngestedRecord } from 'db/reconciliation';
-import { SEEDED } from './ids';
+import { SEEDED, CLOSE } from './ids';
 
-export const CLOSE = {
-  /** Period used for the commission run and reconciliation report. */
-  periodStart: '2025-05-01',
-  periodEnd: '2025-05-31',
-
-  /** Invoice number used in the ledger; AR record has a different amount. */
-  invoiceNumber: 'INV-E2E-CLOSE-001',
-
-  /** Amount billed in the ledger invoice (encrypted; server writes it). */
-  ledgerAmount: '15000',
-
-  /** Amount that will be inserted into the AR table — intentionally wrong. */
-  arAmount: '9999',
-} as const;
+// Re-export so callers that previously imported CLOSE from this file still work.
+export { CLOSE } from './ids';
 
 /** Minimal HTTP session helper (mirrors ApiSession in seed-producer.ts). */
 class ApiSession {

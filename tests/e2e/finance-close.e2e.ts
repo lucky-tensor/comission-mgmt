@@ -34,8 +34,7 @@ import { describe, test, expect, beforeAll, afterEach } from 'vitest';
 import { page, userEvent } from '@vitest/browser/context';
 import { createRoot, type Root } from 'react-dom/client';
 import { act, createElement } from 'react';
-import { SEEDED } from './fixtures/ids';
-import { CLOSE } from './fixtures/seed-finance-close';
+import { SEEDED, CLOSE } from './fixtures/ids';
 import App, { navigate } from '../../apps/web/src/App';
 
 // ---------------------------------------------------------------------------
