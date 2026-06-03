@@ -23,15 +23,38 @@
  * Issue: test: E2E — Manager split-approval and dispute resolution (#118)
  */
 
-import { describe, test, expect, beforeAll, afterEach } from 'vitest';
+import { describe, test, expect, beforeAll, afterEach, inject } from 'vitest';
 import { page, userEvent } from '@vitest/browser/context';
 import { createRoot } from 'react-dom/client';
 import { act, createElement } from 'react';
-import { SEEDED, MANAGER_SEEDED } from './fixtures/seed-manager';
+// Import SEEDED from the dependency-free ids module so this file does not
+// pull in postgres.js (which uses Node's Buffer and crashes in browser context).
+import { SEEDED } from './fixtures/ids';
 import { TeamCommissionView } from '../../apps/web/src/components/manager/TeamCommissionView';
 import { SplitApproval } from '../../apps/web/src/components/manager/SplitApproval';
 import { AttributionTimeline } from '../../apps/web/src/components/manager/AttributionTimeline';
 import { ManagerPortal } from '../../apps/web/src/components/manager/SplitEscalation';
+
+// Seeded placement IDs are provided by global-setup.ts via Vitest's inject()
+// mechanism. The global setup runs in Bun (Node.js); these IDs are the only
+// data that needs to cross from Bun-land to browser-land.
+const MANAGER_SEEDED = {
+  get pendingPlacementId() {
+    return inject('pendingPlacementId') as string;
+  },
+  get disputedPlacementId() {
+    return inject('disputedPlacementId') as string;
+  },
+  get disputedRecordId() {
+    return inject('disputedRecordId') as string;
+  },
+  get disputeId() {
+    return inject('disputeId') as string;
+  },
+  get isolationPlacementId() {
+    return inject('isolationPlacementId') as string;
+  },
+};
 
 // ---------------------------------------------------------------------------
 // Container helpers — each test group renders into its own div.

@@ -54,7 +54,7 @@ async function waitForReady(url: string, timeoutMs = 60_000): Promise<void> {
   throw new Error(`Server did not become ready at ${url} within ${timeoutMs}ms`);
 }
 
-export async function setup(): Promise<void> {
+export async function setup(): Promise<Record<string, string>> {
   pg = await startPostgres();
   // Phase 1: schema + unencrypted identity rows (pre-server).
   await migrateAndSeedIdentities(pg.url);
@@ -106,7 +106,16 @@ export async function setup(): Promise<void> {
   writeFileSync(fixturePath, fixtureJson, 'utf-8');
 
   // Phase 4: seed manager team data — placements, contributors, disputes.
-  await seedManagerViaHttp(`http://localhost:${PORT}`, pg.url);
+  // Return the seeded IDs via provide() so browser-context tests can inject
+  // them without importing Node-only modules (e.g. postgres.js uses Buffer).
+  const managerSeeded = await seedManagerViaHttp(`http://localhost:${PORT}`, pg.url);
+  return {
+    pendingPlacementId: managerSeeded.pendingPlacementId,
+    disputedPlacementId: managerSeeded.disputedPlacementId,
+    disputedRecordId: managerSeeded.disputedRecordId,
+    disputeId: managerSeeded.disputeId,
+    isolationPlacementId: managerSeeded.isolationPlacementId,
+  };
 }
 
 export async function teardown(): Promise<void> {
