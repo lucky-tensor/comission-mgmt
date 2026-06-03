@@ -10,18 +10,48 @@
  * proxies `/api` to that server, stripping the prefix exactly as the app's Vite
  * proxy does in production-dev.
  *
+ * The `/__e2e_fixture__` endpoint is served by a lightweight Vite plugin and
+ * returns the JSON written by globalSetup (run IDs and fixture placement IDs).
+ * Browser-side E2E tests fetch this endpoint at runtime so they can reference
+ * dynamic IDs without needing vi.mock or globalThis hacks.
+ *
  * Run: `bun run test:browser`
- * Issue: feat: Producer Portal UI + headless-Chromium browser/E2E harness (#78)
+ * Issues:
+ *   feat: Producer Portal UI + headless-Chromium browser/E2E harness (#78)
+ *   test: E2E — Finance Admin month-end close (headless Chromium) (#117)
  */
 
-import { defineConfig } from 'vitest/config';
+import { defineConfig, type Plugin } from 'vitest/config';
 import react from '@vitejs/plugin-react';
+import { readFileSync, existsSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { vitestAliases } from './vitest.aliases';
 
 const apiTarget = `http://localhost:${process.env.E2E_SERVER_PORT ?? 31999}`;
+const FIXTURE_PATH = resolve(__dirname, '.e2e-fixture.json');
+
+/**
+ * Vite plugin that serves the E2E fixture JSON (written by globalSetup) at
+ * `GET /__e2e_fixture__` so browser-side tests can fetch dynamic seed IDs
+ * without vi.mock or process.env hacks.
+ */
+function e2eFixturePlugin(): Plugin {
+  return {
+    name: 'e2e-fixture-server',
+    configureServer(server) {
+      server.middlewares.use('/__e2e_fixture__', (_req, res) => {
+        const body = existsSync(FIXTURE_PATH)
+          ? readFileSync(FIXTURE_PATH, 'utf-8')
+          : JSON.stringify({});
+        res.setHeader('Content-Type', 'application/json');
+        res.end(body);
+      });
+    },
+  };
+}
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), e2eFixturePlugin()],
   resolve: {
     alias: vitestAliases(__dirname),
   },
@@ -40,6 +70,11 @@ export default defineConfig({
     include: ['tests/component/**/*.test.tsx', 'tests/e2e/**/*.e2e.ts'],
     testTimeout: 60_000,
     hookTimeout: 300_000,
+    expect: {
+      // E2E tests hit a real server + Chromium render cycle; the default 1 s
+      // poll timeout is too tight for post-submit state transitions.
+      poll: { timeout: 10_000 },
+    },
     browser: {
       enabled: true,
       provider: 'playwright',

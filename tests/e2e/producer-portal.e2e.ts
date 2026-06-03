@@ -58,15 +58,15 @@ describe('Producer Portal — full user story', () => {
     await expect.element(page.getByTestId('tier-production')).toBeInTheDocument();
 
     // Credited placements render the held record with its explanation (scoped
-    // to the list to avoid colliding with the payout table).
+    // to the list to avoid colliding with the payout table). Multiple seeded
+    // placements (from both producer and finance-close seeds) may all carry the
+    // same hold explanation — assert the container includes the text rather than
+    // querying for an individual child, which would fail with a strict-mode
+    // "resolved to N elements" error when duplicates exist.
     await expect.element(page.getByTestId('placements-list')).toBeInTheDocument();
     await expect
-      .element(
-        page
-          .getByTestId('placements-list')
-          .getByText('Payment is pending client collection.', { exact: false }),
-      )
-      .toBeInTheDocument();
+      .element(page.getByTestId('placements-list'))
+      .toHaveTextContent('Payment is pending client collection.');
 
     // Submit a dispute against the producer's record.
     await expect.element(page.getByTestId('dispute-form')).toBeInTheDocument();
