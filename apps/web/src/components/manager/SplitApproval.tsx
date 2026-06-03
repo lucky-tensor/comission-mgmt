@@ -486,7 +486,9 @@ export function SplitApproval() {
   }
 
   async function handleLoadContributors(placementId: string): Promise<ContributorsResponse> {
-    return apiGet<ContributorsResponse>(`/placements/${placementId}/contributors`);
+    // The API returns a bare Contributor[] array; wrap it for the ContributorTable.
+    const contributors = await apiGet<Contributor[]>(`/placements/${placementId}/contributors`);
+    return { contributors };
   }
 
   async function handleUpdateContributor(

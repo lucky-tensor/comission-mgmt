@@ -7,6 +7,7 @@
  * the repo-wide `tsc --noEmit`.
  *
  * Issue: feat: Producer Portal UI + headless-Chromium browser/E2E harness (#78)
+ * Issue: test: E2E — Manager split-approval and dispute resolution (#118)
  */
 
 /// <reference types="@vitest/browser/matchers" />
