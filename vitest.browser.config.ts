@@ -70,6 +70,11 @@ export default defineConfig({
     include: ['tests/component/**/*.test.tsx', 'tests/e2e/**/*.e2e.ts'],
     testTimeout: 60_000,
     hookTimeout: 300_000,
+    expect: {
+      // E2E tests hit a real server + Chromium render cycle; the default 1 s
+      // poll timeout is too tight for post-submit state transitions.
+      poll: { timeout: 10_000 },
+    },
     browser: {
       enabled: true,
       provider: 'playwright',
