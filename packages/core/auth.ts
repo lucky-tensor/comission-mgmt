@@ -76,6 +76,9 @@ export const ROLE_PERMISSIONS: Record<AppRole, Permission[]> = {
     { method: 'GET', pathPrefix: '/commission-records' },
     { method: 'GET', pathPrefix: '/commission-plans' },
     { method: 'GET', pathPrefix: '/plan-assignments' },
+    // Commission plan acknowledgment (issue #114)
+    { method: 'GET', pathPrefix: '/plans' },
+    { method: 'POST', pathPrefix: '/plans' },
     { method: 'GET', pathPrefix: '/invoices' },
     // Producer Portal: own payout data
     { method: 'GET', pathPrefix: '/me' },
@@ -130,6 +133,11 @@ export const ROLE_PERMISSIONS: Record<AppRole, Permission[]> = {
     { method: 'GET', pathPrefix: '/plan-assignments' },
     { method: 'POST', pathPrefix: '/plan-assignments' },
     { method: 'DELETE', pathPrefix: '/plan-assignments' },
+    // Commission plan acknowledgment view (issue #114)
+    { method: 'GET', pathPrefix: '/plans' },
+    { method: 'POST', pathPrefix: '/plans' },
+    { method: 'PATCH', pathPrefix: '/plans' },
+    { method: 'DELETE', pathPrefix: '/plans' },
     { method: 'GET', pathPrefix: '/placements' },
     { method: 'GET', pathPrefix: '/contributors' },
     { method: 'GET', pathPrefix: '/commission-records' },
