@@ -116,13 +116,17 @@ export async function seedFinanceClose(
   const api = new ApiSession(baseUrl);
   await api.login(SEEDED.adminId);
 
-  // ── a. Incomplete placement (missing fee_amount) ─────────────────────────
+  // ── a. Incomplete placement (fee_amount resolves to 0 via fee_pct: '0') ──
+  // The API requires fee_amount OR fee_pct. We pass fee_pct: '0' so the server
+  // accepts the request, but resolves fee_amount to 0 (Math.round(80000 * 0 / 100)).
+  // The DB incompleteness check treats fee_amount === 0 as missing, so this
+  // placement appears in the DataGapQueue.
   const { id: incompletePlacementId } = await api.post<{ id: string }>('/placements', {
     candidate_id: crypto.randomUUID(),
     client_entity_id: crypto.randomUUID(),
     job_title: 'E2E Gap Placement',
     compensation_base: '80000',
-    // fee_amount deliberately omitted → DataGapQueue will list it
+    fee_pct: '0', // resolves to fee_amount=0 → treated as missing by DataGapQueue
     start_date: '2025-05-01',
     guarantee_days: null,
   });

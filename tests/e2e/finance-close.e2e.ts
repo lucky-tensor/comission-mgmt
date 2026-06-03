@@ -229,19 +229,20 @@ describe('Finance Admin month-end close — full journey', () => {
     // The acknowledge button pattern is `acknowledge-btn-{discrepancyId}`.
     // We can find it generically via role.
     const ackButtons = page.getByRole('button', { name: 'Acknowledge' });
-    await expect.element(ackButtons.first()).toBeInTheDocument();
+    const firstAckBtn = ackButtons.all()[0];
+    await expect.element(firstAckBtn).toBeInTheDocument();
 
     // Click the first Acknowledge button.
-    await userEvent.click(ackButtons.first());
+    await userEvent.click(firstAckBtn);
 
     // The acknowledge form appears — fill in the note textarea (label: "Acknowledgement note").
-    const noteInput = page.getByLabel('Acknowledgement note');
+    const noteInput = page.getByLabelText('Acknowledgement note');
     await expect.element(noteInput).toBeInTheDocument();
     await userEvent.fill(noteInput, 'Verified: amount differs due to partial credit note');
 
     // Submit via the Save button inside the form.
     const saveBtn = page.getByRole('button', { name: 'Save' });
-    await userEvent.click(saveBtn.first());
+    await userEvent.click(saveBtn.all()[0]);
 
     // After saving, the "all clear" banner should eventually appear once all
     // discrepancies are acknowledged.
