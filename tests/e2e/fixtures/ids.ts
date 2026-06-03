@@ -11,6 +11,7 @@
  * Issue: feat: Executive UI — firm financial position dashboard (#110)
  * Issue: feat: HR/People Ops UI — draw balance and recovery schedule view (#115)
  * Issue: test: E2E — Finance Admin month-end close (headless Chromium) (#117)
+ * Issue: test: E2E — Manager split-approval and dispute resolution (#118)
  */
 
 export const SEEDED = {
@@ -23,6 +24,13 @@ export const SEEDED = {
   executiveEmail: 'e2e-executive@demo.example',
   hrId: 'e2e00000-0000-0000-0000-0000000000e1',
   hrEmail: 'e2e-hr@demo.example',
+  // Manager E2E personas (issue #118)
+  managerId: 'e2e00000-0000-0000-0000-0000000000f1',
+  managerEmail: 'e2e-manager@demo.example',
+  manager2Id: 'e2e00000-0000-0000-0000-0000000000f2',
+  manager2Email: 'e2e-manager2@demo.example',
+  producer2Id: 'e2e00000-0000-0000-0000-0000000000b2',
+  producer2Email: 'e2e-producer2@demo.example',
 } as const;
 
 /**

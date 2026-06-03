@@ -23,6 +23,7 @@
  * Issues:
  *   feat: Producer Portal UI + headless-Chromium browser/E2E harness (#78)
  *   test: E2E — Finance Admin month-end close (headless Chromium) (#117)
+ *   test: E2E — Manager split-approval and dispute resolution (#118)
  */
 
 import { spawn, type ChildProcess } from 'node:child_process';
@@ -31,6 +32,10 @@ import { writeFileSync } from 'node:fs';
 import { startPostgres, type PgContainer } from 'db/pg-container';
 import { migrateAndSeedIdentities, seedViaHttp } from './fixtures/seed-producer';
 import { seedFinanceClose } from './fixtures/seed-finance-close';
+import {
+  migrateAndSeedManagerIdentities,
+  seedManagerViaHttp,
+} from './fixtures/seed-manager';
 
 const PORT = Number(process.env.E2E_SERVER_PORT ?? 31999);
 const ROOT = resolve(__dirname, '../..');
@@ -56,6 +61,8 @@ export async function setup(): Promise<void> {
   pg = await startPostgres();
   // Phase 1: schema + unencrypted identity rows (pre-server).
   await migrateAndSeedIdentities(pg.url);
+  // Phase 1b: manager persona identity rows (pre-server, no encryption needed).
+  await migrateAndSeedManagerIdentities(pg.url);
 
   server = spawn('bun', ['run', 'apps/server/src/index.ts'], {
     cwd: ROOT,
@@ -100,6 +107,9 @@ export async function setup(): Promise<void> {
   });
   const fixturePath = resolve(ROOT, '.e2e-fixture.json');
   writeFileSync(fixturePath, fixtureJson, 'utf-8');
+
+  // Phase 4: seed manager team data — placements, contributors, disputes.
+  await seedManagerViaHttp(`http://localhost:${PORT}`, pg.url);
 }
 
 export async function teardown(): Promise<void> {
