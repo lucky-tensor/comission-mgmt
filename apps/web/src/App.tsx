@@ -34,7 +34,6 @@ import { ProducerPortal } from './components/portal/ProducerPortal';
 import { DataGapQueue } from './components/finance/DataGapQueue';
 import { CommissionRunReview } from './components/finance/CommissionRunReview';
 import { ReconciliationReport } from './components/finance/ReconciliationReport';
-import { TeamCommissionView } from './components/manager/TeamCommissionView';
 import { NavShell } from './components/NavShell';
 import { Forbidden } from './components/Forbidden';
 import { FinanceAdmin } from './components/finance/FinanceAdmin';
