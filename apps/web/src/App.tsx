@@ -6,7 +6,7 @@
  *   /portal    — Producer Payout Portal
  *   /finance   — Finance Admin home (data-gap queue + commission run review + invoice tracking)
  *   /manager   — Manager home (split approval + attribution timeline, team commission view, cross-team split escalation / tiebreaker)
- *   /executive              — Executive dashboard (firm financial position)
+ *   /executive              — Executive dashboard (firm financial position + escalated dispute final-approval)
  *   /executive/profitability — Executive profitability analytics (by client/recruiter/team/practice)
  *   /executive/trends        — Executive exception & dispute rate trends
  *   /hr        — HR home (placeholder)
@@ -31,6 +31,7 @@
  *         feat: Executive UI — firm financial position dashboard (#110)
  *         feat: Executive UI — profitability analytics surface (#111)
  *         feat: Executive UI — exception and dispute-rate trends (#112)
+ *         feat: Executive UI — escalated dispute final-approval (#113)
  */
 
 import { useState, useEffect } from 'react';
@@ -47,6 +48,7 @@ import { HrHome, PartnerHome } from './components/PlaceholderSurface';
 import { ManagerHome } from './components/manager/ManagerHome';
 import { ExecFinancialPosition } from './components/executive/ExecFinancialPosition';
 import { ExecProfitability } from './components/ExecProfitability';
+import { ExecDisputeApproval } from './components/executive/ExecDisputeApproval';
 import { useSession } from './lib/useSession';
 import { isPathPermitted, landingPathForRole, ROUTES } from './lib/roleRoutes';
 
@@ -88,7 +90,12 @@ function AuthenticatedApp({ role, path }: AuthenticatedAppProps) {
       case ROUTES.MANAGER:
         return <ManagerHome />;
       case ROUTES.EXECUTIVE:
-        return <ExecFinancialPosition />;
+        return (
+          <>
+            <ExecFinancialPosition />
+            <ExecDisputeApproval />
+          </>
+        );
       case ROUTES.EXEC_PROFITABILITY:
         return <ExecProfitability />;
       case ROUTES.EXEC_TRENDS:
