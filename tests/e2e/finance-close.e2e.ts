@@ -144,9 +144,7 @@ describe('Finance Admin month-end close — full journey', () => {
       .toBeInTheDocument();
 
     // Missing-field tag for fee_amount is visible.
-    await expect
-      .element(page.getByTestId(`missing-field-tag-fee_amount`))
-      .toBeInTheDocument();
+    await expect.element(page.getByTestId(`missing-field-tag-fee_amount`)).toBeInTheDocument();
 
     // Open the inline resolve form.
     await userEvent.click(page.getByTestId(`resolve-btn-${INCOMPLETE_PLACEMENT_ID}`));
@@ -155,10 +153,7 @@ describe('Finance Admin month-end close — full journey', () => {
       .toBeInTheDocument();
 
     // Fill in the missing fee_amount.
-    await userEvent.fill(
-      page.getByTestId(`input-${INCOMPLETE_PLACEMENT_ID}-fee_amount`),
-      '12000',
-    );
+    await userEvent.fill(page.getByTestId(`input-${INCOMPLETE_PLACEMENT_ID}-fee_amount`), '12000');
 
     // Save → the row is optimistically removed.
     await userEvent.click(page.getByTestId(`save-btn-${INCOMPLETE_PLACEMENT_ID}`));
@@ -209,14 +204,8 @@ describe('Finance Admin month-end close — full journey', () => {
     await expect.element(page.getByTestId('period-form')).toBeInTheDocument();
 
     // Fill period dates matching the seeded close period.
-    await userEvent.fill(
-      page.getByTestId('recon-period-start-input'),
-      CLOSE.periodStart,
-    );
-    await userEvent.fill(
-      page.getByTestId('recon-period-end-input'),
-      CLOSE.periodEnd,
-    );
+    await userEvent.fill(page.getByTestId('recon-period-start-input'), CLOSE.periodStart);
+    await userEvent.fill(page.getByTestId('recon-period-end-input'), CLOSE.periodEnd);
 
     // Fetch the report.
     await userEvent.click(page.getByTestId('recon-fetch-button'));
@@ -306,10 +295,13 @@ describe('Finance Admin month-end close — full journey', () => {
     //
     // Simpler: verify the API gate directly by requesting export for a
     // non-existent / Draft run ID.
-    const draftRunRes = await fetch(`/api/commission-runs/00000000-0000-0000-0000-000000000000/export`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-    });
+    const draftRunRes = await fetch(
+      `/api/commission-runs/00000000-0000-0000-0000-000000000000/export`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
 
     // Should be 404 (run not found) or 422 (not approved) — not 200.
     expect(draftRunRes.status).not.toBe(200);
