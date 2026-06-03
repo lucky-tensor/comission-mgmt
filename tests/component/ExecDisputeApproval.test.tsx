@@ -331,8 +331,8 @@ describe('ExecDisputeApproval — real server integration', () => {
   test('escalated disputes render for Executive from GET /disputes', async () => {
     // Create a commission record to dispute (need a placement first)
     const placement = await admin.post<{ id: string }>('/placements', {
-      candidate_id: 'exec0001-0000-0000-0000-000000000001',
-      client_entity_id: 'exec0001-0000-0000-0000-000000000002',
+      candidate_id: 'ec000001-0000-0000-0000-000000000001',
+      client_entity_id: 'ec000001-0000-0000-0000-000000000002',
       job_title: 'Exec Dispute Test Engineer',
       compensation_base: '140000',
       fee_amount: '18000',
