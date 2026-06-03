@@ -70,10 +70,12 @@ export default defineConfig({
     include: ['tests/component/**/*.test.tsx', 'tests/e2e/**/*.e2e.ts'],
     testTimeout: 60_000,
     hookTimeout: 300_000,
-    // Raise the assertion timeout for expect.element() calls from the default
-    // 1 second to 10 seconds so that API-driven UI updates (which go through
-    // the proxy → real server → DB) have enough time to settle in CI.
-    expect: { timeout: 10_000 },
+    // Raise the poll timeout for expect.element() calls from the default 1 s
+    // to 15 s so that API-driven UI updates (browser → proxy → real server →
+    // DB round trips) have enough time to settle in CI.
+    expect: {
+      poll: { timeout: 15_000 },
+    },
     browser: {
       enabled: true,
       provider: 'playwright',
