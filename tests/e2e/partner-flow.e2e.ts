@@ -202,9 +202,9 @@ describe('External Partner — payout visibility and scope enforcement', () => {
   // ── 5. Non-partner route enforcement — 403 for other role surfaces ────────
 
   test('navigating to a non-partner route returns 403 from the API', async () => {
-    // Direct API request — Finance Admin endpoint — must be forbidden for the
-    // ExternalPartner session.
-    const financeRes = await fetch('/api/commission-runs', { method: 'GET' });
+    // Direct API request — Finance Admin endpoint (reconciliation report) — must
+    // be forbidden for the ExternalPartner session.
+    const financeRes = await fetch('/api/reconciliation', { method: 'GET' });
     expect(financeRes.status).toBe(403);
 
     // Producer self-service endpoint also forbidden.

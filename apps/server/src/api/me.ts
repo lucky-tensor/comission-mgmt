@@ -198,6 +198,12 @@ export async function handleGetMyPayouts(
   sqlClient?: SqlClient,
   auditSqlClient?: SqlClient,
 ): Promise<Response> {
+  // RBAC: /me/payouts is a Producer self-service route. ExternalPartner and
+  // other non-producer roles must not access internal payout data (PRD §5.11, §9).
+  if (claims.role === 'ExternalPartner') {
+    return errorResponse('Forbidden', 403);
+  }
+
   const db = sqlClient ?? defaultSql;
   const adb = auditSqlClient ?? defaultAuditSql;
 
