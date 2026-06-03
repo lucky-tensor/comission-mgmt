@@ -36,7 +36,6 @@ import { ExecProfitability } from '../../apps/web/src/components/ExecProfitabili
 // The browser context cannot access process.env directly in some harnesses;
 // we discover IDs through API calls instead.
 let escalatedDisputeId = '';
-let escalatedPlacementId = '';
 let escalatedRecordId = '';
 
 // ---------------------------------------------------------------------------
@@ -297,15 +296,9 @@ describe('Executive flow: final dispute resolution', () => {
       }
     }
 
-    // Also discover the placement ID for the escalated dispute via the record.
-    // Attempt to fetch from placements API to find the placement associated
-    // with the escalated record.
-    if (escalatedRecordId && !escalatedPlacementId) {
-      // The placements endpoint does not filter by commission_record_id directly;
-      // look it up via a commission-runs records endpoint or fall back to
-      // trusting the seed-written EXEC_SEEDED value (env var not available in browser).
-      // We rely on the discovery done in the describe blocks above.
-    }
+    // The placement ID for the escalated dispute is discovered via the
+    // commission record ID (escalatedRecordId) if needed by a later test.
+    // The record ID alone is sufficient for the unblock assertion.
   });
 
   test('AC1: Executive can resolve escalated dispute with a rationale', async () => {
