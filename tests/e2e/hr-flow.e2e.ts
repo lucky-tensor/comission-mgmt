@@ -139,7 +139,7 @@ describe('HR flow — plan acknowledgment and draw lookup journey', () => {
     // producer should show "Pending" status (no acknowledged_at).
     // We look for a Pending badge scoped to a row containing the producer's ID.
     const pendingBadges = page.getByText('Pending');
-    await expect.element(pendingBadges.first()).toBeInTheDocument();
+    await expect.element(pendingBadges.all()[0]).toBeInTheDocument();
 
     // Restore producer session for the next test.
     const producerLogin = await fetch('/api/demo/session', {
@@ -189,14 +189,14 @@ describe('HR flow — plan acknowledgment and draw lookup journey', () => {
 
     // At least one row for the seeded producer should show "Acknowledged" status.
     const acknowledgedBadges = page.getByText('Acknowledged');
-    await expect.element(acknowledgedBadges.first()).toBeInTheDocument();
+    await expect.element(acknowledgedBadges.all()[0]).toBeInTheDocument();
 
     // The acknowledged_at timestamp cell is populated (not "—").
     // Find all ack-at cells and verify at least one has a real date (not the
     // placeholder dash), confirming the timestamp persisted correctly.
     // We look for a cell text that matches a date pattern (e.g. "Jun 3, 2026").
     const ackAtCells = page.getByRole('cell', { name: /[A-Z][a-z]{2} \d+, \d{4}/ });
-    await expect.element(ackAtCells.first()).toBeInTheDocument();
+    await expect.element(ackAtCells.all()[0]).toBeInTheDocument();
   });
 
   // ── 4. HR looks up producer draw balance and recovery schedule ───────────
