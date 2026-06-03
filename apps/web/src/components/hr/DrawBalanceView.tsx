@@ -90,7 +90,15 @@ function DrawBalanceSummary({ balance }: DrawBalanceSummaryProps) {
         marginBottom: '1.5rem',
       }}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          flexWrap: 'wrap',
+          gap: '1rem',
+        }}
+      >
         <div>
           <p style={{ margin: '0 0 0.25rem', fontSize: '0.875rem', color: '#6b7280' }}>
             Outstanding Draw Balance
@@ -115,9 +123,7 @@ function DrawBalanceSummary({ balance }: DrawBalanceSummaryProps) {
         </div>
         {balance.status && (
           <div>
-            <p style={{ margin: '0 0 0.25rem', fontSize: '0.875rem', color: '#6b7280' }}>
-              Status
-            </p>
+            <p style={{ margin: '0 0 0.25rem', fontSize: '0.875rem', color: '#6b7280' }}>Status</p>
             <span
               data-testid="draw-balance-status"
               style={{
@@ -136,9 +142,7 @@ function DrawBalanceSummary({ balance }: DrawBalanceSummaryProps) {
         )}
       </div>
       {(balance.recovery_start || balance.recovery_end) && (
-        <div
-          style={{ marginTop: '1rem', display: 'flex', gap: '2rem', flexWrap: 'wrap' }}
-        >
+        <div style={{ marginTop: '1rem', display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
           {balance.recovery_start && (
             <div>
               <p style={{ margin: '0 0 0.125rem', fontSize: '0.75rem', color: '#6b7280' }}>
@@ -191,16 +195,11 @@ interface RecoveryScheduleTableProps {
 
 function RecoveryScheduleTable({ schedules }: RecoveryScheduleTableProps) {
   if (schedules.length === 0) {
-    return (
-      <EmptyState message="No clawback recovery schedules for this producer." />
-    );
+    return <EmptyState message="No clawback recovery schedules for this producer." />;
   }
 
   return (
-    <div
-      data-testid="recovery-schedule-table"
-      style={{ overflowX: 'auto' }}
-    >
+    <div data-testid="recovery-schedule-table" style={{ overflowX: 'auto' }}>
       <table
         style={{
           width: '100%',
@@ -407,10 +406,7 @@ export function DrawBalanceView() {
           <EmptyState message="Enter a producer ID above to view their draw balance and recovery schedule." />
         )}
         {selectedProducerId && (
-          <ProducerDrawBalancePanel
-            key={selectedProducerId}
-            producerId={selectedProducerId}
-          />
+          <ProducerDrawBalancePanel key={selectedProducerId} producerId={selectedProducerId} />
         )}
       </div>
     </div>
