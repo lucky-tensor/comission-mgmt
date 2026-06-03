@@ -169,10 +169,7 @@ function DisputeDetailView({
             <EmptyState message="No attribution events recorded for this placement." />
           )}
           {!timelineLoading && !timelineError && timeline && timeline.length > 0 && (
-            <ol
-              data-testid="timeline-events"
-              style={{ margin: 0, padding: 0, listStyle: 'none' }}
-            >
+            <ol data-testid="timeline-events" style={{ margin: 0, padding: 0, listStyle: 'none' }}>
               {timeline.map((event) => (
                 <li
                   key={event.id}
@@ -204,7 +201,9 @@ function DisputeDetailView({
                       Actor: {event.actor_id}
                     </div>
                     {event.reason && (
-                      <div style={{ fontSize: '0.8125rem', color: '#6b7280', marginTop: '0.25rem' }}>
+                      <div
+                        style={{ fontSize: '0.8125rem', color: '#6b7280', marginTop: '0.25rem' }}
+                      >
                         {event.reason}
                       </div>
                     )}
@@ -242,7 +241,13 @@ function DisputeDetailView({
           <div data-testid="resolve-form">
             <label
               htmlFor="resolution-rationale"
-              style={{ display: 'block', fontSize: '0.8125rem', color: '#374151', marginBottom: '0.375rem', fontWeight: 600 }}
+              style={{
+                display: 'block',
+                fontSize: '0.8125rem',
+                color: '#374151',
+                marginBottom: '0.375rem',
+                fontWeight: 600,
+              }}
             >
               Rationale (required)
             </label>

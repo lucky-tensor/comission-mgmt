@@ -174,9 +174,7 @@ describe('ExecDisputeApproval — presentational states', () => {
 
     await expect.element(page.getByTestId('exec-dispute-heading')).toBeInTheDocument();
     // Only UnderReview dispute should appear in the list
-    await expect
-      .element(page.getByTestId(`dispute-row-${disputes[0].id}`))
-      .toBeInTheDocument();
+    await expect.element(page.getByTestId(`dispute-row-${disputes[0].id}`)).toBeInTheDocument();
     // Resolved dispute must NOT appear
     expect(page.getByTestId(`dispute-row-${disputes[1].id}`).elements()).toHaveLength(0);
   });
@@ -307,7 +305,10 @@ describe('ExecDisputeApproval — presentational states', () => {
       />,
     );
 
-    await userEvent.fill(page.getByTestId('rationale-input'), 'Approving split as submitted — attribution is correct per deal notes.');
+    await userEvent.fill(
+      page.getByTestId('rationale-input'),
+      'Approving split as submitted — attribution is correct per deal notes.',
+    );
     await page.getByTestId('resolve-btn').click();
 
     await expect.element(page.getByTestId('resolve-confirmation')).toBeInTheDocument();
