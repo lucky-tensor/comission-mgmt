@@ -18,4 +18,6 @@ export const SEEDED = {
   adminEmail: 'e2e-admin@demo.example',
   executiveId: 'e2e00000-0000-0000-0000-0000000000d1',
   executiveEmail: 'e2e-executive@demo.example',
+  hrId: 'e2e00000-0000-0000-0000-0000000000e1',
+  hrEmail: 'e2e-hr@demo.example',
 } as const;

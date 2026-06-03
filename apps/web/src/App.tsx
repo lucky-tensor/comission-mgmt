@@ -9,7 +9,7 @@
  *   /executive              — Executive dashboard (firm financial position + escalated dispute final-approval)
  *   /executive/profitability — Executive profitability analytics (by client/recruiter/team/practice)
  *   /executive/trends        — Executive exception & dispute rate trends
- *   /hr        — HR home (placeholder)
+ *   /hr        — HR home (commission plan acknowledgment status)
  *   /partner   — External Partner home (placeholder)
  *
  * Routing is intentionally tiny (no router dependency): the app reads
@@ -44,11 +44,12 @@ import { NavShell } from './components/NavShell';
 import { Forbidden } from './components/Forbidden';
 import { ExecTrends } from './components/executive/ExecTrends';
 import { FinanceAdmin } from './components/finance/FinanceAdmin';
-import { HrHome, PartnerHome } from './components/PlaceholderSurface';
+import { PartnerHome } from './components/PlaceholderSurface';
 import { ManagerHome } from './components/manager/ManagerHome';
 import { ExecFinancialPosition } from './components/executive/ExecFinancialPosition';
 import { ExecProfitability } from './components/ExecProfitability';
 import { ExecDisputeApproval } from './components/executive/ExecDisputeApproval';
+import { PlanAcknowledgment } from './components/hr/PlanAcknowledgment';
 import { useSession } from './lib/useSession';
 import { isPathPermitted, landingPathForRole, ROUTES } from './lib/roleRoutes';
 
@@ -101,7 +102,7 @@ function AuthenticatedApp({ role, path }: AuthenticatedAppProps) {
       case ROUTES.EXEC_TRENDS:
         return <ExecTrends />;
       case ROUTES.HR:
-        return <HrHome />;
+        return <PlanAcknowledgment />;
       case ROUTES.PARTNER:
         return <PartnerHome />;
       default:

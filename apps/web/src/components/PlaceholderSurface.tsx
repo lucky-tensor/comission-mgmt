@@ -78,15 +78,7 @@ export function ExecutiveHome() {
   );
 }
 
-export function HrHome() {
-  return (
-    <PlaceholderSurface
-      testId="hr-home"
-      title="HR / People Ops Home"
-      description="Plan acknowledgments, draw balances, and termination payout rules. Coming soon."
-    />
-  );
-}
+export { PlanAcknowledgment as HrHome } from './hr/PlanAcknowledgment';
 
 export function PartnerHome() {
   return (
