@@ -5,7 +5,7 @@
  *   /          — probes session; redirects to role landing or stays on login
  *   /portal    — Producer Payout Portal
  *   /finance   — Finance Admin home (data-gap queue + commission run review + invoice tracking)
- *   /manager   — Manager home (split approval + attribution timeline, team commission view)
+ *   /manager   — Manager home (split approval + attribution timeline, team commission view, cross-team split escalation / tiebreaker)
  *   /executive — Executive dashboard (placeholder)
  *   /hr        — HR home (placeholder)
  *   /partner   — External Partner home (placeholder)
@@ -25,6 +25,7 @@
  *         feat: Finance Admin UI — invoice and collection tracking (per billing phase) (#103)
  *         feat: Manager UI — split approval and attribution timeline (#107)
  *         feat: Manager UI — team commission view (#108)
+ *         feat: Manager UI — cross-team split escalation / tiebreaker (#109)
  */
 
 import { useState, useEffect } from 'react';
@@ -33,11 +34,11 @@ import { ProducerPortal } from './components/portal/ProducerPortal';
 import { DataGapQueue } from './components/finance/DataGapQueue';
 import { CommissionRunReview } from './components/finance/CommissionRunReview';
 import { ReconciliationReport } from './components/finance/ReconciliationReport';
-import { TeamCommissionView } from './components/manager/TeamCommissionView';
 import { NavShell } from './components/NavShell';
 import { Forbidden } from './components/Forbidden';
 import { FinanceAdmin } from './components/finance/FinanceAdmin';
 import { ExecutiveHome, HrHome, PartnerHome } from './components/PlaceholderSurface';
+import { ManagerPortal } from './components/manager/SplitEscalation';
 import { useSession } from './lib/useSession';
 import { isPathPermitted, landingPathForRole, ROUTES } from './lib/roleRoutes';
 
@@ -77,7 +78,7 @@ function AuthenticatedApp({ role, path }: AuthenticatedAppProps) {
       case ROUTES.RECONCILIATION:
         return <ReconciliationReport />;
       case ROUTES.MANAGER:
-        return <TeamCommissionView onForbidden={() => navigate(ROUTES.LOGIN)} />;
+        return <ManagerPortal />;
       case ROUTES.EXECUTIVE:
         return <ExecutiveHome />;
       case ROUTES.HR:
