@@ -58,13 +58,16 @@ describe('Producer Portal — full user story', () => {
     await expect.element(page.getByTestId('tier-production')).toBeInTheDocument();
 
     // Credited placements render the held record with its explanation (scoped
-    // to the list to avoid colliding with the payout table).
+    // to the list to avoid colliding with the payout table). Multiple seeded
+    // placements may all carry the same hold explanation, so use .first() to
+    // assert at least one is present without strict-mode failing on duplicates.
     await expect.element(page.getByTestId('placements-list')).toBeInTheDocument();
     await expect
       .element(
         page
           .getByTestId('placements-list')
-          .getByText('Payment is pending client collection.', { exact: false }),
+          .getByText('Payment is pending client collection.', { exact: false })
+          .first(),
       )
       .toBeInTheDocument();
 
