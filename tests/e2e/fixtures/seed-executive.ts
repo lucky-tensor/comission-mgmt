@@ -166,10 +166,10 @@ export async function seedExecutiveViaHttp(
     // No HTTP endpoint exists for this transition yet — the Manager UI escalation
     // surface passes the dispute to the executive for final approval. We model
     // this by directly updating the dispute state in the DB.
-    await sql.unsafe(
-      `UPDATE disputes SET state = 'UnderReview' WHERE id = $1 AND org_id = $2`,
-      [dispute.id, SEEDED.orgId],
-    );
+    await sql.unsafe(`UPDATE disputes SET state = 'UnderReview' WHERE id = $1 AND org_id = $2`, [
+      dispute.id,
+      SEEDED.orgId,
+    ]);
 
     EXEC_SEEDED.escalatedPlacementId = escalatedPlacementId;
     EXEC_SEEDED.escalatedRecordId = targetRecordId;
