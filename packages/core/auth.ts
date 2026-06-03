@@ -116,6 +116,8 @@ export const ROLE_PERMISSIONS: Record<AppRole, Permission[]> = {
     // Executives have read-only access to everything (analytics/reporting)
     { method: 'GET', pathPrefix: '/' },
     { method: 'POST', pathPrefix: '/auth/logout' },
+    // Escalated dispute final-approval — issue #113
+    { method: 'POST', pathPrefix: '/disputes' },
   ],
 
   HR: [
