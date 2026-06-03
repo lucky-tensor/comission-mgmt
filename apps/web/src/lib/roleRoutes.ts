@@ -47,6 +47,7 @@ export const ROUTES = {
   RECONCILIATION: '/reconciliation',
   MANAGER: '/manager',
   EXECUTIVE: '/executive',
+  EXEC_PROFITABILITY: '/executive/profitability',
   HR: '/hr',
   PARTNER: '/partner',
 } as const;
@@ -90,9 +91,10 @@ export const ROLE_ROUTES: Record<AppRole, RoleRouteConfig> = {
 
   Executive: {
     landing: ROUTES.EXECUTIVE,
-    permitted: new Set([ROUTES.EXECUTIVE, ROUTES.FINANCE]),
+    permitted: new Set([ROUTES.EXECUTIVE, ROUTES.EXEC_PROFITABILITY, ROUTES.FINANCE]),
     navItems: [
       { path: ROUTES.EXECUTIVE, label: 'Executive Dashboard' },
+      { path: ROUTES.EXEC_PROFITABILITY, label: 'Profitability' },
       { path: ROUTES.FINANCE, label: 'Finance View' },
     ],
   },

@@ -39,15 +39,15 @@ export async function migrateAndSeedIdentities(databaseUrl: string): Promise<voi
     await sql.unsafe(`INSERT INTO users (id, email, display_name)
                       VALUES ('${SEEDED.adminId}', 'e2e-admin@demo.example', 'E2E Finance Admin')
                       ON CONFLICT (id) DO NOTHING`);
+    await sql.unsafe(`INSERT INTO users (id, email, display_name)
+                      VALUES ('${SEEDED.executiveId}', '${SEEDED.executiveEmail}', 'E2E Executive')
+                      ON CONFLICT (id) DO NOTHING`);
     await sql.unsafe(`INSERT INTO org_memberships (user_id, org_id, role)
                       VALUES ('${SEEDED.producerId}', '${SEEDED.orgId}', 'Producer')
                       ON CONFLICT (user_id, org_id) DO NOTHING`);
     await sql.unsafe(`INSERT INTO org_memberships (user_id, org_id, role)
                       VALUES ('${SEEDED.adminId}', '${SEEDED.orgId}', 'FinanceAdmin')
                       ON CONFLICT (user_id, org_id) DO NOTHING`);
-    await sql.unsafe(`INSERT INTO users (id, email, display_name)
-                      VALUES ('${SEEDED.executiveId}', '${SEEDED.executiveEmail}', 'E2E Executive')
-                      ON CONFLICT (id) DO NOTHING`);
     await sql.unsafe(`INSERT INTO org_memberships (user_id, org_id, role)
                       VALUES ('${SEEDED.executiveId}', '${SEEDED.orgId}', 'Executive')
                       ON CONFLICT (user_id, org_id) DO NOTHING`);
