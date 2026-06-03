@@ -336,7 +336,9 @@ describe('PlanAcknowledgment — real server integration', () => {
     mounted = renderInBrowser(<App />);
 
     // The assignment row should show Acknowledged since producer just acknowledged
-    await expect.element(page.getByTestId(`status-acknowledged-${assignmentId}`)).toBeInTheDocument();
+    await expect
+      .element(page.getByTestId(`status-acknowledged-${assignmentId}`))
+      .toBeInTheDocument();
 
     void secondProducerId; // suppress unused warning
   });

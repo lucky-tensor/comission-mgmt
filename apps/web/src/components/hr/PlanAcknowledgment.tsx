@@ -391,10 +391,10 @@ export function ProducerAcknowledgeAction({
 // ---------------------------------------------------------------------------
 
 /** Fetch the producer's own plan assignment (scoped by the server to their user_id). */
-async function fetchProducerAssignment(): Promise<
-  | { assignment: AssignmentRow; planId: string }
-  | null
-> {
+async function fetchProducerAssignment(): Promise<{
+  assignment: AssignmentRow;
+  planId: string;
+} | null> {
   const plans = await apiGet<Plan[]>('/plans');
   if (!plans || plans.length === 0) return null;
 
