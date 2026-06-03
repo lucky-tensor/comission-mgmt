@@ -57,6 +57,12 @@ export async function migrateAndSeedIdentities(databaseUrl: string): Promise<voi
     await sql.unsafe(`INSERT INTO org_memberships (user_id, org_id, role)
                       VALUES ('${SEEDED.hrId}', '${SEEDED.orgId}', 'HR')
                       ON CONFLICT (user_id, org_id) DO NOTHING`);
+    await sql.unsafe(`INSERT INTO users (id, email, display_name)
+                      VALUES ('${SEEDED.partnerId}', '${SEEDED.partnerEmail}', 'E2E External Partner')
+                      ON CONFLICT (id) DO NOTHING`);
+    await sql.unsafe(`INSERT INTO org_memberships (user_id, org_id, role)
+                      VALUES ('${SEEDED.partnerId}', '${SEEDED.orgId}', 'ExternalPartner')
+                      ON CONFLICT (user_id, org_id) DO NOTHING`);
   } finally {
     await sql.end({ timeout: 5 });
   }
