@@ -22,7 +22,7 @@
  */
 
 import { describe, test, expect, afterEach, beforeEach } from 'vitest';
-import { page } from '@vitest/browser/context';
+import { page, userEvent } from '@vitest/browser/context';
 import { renderInBrowser, type Mounted } from './render';
 import { SEEDED } from '../e2e/fixtures/ids';
 import App, { navigate } from '../../apps/web/src/App';
@@ -164,7 +164,7 @@ describe('DrawBalanceView — real server integration', () => {
     const input = page.getByTestId('producer-id-input');
     await input.fill(SEEDED.producerId);
     // Press Enter — should behave identically to clicking Look Up
-    await input.press('Enter');
+    await userEvent.keyboard('{Enter}');
 
     await expect.element(page.getByTestId('draw-balance-panel')).toBeInTheDocument();
     await expect.element(page.getByTestId('draw-balance-summary')).toBeInTheDocument();
