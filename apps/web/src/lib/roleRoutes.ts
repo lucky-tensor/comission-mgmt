@@ -48,6 +48,7 @@ export const ROUTES = {
   MANAGER: '/manager',
   EXECUTIVE: '/executive',
   EXEC_PROFITABILITY: '/executive/profitability',
+  EXEC_TRENDS: '/executive/trends',
   HR: '/hr',
   PARTNER: '/partner',
 } as const;
@@ -91,10 +92,16 @@ export const ROLE_ROUTES: Record<AppRole, RoleRouteConfig> = {
 
   Executive: {
     landing: ROUTES.EXECUTIVE,
-    permitted: new Set([ROUTES.EXECUTIVE, ROUTES.EXEC_PROFITABILITY, ROUTES.FINANCE]),
+    permitted: new Set([
+      ROUTES.EXECUTIVE,
+      ROUTES.EXEC_PROFITABILITY,
+      ROUTES.EXEC_TRENDS,
+      ROUTES.FINANCE,
+    ]),
     navItems: [
       { path: ROUTES.EXECUTIVE, label: 'Executive Dashboard' },
       { path: ROUTES.EXEC_PROFITABILITY, label: 'Profitability' },
+      { path: ROUTES.EXEC_TRENDS, label: 'Exception & Dispute Trends' },
       { path: ROUTES.FINANCE, label: 'Finance View' },
     ],
   },

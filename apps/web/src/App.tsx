@@ -8,6 +8,7 @@
  *   /manager   — Manager home (split approval + attribution timeline, team commission view, cross-team split escalation / tiebreaker)
  *   /executive              — Executive dashboard (firm financial position)
  *   /executive/profitability — Executive profitability analytics (by client/recruiter/team/practice)
+ *   /executive/trends        — Executive exception & dispute rate trends
  *   /hr        — HR home (placeholder)
  *   /partner   — External Partner home (placeholder)
  *
@@ -29,6 +30,7 @@
  *         feat: Manager UI — cross-team split escalation / tiebreaker (#109)
  *         feat: Executive UI — firm financial position dashboard (#110)
  *         feat: Executive UI — profitability analytics surface (#111)
+ *         feat: Executive UI — exception and dispute-rate trends (#112)
  */
 
 import { useState, useEffect } from 'react';
@@ -39,6 +41,7 @@ import { CommissionRunReview } from './components/finance/CommissionRunReview';
 import { ReconciliationReport } from './components/finance/ReconciliationReport';
 import { NavShell } from './components/NavShell';
 import { Forbidden } from './components/Forbidden';
+import { ExecTrends } from './components/executive/ExecTrends';
 import { FinanceAdmin } from './components/finance/FinanceAdmin';
 import { HrHome, PartnerHome } from './components/PlaceholderSurface';
 import { ManagerHome } from './components/manager/ManagerHome';
@@ -88,6 +91,8 @@ function AuthenticatedApp({ role, path }: AuthenticatedAppProps) {
         return <ExecFinancialPosition />;
       case ROUTES.EXEC_PROFITABILITY:
         return <ExecProfitability />;
+      case ROUTES.EXEC_TRENDS:
+        return <ExecTrends />;
       case ROUTES.HR:
         return <HrHome />;
       case ROUTES.PARTNER:
