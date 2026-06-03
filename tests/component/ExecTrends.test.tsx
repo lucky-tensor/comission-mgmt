@@ -42,7 +42,6 @@ afterEach(() => mounted?.unmount());
 function makeBucket(overrides: Partial<TrendBucket> & { period_start: string }): TrendBucket {
   return {
     label: 'Apr 2025',
-    period_start: overrides.period_start,
     period_end: overrides.period_end ?? '2025-04-30',
     exception_rate: 0.05,
     dispute_rate: 0.02,
