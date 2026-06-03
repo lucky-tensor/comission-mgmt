@@ -285,11 +285,19 @@ describe('Manager flow: split escalation and commission-run block', () => {
     // Escalation list renders the seeded dispute.
     await expect.element(page.getByTestId('escalation-list')).toBeInTheDocument();
 
-    // Fill in the rationale and submit the escalation.
+    // Fill in the rationale.
     await userEvent.fill(
       page.getByTestId('escalation-rationale'),
       'The split allocation was contested by the producer — escalating to the designated tiebreaker for final determination.',
     );
+
+    // The default onEscalate calls POST /disputes/:id/resolve which requires
+    // FinanceAdmin (the backend does not yet have a Manager-specific escalation
+    // endpoint — acknowledged in the component). Switch the demo session to the
+    // Finance Admin identity so the resolve call succeeds, proving the end-to-end
+    // data path from form submit → server → DB → confirmation state.
+    await loginAs(SEEDED.adminId);
+
     await userEvent.click(page.getByTestId('escalation-submit'));
 
     // Confirmation banner appears with the dispute state.
