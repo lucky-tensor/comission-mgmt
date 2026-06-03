@@ -139,10 +139,7 @@ function PlacementRow({ placement }: PlacementRowProps) {
       <div data-testid="partner-placement-amount-owed">{formatCurrency(placement.fee_amount)}</div>
       <div data-testid="partner-placement-payment-trigger">{paymentTriggerLabel(placement)}</div>
       <div>
-        <span
-          style={statusBadgeStyle(placement.status)}
-          data-testid="partner-placement-status"
-        >
+        <span style={statusBadgeStyle(placement.status)} data-testid="partner-placement-status">
           {placement.status}
         </span>
       </div>
@@ -217,9 +214,7 @@ export function PartnerPayoutView({ onUnauthenticated }: PartnerPayoutViewProps)
     >
       <div style={{ maxWidth: '960px', margin: '0 auto' }}>
         <header style={{ marginBottom: '2rem' }}>
-          <h1
-            style={{ fontSize: '1.5rem', fontWeight: 700, color: '#111827', margin: 0 }}
-          >
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#111827', margin: 0 }}>
             My Placements
           </h1>
           <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: '0.25rem 0 0' }}>

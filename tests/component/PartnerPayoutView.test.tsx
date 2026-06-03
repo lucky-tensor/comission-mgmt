@@ -22,7 +22,10 @@
 
 import { describe, test, expect, afterEach } from 'vitest';
 import { page } from '@vitest/browser/context';
-import { PlacementsTable, type PartnerPlacement } from '../../apps/web/src/components/partner/PartnerPayoutView';
+import {
+  PlacementsTable,
+  type PartnerPlacement,
+} from '../../apps/web/src/components/partner/PartnerPayoutView';
 import { ROLE_ROUTES, ROUTES } from '../../apps/web/src/lib/roleRoutes';
 import { renderInBrowser, type Mounted } from './render';
 
@@ -65,9 +68,7 @@ const confidentialPlacement: PartnerPlacement = {
 
 describe('PartnerPayoutView — loading state', () => {
   test('renders loading-state element while data is in-flight', async () => {
-    mounted = renderInBrowser(
-      <PlacementsTable loading={true} error={null} data={null} />,
-    );
+    mounted = renderInBrowser(<PlacementsTable loading={true} error={null} data={null} />);
     await expect.element(page.getByTestId('loading-state')).toBeInTheDocument();
     expect(page.getByTestId('partner-placements-list').elements()).toHaveLength(0);
   });
@@ -79,9 +80,7 @@ describe('PartnerPayoutView — loading state', () => {
 
 describe('PartnerPayoutView — empty state', () => {
   test('renders empty-state element when no placements exist', async () => {
-    mounted = renderInBrowser(
-      <PlacementsTable loading={false} error={null} data={[]} />,
-    );
+    mounted = renderInBrowser(<PlacementsTable loading={false} error={null} data={[]} />);
     await expect.element(page.getByTestId('empty-state')).toBeInTheDocument();
     expect(page.getByTestId('partner-placements-list').elements()).toHaveLength(0);
   });
@@ -93,9 +92,7 @@ describe('PartnerPayoutView — empty state', () => {
 
 describe('PartnerPayoutView — data state', () => {
   test('renders placements-list with amount owed, payment trigger, and status', async () => {
-    mounted = renderInBrowser(
-      <PlacementsTable loading={false} error={null} data={[placement]} />,
-    );
+    mounted = renderInBrowser(<PlacementsTable loading={false} error={null} data={[placement]} />);
 
     await expect.element(page.getByTestId('partner-placements-list')).toBeInTheDocument();
 
@@ -116,9 +113,7 @@ describe('PartnerPayoutView — data state', () => {
   });
 
   test('renders job_title for a non-confidential placement', async () => {
-    mounted = renderInBrowser(
-      <PlacementsTable loading={false} error={null} data={[placement]} />,
-    );
+    mounted = renderInBrowser(<PlacementsTable loading={false} error={null} data={[placement]} />);
     const titleCell = page.getByTestId('partner-placement-job-title');
     await expect.element(titleCell).toBeInTheDocument();
     await expect.element(titleCell).toHaveTextContent('VP Engineering');
@@ -141,9 +136,9 @@ describe('PartnerPayoutView — confidential placement masking', () => {
     await expect.element(titleCell).toBeInTheDocument();
     await expect.element(titleCell).toHaveTextContent('Confidential');
 
-    await expect.element(
-      page.getByTestId('partner-placement-confidential-badge'),
-    ).toBeInTheDocument();
+    await expect
+      .element(page.getByTestId('partner-placement-confidential-badge'))
+      .toBeInTheDocument();
   });
 
   test('client_entity_id is null (absent) and not rendered in the DOM', async () => {
@@ -204,10 +199,9 @@ describe('PartnerPayoutView — scope enforcement (roleRoutes structural)', () =
       ROUTES.HR,
     ];
     for (const r of otherRoutes) {
-      expect(
-        config.permitted.has(r),
-        `ExternalPartner must not be permitted to reach ${r}`,
-      ).toBe(false);
+      expect(config.permitted.has(r), `ExternalPartner must not be permitted to reach ${r}`).toBe(
+        false,
+      );
     }
   });
 
