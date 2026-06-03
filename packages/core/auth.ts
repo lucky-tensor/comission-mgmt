@@ -142,6 +142,8 @@ export const ROLE_PERMISSIONS: Record<AppRole, Permission[]> = {
     { method: 'GET', pathPrefix: '/contributors' },
     { method: 'GET', pathPrefix: '/commission-records' },
     { method: 'GET', pathPrefix: '/draw-balances' },
+    // HR draw balance read — per-producer draw balance + recovery schedule (#115)
+    { method: 'GET', pathPrefix: '/producers' },
     // App shell — identity endpoint (issue #100)
     { method: 'GET', pathPrefix: '/me' },
     { method: 'POST', pathPrefix: '/auth/logout' },
