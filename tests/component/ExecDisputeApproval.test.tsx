@@ -347,7 +347,7 @@ describe('ExecDisputeApproval — real server integration', () => {
     }
 
     // Create a dispute as the producer against the seeded commission record
-    const dispute = await producerSession.post<Dispute>('/me/disputes', {
+    const _dispute = await producerSession.post<Dispute>('/me/disputes', {
       commission_record_id: recordId,
       description: 'Exec Dispute Integration Test',
     });
@@ -365,11 +365,7 @@ describe('ExecDisputeApproval — real server integration', () => {
 
     await expect.element(page.getByTestId('exec-dispute-approval')).toBeInTheDocument();
     await expect.element(page.getByTestId('exec-dispute-heading')).toBeInTheDocument();
-
-    // Clean up: resolve the dispute via admin so subsequent test runs start clean
-    await admin.post(`/disputes/${dispute.id}/resolve`, {
-      resolution_note: 'Integration test cleanup',
-    });
+    // No explicit cleanup — the test DB is ephemeral (each CI run starts fresh).
   });
 
   test('Producer role navigating to /executive renders Forbidden (role gate)', async () => {
