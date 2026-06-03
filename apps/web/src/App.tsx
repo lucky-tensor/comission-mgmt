@@ -6,7 +6,7 @@
  *   /portal    — Producer Payout Portal
  *   /finance   — Finance Admin home (data-gap queue + commission run review + invoice tracking)
  *   /manager   — Manager home (split approval + attribution timeline, team commission view, cross-team split escalation / tiebreaker)
- *   /executive — Executive dashboard (placeholder)
+ *   /executive — Executive dashboard (firm financial position)
  *   /hr        — HR home (placeholder)
  *   /partner   — External Partner home (placeholder)
  *
@@ -26,6 +26,7 @@
  *         feat: Manager UI — split approval and attribution timeline (#107)
  *         feat: Manager UI — team commission view (#108)
  *         feat: Manager UI — cross-team split escalation / tiebreaker (#109)
+ *         feat: Executive UI — firm financial position dashboard (#110)
  */
 
 import { useState, useEffect } from 'react';
@@ -37,8 +38,9 @@ import { ReconciliationReport } from './components/finance/ReconciliationReport'
 import { NavShell } from './components/NavShell';
 import { Forbidden } from './components/Forbidden';
 import { FinanceAdmin } from './components/finance/FinanceAdmin';
-import { ExecutiveHome, HrHome, PartnerHome } from './components/PlaceholderSurface';
+import { HrHome, PartnerHome } from './components/PlaceholderSurface';
 import { ManagerPortal } from './components/manager/SplitEscalation';
+import { ExecFinancialPosition } from './components/executive/ExecFinancialPosition';
 import { useSession } from './lib/useSession';
 import { isPathPermitted, landingPathForRole, ROUTES } from './lib/roleRoutes';
 
@@ -80,7 +82,7 @@ function AuthenticatedApp({ role, path }: AuthenticatedAppProps) {
       case ROUTES.MANAGER:
         return <ManagerPortal />;
       case ROUTES.EXECUTIVE:
-        return <ExecutiveHome />;
+        return <ExecFinancialPosition />;
       case ROUTES.HR:
         return <HrHome />;
       case ROUTES.PARTNER:
