@@ -32,10 +32,7 @@ import { writeFileSync } from 'node:fs';
 import { startPostgres, type PgContainer } from 'db/pg-container';
 import { migrateAndSeedIdentities, seedViaHttp } from './fixtures/seed-producer';
 import { seedFinanceClose } from './fixtures/seed-finance-close';
-import {
-  migrateAndSeedManagerIdentities,
-  seedManagerViaHttp,
-} from './fixtures/seed-manager';
+import { migrateAndSeedManagerIdentities, seedManagerViaHttp } from './fixtures/seed-manager';
 
 const PORT = Number(process.env.E2E_SERVER_PORT ?? 31999);
 const ROOT = resolve(__dirname, '../..');

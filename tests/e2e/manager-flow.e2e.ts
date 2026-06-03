@@ -128,9 +128,7 @@ describe('Manager flow: split approval', () => {
     await expect.element(dealRow.getByText('Senior Recruiter (Pending)')).toBeInTheDocument();
 
     // Expand to review splits.
-    await userEvent.click(
-      page.getByTestId(`expand-btn-${MANAGER_SEEDED.pendingPlacementId}`),
-    );
+    await userEvent.click(page.getByTestId(`expand-btn-${MANAGER_SEEDED.pendingPlacementId}`));
 
     // Contributors table renders after expansion.
     await expect
@@ -138,9 +136,7 @@ describe('Manager flow: split approval', () => {
       .toBeInTheDocument();
 
     // Approve the split.
-    await userEvent.click(
-      page.getByTestId(`approve-btn-${MANAGER_SEEDED.pendingPlacementId}`),
-    );
+    await userEvent.click(page.getByTestId(`approve-btn-${MANAGER_SEEDED.pendingPlacementId}`));
 
     // After approval the deal row is removed from the list.
     await expect
@@ -170,10 +166,7 @@ describe('Manager flow: attribution timeline', () => {
     await expect.element(page.getByTestId('timeline-idle')).toBeInTheDocument();
 
     // Enter the pending placement ID and search.
-    await userEvent.fill(
-      page.getByTestId('placement-id-input'),
-      MANAGER_SEEDED.pendingPlacementId,
-    );
+    await userEvent.fill(page.getByTestId('placement-id-input'), MANAGER_SEEDED.pendingPlacementId);
     await userEvent.click(page.getByTestId('search-timeline-btn'));
 
     // Timeline renders with at least one event (Submitted).
@@ -276,10 +269,9 @@ describe('Manager flow: split escalation and commission-run block', () => {
       };
 
       // Fetch the commission records on this run to inspect status.
-      const recordsRes = await fetch(
-        `/api/commission-runs/${runData.id}/records`,
-        { credentials: 'same-origin' },
-      );
+      const recordsRes = await fetch(`/api/commission-runs/${runData.id}/records`, {
+        credentials: 'same-origin',
+      });
       if (recordsRes.ok) {
         const { records } = (await recordsRes.json()) as {
           records: Array<{ id: string; status: string }>;

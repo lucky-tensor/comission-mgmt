@@ -233,9 +233,11 @@ export async function seedManagerViaHttp(
       disputedPlacementId,
     ]);
 
-    // Add producer 1 as contributor.
+    // Add producer 2 as the commission-bearing contributor so producer 1's
+    // portal view is not polluted with a second Held placement (which would
+    // make the producer-portal E2E assert ambiguous).
     await admin.post(`/placements/${disputedPlacementId}/contributors`, {
-      producer_id: SEEDED.producerId,
+      producer_id: SEEDED.producer2Id,
       role: 'CandidateOwner',
       split_pct: 0.6,
     });
@@ -251,9 +253,9 @@ export async function seedManagerViaHttp(
       commission_records: Array<{ id: string }>;
     }>(`/placements/${disputedPlacementId}/calculate`);
 
-    // Producer 1 creates a dispute against their record.
+    // Producer 2 creates a dispute against their record on this placement.
     const producer = new ApiSession(baseUrl);
-    await producer.login(SEEDED.producerId);
+    await producer.login(SEEDED.producer2Id);
 
     const producerRecords = commission_records.filter((r) => r.id);
     if (producerRecords.length === 0) throw new Error('No commission records found for dispute');
