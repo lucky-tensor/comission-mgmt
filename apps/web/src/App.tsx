@@ -10,7 +10,7 @@
  *   /executive/profitability — Executive profitability analytics (by client/recruiter/team/practice)
  *   /executive/trends        — Executive exception & dispute rate trends
  *   /hr        — HR home (commission plan acknowledgment + draw balance and recovery schedule)
- *   /partner   — External Partner home (placeholder)
+ *   /partner   — External Partner home (scoped payout view)
  *
  * Routing is intentionally tiny (no router dependency): the app reads
  * window.location.pathname and navigates with history.pushState.
@@ -45,13 +45,13 @@ import { NavShell } from './components/NavShell';
 import { Forbidden } from './components/Forbidden';
 import { ExecTrends } from './components/executive/ExecTrends';
 import { FinanceAdmin } from './components/finance/FinanceAdmin';
-import { PartnerHome } from './components/PlaceholderSurface';
 import { ManagerHome } from './components/manager/ManagerHome';
 import { ExecFinancialPosition } from './components/executive/ExecFinancialPosition';
 import { ExecProfitability } from './components/ExecProfitability';
 import { ExecDisputeApproval } from './components/executive/ExecDisputeApproval';
 import { PlanAcknowledgment } from './components/hr/PlanAcknowledgment';
 import { DrawBalanceView } from './components/hr/DrawBalanceView';
+import { PartnerPayoutView } from './components/partner/PartnerPayoutView';
 import { useSession } from './lib/useSession';
 import { isPathPermitted, landingPathForRole, ROUTES } from './lib/roleRoutes';
 
@@ -111,7 +111,7 @@ function AuthenticatedApp({ role, path }: AuthenticatedAppProps) {
           </>
         );
       case ROUTES.PARTNER:
-        return <PartnerHome />;
+        return <PartnerPayoutView onUnauthenticated={() => navigate(ROUTES.LOGIN)} />;
       default:
         return <Forbidden role={role} onNavigate={navigate} />;
     }
