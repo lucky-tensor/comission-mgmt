@@ -276,10 +276,7 @@ function TrendTable({ buckets }: TrendTableProps) {
     <div data-testid="trends-table" style={cardStyle}>
       <h2 style={headingStyle}>Exception &amp; dispute rate trends</h2>
       {buckets.length === 0 ? (
-        <div
-          data-testid="trends-empty"
-          style={{ fontSize: '0.875rem', color: '#6b7280' }}
-        >
+        <div data-testid="trends-empty" style={{ fontSize: '0.875rem', color: '#6b7280' }}>
           No data available for the selected range.
         </div>
       ) : (
@@ -416,28 +413,22 @@ export interface ExecTrendsViewProps {
 
 export function ExecTrendsView({ phase, onFetch, loading, fetchError }: ExecTrendsViewProps) {
   return (
-    <div
-      data-testid="exec-trends"
-      style={containerStyle}
-    >
+    <div data-testid="exec-trends" style={containerStyle}>
       <div style={innerStyle}>
         <header style={{ marginBottom: '2rem' }}>
           <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#111827', margin: 0 }}>
             Exception &amp; Dispute Rate Trends
           </h1>
           <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: '0.25rem 0 0' }}>
-            View exception and dispute rates over time to evaluate whether commission plan rules
-            are working. Select a date range to load monthly trend buckets.
+            View exception and dispute rates over time to evaluate whether commission plan rules are
+            working. Select a date range to load monthly trend buckets.
           </p>
         </header>
 
         <RangeForm onFetch={onFetch} loading={loading} fetchError={fetchError} />
 
         {phase.kind === 'loading' && (
-          <div
-            data-testid="trends-loading-state"
-            style={{ ...cardStyle, color: '#6b7280' }}
-          >
+          <div data-testid="trends-loading-state" style={{ ...cardStyle, color: '#6b7280' }}>
             Loading trends…
           </div>
         )}
@@ -493,9 +484,7 @@ export function buildMonthlyBuckets(
     const bucketStart = new Date(cursor);
 
     // Advance to last day of this month
-    const lastOfMonth = new Date(
-      Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth() + 1, 0),
-    );
+    const lastOfMonth = new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth() + 1, 0));
     const bucketEnd = lastOfMonth < end ? lastOfMonth : end;
 
     const label = bucketStart.toLocaleDateString('en-US', {
@@ -511,9 +500,7 @@ export function buildMonthlyBuckets(
     });
 
     // Move cursor to first day of next month
-    cursor = new Date(
-      Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth() + 1, 1),
-    );
+    cursor = new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth() + 1, 1));
   }
 
   return buckets;

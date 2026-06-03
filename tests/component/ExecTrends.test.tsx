@@ -87,9 +87,7 @@ describe('ExecTrendsView — idle state', () => {
       calls.push([start, end]);
     }
 
-    mounted = renderInBrowser(
-      <ExecTrendsView {...defaultProps()} onFetch={handleFetch} />,
-    );
+    mounted = renderInBrowser(<ExecTrendsView {...defaultProps()} onFetch={handleFetch} />);
 
     await page.getByTestId('trends-range-start-input').fill('2025-01-01');
     await page.getByTestId('trends-range-end-input').fill('2025-03-31');
@@ -152,9 +150,30 @@ describe('ExecTrendsView — error state', () => {
 describe('ExecTrendsView — two-series render', () => {
   test('renders the trend table with two series for a seeded multi-bucket range', async () => {
     const buckets: TrendBucket[] = [
-      makeBucket({ period_start: '2025-01-01', period_end: '2025-01-31', label: 'Jan 2025', exception_rate: 0.10, dispute_rate: 0.03, total_placements: 50 }),
-      makeBucket({ period_start: '2025-02-01', period_end: '2025-02-28', label: 'Feb 2025', exception_rate: 0.07, dispute_rate: 0.05, total_placements: 45 }),
-      makeBucket({ period_start: '2025-03-01', period_end: '2025-03-31', label: 'Mar 2025', exception_rate: 0.04, dispute_rate: 0.01, total_placements: 60 }),
+      makeBucket({
+        period_start: '2025-01-01',
+        period_end: '2025-01-31',
+        label: 'Jan 2025',
+        exception_rate: 0.1,
+        dispute_rate: 0.03,
+        total_placements: 50,
+      }),
+      makeBucket({
+        period_start: '2025-02-01',
+        period_end: '2025-02-28',
+        label: 'Feb 2025',
+        exception_rate: 0.07,
+        dispute_rate: 0.05,
+        total_placements: 45,
+      }),
+      makeBucket({
+        period_start: '2025-03-01',
+        period_end: '2025-03-31',
+        label: 'Mar 2025',
+        exception_rate: 0.04,
+        dispute_rate: 0.01,
+        total_placements: 60,
+      }),
     ];
 
     mounted = renderInBrowser(
@@ -171,8 +190,22 @@ describe('ExecTrendsView — two-series render', () => {
 
   test('renders exception rate and dispute rate values for each bucket', async () => {
     const buckets: TrendBucket[] = [
-      makeBucket({ period_start: '2025-01-01', period_end: '2025-01-31', label: 'Jan 2025', exception_rate: 0.10, dispute_rate: 0.03, total_placements: 50 }),
-      makeBucket({ period_start: '2025-02-01', period_end: '2025-02-28', label: 'Feb 2025', exception_rate: 0.07, dispute_rate: 0.05, total_placements: 45 }),
+      makeBucket({
+        period_start: '2025-01-01',
+        period_end: '2025-01-31',
+        label: 'Jan 2025',
+        exception_rate: 0.1,
+        dispute_rate: 0.03,
+        total_placements: 50,
+      }),
+      makeBucket({
+        period_start: '2025-02-01',
+        period_end: '2025-02-28',
+        label: 'Feb 2025',
+        exception_rate: 0.07,
+        dispute_rate: 0.05,
+        total_placements: 45,
+      }),
     ];
 
     mounted = renderInBrowser(
@@ -188,15 +221,30 @@ describe('ExecTrendsView — two-series render', () => {
     await expect.element(page.getByTestId('dispute-rate-2025-02-01')).toBeInTheDocument();
 
     // Verify rendered text values
-    await expect.element(page.getByTestId('exception-rate-2025-01-01').getByText('10.0%')).toBeInTheDocument();
-    await expect.element(page.getByTestId('dispute-rate-2025-01-01').getByText('3.0%')).toBeInTheDocument();
-    await expect.element(page.getByTestId('exception-rate-2025-02-01').getByText('7.0%')).toBeInTheDocument();
-    await expect.element(page.getByTestId('dispute-rate-2025-02-01').getByText('5.0%')).toBeInTheDocument();
+    await expect
+      .element(page.getByTestId('exception-rate-2025-01-01').getByText('10.0%'))
+      .toBeInTheDocument();
+    await expect
+      .element(page.getByTestId('dispute-rate-2025-01-01').getByText('3.0%'))
+      .toBeInTheDocument();
+    await expect
+      .element(page.getByTestId('exception-rate-2025-02-01').getByText('7.0%'))
+      .toBeInTheDocument();
+    await expect
+      .element(page.getByTestId('dispute-rate-2025-02-01').getByText('5.0%'))
+      .toBeInTheDocument();
   });
 
   test('renders inline bars for both series', async () => {
     const buckets: TrendBucket[] = [
-      makeBucket({ period_start: '2025-04-01', period_end: '2025-04-30', label: 'Apr 2025', exception_rate: 0.08, dispute_rate: 0.02, total_placements: 35 }),
+      makeBucket({
+        period_start: '2025-04-01',
+        period_end: '2025-04-30',
+        label: 'Apr 2025',
+        exception_rate: 0.08,
+        dispute_rate: 0.02,
+        total_placements: 35,
+      }),
     ];
 
     mounted = renderInBrowser(
@@ -209,7 +257,14 @@ describe('ExecTrendsView — two-series render', () => {
 
   test('renders total placements for each bucket', async () => {
     const buckets: TrendBucket[] = [
-      makeBucket({ period_start: '2025-04-01', period_end: '2025-04-30', label: 'Apr 2025', exception_rate: 0.05, dispute_rate: 0.02, total_placements: 77 }),
+      makeBucket({
+        period_start: '2025-04-01',
+        period_end: '2025-04-30',
+        label: 'Apr 2025',
+        exception_rate: 0.05,
+        dispute_rate: 0.02,
+        total_placements: 77,
+      }),
     ];
 
     mounted = renderInBrowser(
@@ -221,8 +276,22 @@ describe('ExecTrendsView — two-series render', () => {
 
   test('renders period labels for each bucket', async () => {
     const buckets: TrendBucket[] = [
-      makeBucket({ period_start: '2025-01-01', period_end: '2025-01-31', label: 'Jan 2025', exception_rate: 0.05, dispute_rate: 0.02, total_placements: 10 }),
-      makeBucket({ period_start: '2025-02-01', period_end: '2025-02-28', label: 'Feb 2025', exception_rate: 0.03, dispute_rate: 0.01, total_placements: 12 }),
+      makeBucket({
+        period_start: '2025-01-01',
+        period_end: '2025-01-31',
+        label: 'Jan 2025',
+        exception_rate: 0.05,
+        dispute_rate: 0.02,
+        total_placements: 10,
+      }),
+      makeBucket({
+        period_start: '2025-02-01',
+        period_end: '2025-02-28',
+        label: 'Feb 2025',
+        exception_rate: 0.03,
+        dispute_rate: 0.01,
+        total_placements: 12,
+      }),
     ];
 
     mounted = renderInBrowser(
@@ -246,9 +315,7 @@ describe('ExecTrendsView — range change re-fetches', () => {
       calls.push([start, end]);
     }
 
-    mounted = renderInBrowser(
-      <ExecTrendsView {...defaultProps()} onFetch={handleFetch} />,
-    );
+    mounted = renderInBrowser(<ExecTrendsView {...defaultProps()} onFetch={handleFetch} />);
 
     // First fetch
     await page.getByTestId('trends-range-start-input').fill('2025-01-01');
