@@ -151,7 +151,7 @@ describe('PlanAcknowledgmentView — presentational states', () => {
     await expect.element(page.getByTestId('acknowledgment-table')).toBeInTheDocument();
     await expect.element(page.getByTestId(`ack-row-${row.id}`)).toBeInTheDocument();
     await expect.element(page.getByTestId(`status-acknowledged-${row.id}`)).toBeInTheDocument();
-    await expect.element(page.getByText('Acknowledged')).toBeInTheDocument();
+    await expect.element(page.getByText('Acknowledged', { exact: true })).toBeInTheDocument();
   });
 
   test('renders pending row with Pending badge', async () => {
