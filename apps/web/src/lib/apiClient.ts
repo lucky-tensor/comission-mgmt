@@ -66,3 +66,6 @@ export const apiPost = <T>(path: string, body: unknown): Promise<T> =>
 /** Typed PATCH against `/api<path>` with a JSON body. */
 export const apiPatch = <T>(path: string, body: unknown): Promise<T> =>
   request<T>('PATCH', path, body);
+
+/** Typed DELETE against `/api<path>`. */
+export const apiDelete = <T>(path: string): Promise<T> => request<T>('DELETE', path);
