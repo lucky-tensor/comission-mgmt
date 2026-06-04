@@ -21,7 +21,6 @@
 import { describe, test, expect, beforeAll } from 'vitest';
 import { page, userEvent } from '@vitest/browser/context';
 import { SEEDED } from '../fixtures/ids';
-import { navigate } from '../../../apps/web/src/App';
 import { loginAs, useMount } from './helpers';
 
 let pendingPlacementId = '';
