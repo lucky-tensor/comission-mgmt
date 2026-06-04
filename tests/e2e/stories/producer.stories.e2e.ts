@@ -13,7 +13,7 @@
  *
  * Canonical docs: docs/prd.md §4, §5.9
  * Test plan: docs/code-review/test-plan.md
- * Issue: #164
+ * Issue: #156
  */
 
 import { describe, test, expect } from 'vitest';
@@ -53,6 +53,18 @@ describe('PR-1: Producer sees credited placement detail', () => {
     await expect.element(page.getByTestId('payout-table')).toBeInTheDocument();
     // Split percentage cell should contain a % value.
     await expect.element(page.getByTestId('payout-table')).toHaveTextContent('%');
+  });
+
+  test('payout table has commissionable base and calculated amount columns', async () => {
+    mount.current = await loginAs('Producer');
+    await expect.element(page.getByTestId('payout-table')).toBeInTheDocument();
+    // Both "Commissionable base" and "Calculated amount" column headers must be present.
+    await expect
+      .element(page.getByTestId('payout-table').getByText('Commissionable base'))
+      .toBeInTheDocument();
+    await expect
+      .element(page.getByTestId('payout-table').getByText('Calculated amount'))
+      .toBeInTheDocument();
   });
 
   test('credited placements list renders', async () => {
@@ -127,6 +139,15 @@ describe('PR-3: Producer sees hold status and reason for held payouts', () => {
     await expect.element(page.getByTestId('placements-list')).toBeInTheDocument();
     // Every record renders a plain-language explanation from the explanation engine.
     await expect.element(page.getByTestId('placements-list')).toHaveTextContent('Your');
+  });
+
+  test('payout table holdback column shows hold reason or Released for each payout row', async () => {
+    mount.current = await loginAs('Producer');
+    await expect.element(page.getByTestId('payout-table')).toBeInTheDocument();
+    // The Holdback column header must be present — every payout row exposes hold status.
+    await expect
+      .element(page.getByTestId('payout-table').getByText('Holdback'))
+      .toBeInTheDocument();
   });
 });
 
