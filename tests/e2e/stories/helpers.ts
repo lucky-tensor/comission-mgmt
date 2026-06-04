@@ -65,6 +65,7 @@ export async function loginAs(roleLabel: string): Promise<Mounted> {
 export interface E2EFixture {
   closeRunId: string;
   closeIncompletePlacementId: string;
+  closeCompletePlacementId: string;
   partnerPlacementId: string;
   unrelatedPlacementId: string;
 }

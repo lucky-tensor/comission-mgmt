@@ -84,6 +84,8 @@ class ApiSession {
 export interface FinanceCloseFixture {
   /** The incomplete placement id (for gap-queue assertion). */
   incompletePlacementId: string;
+  /** The complete placement id (for commission run and ledger tests). */
+  completePlacementId: string;
   /** The approved commission run id. */
   runId: string;
   /** Invoice id created in the ledger. */
@@ -227,5 +229,5 @@ export async function seedFinanceClose(
     `/reconciliation?period_start=${CLOSE.periodStart}&period_end=${CLOSE.periodEnd}`,
   );
 
-  return { incompletePlacementId, runId, invoiceId };
+  return { incompletePlacementId, completePlacementId, runId, invoiceId };
 }

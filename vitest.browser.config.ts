@@ -68,6 +68,7 @@ export default defineConfig({
     globalSetup: ['./tests/e2e/global-setup.ts'],
     setupFiles: ['./tests/component/setup.ts'],
     include: ['tests/component/**/*.test.tsx', 'tests/e2e/**/*.e2e.ts'],
+    fileParallelism: false,
     testTimeout: 60_000,
     hookTimeout: 300_000,
     // Raise the poll timeout for expect.element() calls from the default 1 s

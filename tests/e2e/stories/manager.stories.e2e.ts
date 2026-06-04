@@ -50,6 +50,9 @@ beforeAll(async () => {
     const data = (await placRes.json()) as { placements: Array<{ id: string; status: string }> };
     disputedPlacementId = data.placements.find((p) => p.status === 'Active')?.id ?? '';
   }
+
+  // Clear the session so loginAs() can show the Login page for each test.
+  await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' });
 });
 
 afterEach(() => {
@@ -184,6 +187,15 @@ describe('MG-3: Manager views team commission accruals', () => {
     await expect
       .element(page.getByText('Finance Director (Isolated)', { exact: false }))
       .not.toBeInTheDocument();
+  });
+
+  test('open disputes/exceptions panel renders (disputes-table or empty state)', async () => {
+    current = await loginAs('Manager');
+    await expect.element(page.getByTestId('team-commission-view')).toBeInTheDocument();
+    // TeamCommissionView renders an OpenDisputesPanel for exception requests.
+    const hasDisputesTable = (await page.getByTestId('disputes-table').elements()).length > 0;
+    const hasNoDisputes = (await page.getByText('No open disputes', { exact: false }).elements()).length > 0;
+    expect(hasDisputesTable || hasNoDisputes).toBe(true);
   });
 });
 

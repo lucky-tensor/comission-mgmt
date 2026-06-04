@@ -415,7 +415,7 @@ describe('InvoiceCollection container — API call wiring (AC-3)', () => {
     );
 
     // Wait for data to render
-    await expect.element(page.getByTestId('invoice-collection-phases')).toBeInTheDocument();
+    await expect.element(page.getByTestId('phase-rows')).toBeInTheDocument();
 
     expect(fetchedPhaseIds).toContain(PLACEMENT_ID);
     // Both phase invoice IDs were fetched

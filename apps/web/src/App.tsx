@@ -45,6 +45,7 @@ import { NavShell } from './components/NavShell';
 import { Forbidden } from './components/Forbidden';
 import { ExecTrends } from './components/executive/ExecTrends';
 import { FinanceAdmin } from './components/finance/FinanceAdmin';
+import { FinanceAdminSurface } from './components/finance/FinanceAdminSurface';
 import { ManagerHome } from './components/manager/ManagerHome';
 import { ExecFinancialPosition } from './components/executive/ExecFinancialPosition';
 import { ExecProfitability } from './components/ExecProfitability';
@@ -86,6 +87,7 @@ function AuthenticatedApp({ role, path }: AuthenticatedAppProps) {
             <DataGapQueue />
             <CommissionRunReview />
             <FinanceAdmin />
+            <FinanceAdminSurface />
           </>
         );
       case ROUTES.RECONCILIATION:

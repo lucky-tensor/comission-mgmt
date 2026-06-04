@@ -420,6 +420,7 @@ export function InvoiceCollectionView({
   onUpdatePhaseAmounts,
 }: InvoiceCollectionViewProps) {
   return (
+    <div data-testid="invoice-collection">
     <PortalCard title="Invoice and collection tracking">
       {state.loading ? (
         <LoadingState label="billing phases" />
@@ -428,7 +429,7 @@ export function InvoiceCollectionView({
       ) : !state.data || state.data.phases.length === 0 ? (
         <EmptyState message="No billing phases found for this placement. Retained search placements have retainer and delivery phases." />
       ) : (
-        <div data-testid="invoice-collection-phases">
+        <div data-testid="phase-rows">
           {state.data.phases.map((phase) => (
             <PhaseCard
               key={phase.id}
@@ -443,6 +444,7 @@ export function InvoiceCollectionView({
         </div>
       )}
     </PortalCard>
+    </div>
   );
 }
 

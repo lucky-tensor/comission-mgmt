@@ -9,6 +9,9 @@
  *         acknowledges → HR sees Acknowledged)
  *   HR-2  Draw balance and recovery schedule
  *
+ * HR-1 runs as a single sequential describe so the ordering dependency
+ * (HR → Producer → HR) is explicit and test isolation is maintained.
+ *
  * Canonical docs: docs/prd.md §4, §5.10 (plan acknowledgment), §6 (draw balance)
  * Test plan: docs/code-review/test-plan.md
  */
@@ -28,53 +31,36 @@ afterEach(() => {
 });
 
 // ---------------------------------------------------------------------------
-// HR-1 — Plan acknowledgment
+// HR-1 — Plan acknowledgment (single sequential describe — ordering matters)
 // ---------------------------------------------------------------------------
 
-describe('HR-1: HR monitors plan acknowledgment status', () => {
-  test('login lands on /hr with plan-acknowledgment surface', async () => {
+describe('HR-1: Plan acknowledgment two-role flow', () => {
+  test('HR sees producer row as Pending before acknowledgment', async () => {
     current = await loginAs('HR');
     await expect.element(page.getByTestId('nav-shell')).toBeInTheDocument();
     await expect.element(page.getByTestId('nav-role-badge')).toHaveTextContent('HR');
     expect(window.location.pathname).toBe('/hr');
     await expect.element(page.getByTestId('plan-acknowledgment')).toBeInTheDocument();
-  });
-
-  test('acknowledgment table renders with the seeded producer row as Pending', async () => {
-    current = await loginAs('HR');
     await expect.element(page.getByTestId('acknowledgment-table')).toBeInTheDocument();
     const pendingBadges = page.getByText('Pending');
     await expect.element(pendingBadges.all()[0]).toBeInTheDocument();
+    current.unmount();
+    current = undefined;
   });
-});
 
-describe('HR-1: Producer acknowledges their commission plan', () => {
-  test('producer login shows the ProducerPlanAcknowledgment component with the plan name', async () => {
+  test('Producer sees plan acknowledgment widget and can acknowledge', async () => {
     current = await loginAs('Producer');
     await expect.element(page.getByTestId('nav-shell')).toBeInTheDocument();
-    // Producer's plan acknowledgment widget is visible in the portal.
-    await expect.element(page.getByTestId('producer-plan-acknowledgment')).toBeInTheDocument();
-  });
-
-  test('acknowledge-btn is present before acknowledgment', async () => {
-    current = await loginAs('Producer');
     await expect.element(page.getByTestId('producer-plan-acknowledgment')).toBeInTheDocument();
     await expect.element(page.getByTestId('acknowledge-btn')).toBeInTheDocument();
-  });
-
-  test('clicking acknowledge-btn shows the confirmed state and removes the button', async () => {
-    current = await loginAs('Producer');
-    await expect.element(page.getByTestId('producer-plan-acknowledgment')).toBeInTheDocument();
     await userEvent.click(page.getByTestId('acknowledge-btn'));
     await expect.element(page.getByTestId('acknowledge-confirmed')).toBeInTheDocument();
     await expect.element(page.getByTestId('acknowledge-btn')).not.toBeInTheDocument();
+    current.unmount();
+    current = undefined;
   });
-});
 
-describe('HR-1: HR sees producer row as Acknowledged after producer acknowledges', () => {
-  test('acknowledgment table shows Acknowledged badge after producer flow', async () => {
-    // This test depends on the producer acknowledgment test above having run.
-    // In a fresh seed it may show Pending; after the producer test it shows Acknowledged.
+  test('HR sees producer row as Acknowledged after producer acknowledges', async () => {
     current = await loginAs('HR');
     await expect.element(page.getByTestId('acknowledgment-table')).toBeInTheDocument();
     const acknowledgedBadges = page.getByText('Acknowledged');
@@ -84,7 +70,6 @@ describe('HR-1: HR sees producer row as Acknowledged after producer acknowledges
   test('acknowledged_at cell contains a real date value', async () => {
     current = await loginAs('HR');
     await expect.element(page.getByTestId('acknowledgment-table')).toBeInTheDocument();
-    // A cell with a date pattern like "Jun 3, 2026".
     const ackAtCell = page.getByRole('cell', { name: /[A-Z][a-z]{2} \d+, \d{4}/ });
     await expect.element(ackAtCell.all()[0]).toBeInTheDocument();
   });
@@ -133,7 +118,6 @@ describe('HR-2: HR views draw balance and recovery schedule', () => {
     await userEvent.fill(page.getByTestId('producer-id-input'), SEEDED.producerId);
     await userEvent.click(page.getByTestId('lookup-btn'));
     await expect.element(page.getByTestId('draw-balance-panel')).toBeInTheDocument();
-    // Either a schedule list or an empty-state message must be present.
     const hasScheduleList = (await page.getByTestId('recovery-schedule-list').elements()).length > 0;
     const hasEmptySchedule = (await page.getByText('No clawback recovery schedules').elements()).length > 0;
     expect(hasScheduleList || hasEmptySchedule).toBe(true);
