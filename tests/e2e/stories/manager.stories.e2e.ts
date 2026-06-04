@@ -25,7 +25,7 @@ import { navigate } from '../../../apps/web/src/App';
 import { loginAs, type Mounted } from './helpers';
 
 let pendingPlacementId = '';
-let disputedPlacementId = '';
+let _disputedPlacementId = '';
 
 let current: Mounted | undefined;
 
@@ -48,7 +48,7 @@ beforeAll(async () => {
   const placRes = await fetch('/api/me/team/placements', { credentials: 'same-origin' });
   if (placRes.ok) {
     const data = (await placRes.json()) as { placements: Array<{ id: string; status: string }> };
-    disputedPlacementId = data.placements.find((p) => p.status === 'Active')?.id ?? '';
+    _disputedPlacementId = data.placements.find((p) => p.status === 'Active')?.id ?? '';
   }
 
   // Clear the session so loginAs() can show the Login page for each test.
