@@ -48,17 +48,29 @@ export function mountApp(): Mounted {
  * 'External Partner').
  */
 export async function loginAs(roleLabel: string): Promise<Mounted> {
-  console.log(`[story] loginAs(${roleLabel}): navigate + mountApp`);
+  // Logout any active session so the App always renders <Login>, not <AuthenticatedApp>.
+  // Also prevents zombie React roots if a prior test's loginAs threw before returning.
+  console.log(`[story] loginAs(${roleLabel}): logout + navigate + mountApp`);
+  await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' }).catch(() => {});
   navigate('/');
   const app = mountApp();
-  console.log(`[story] loginAs(${roleLabel}): waiting for login-container`);
-  await (expect as ExpectStatic).element(page.getByTestId('login-container')).toBeInTheDocument();
-  console.log(`[story] loginAs(${roleLabel}): waiting for demo-section`);
-  await (expect as ExpectStatic).element(page.getByTestId('demo-section')).toBeInTheDocument();
-  console.log(`[story] loginAs(${roleLabel}): clicking button`);
-  await userEvent.click(page.getByTestId('demo-section').getByRole('button', { name: roleLabel }));
-  console.log(`[story] loginAs(${roleLabel}): done`);
-  return app;
+  try {
+    console.log(`[story] loginAs(${roleLabel}): waiting for login-container`);
+    await (expect as ExpectStatic).element(page.getByTestId('login-container')).toBeInTheDocument();
+    console.log(`[story] loginAs(${roleLabel}): waiting for demo-section`);
+    await (expect as ExpectStatic).element(page.getByTestId('demo-section')).toBeInTheDocument();
+    console.log(`[story] loginAs(${roleLabel}): clicking button`);
+    await userEvent.click(page.getByTestId('demo-section').getByRole('button', { name: roleLabel }));
+    // Wait for nav-shell to confirm the redirect completed before returning.
+    console.log(`[story] loginAs(${roleLabel}): waiting for nav-shell`);
+    await (expect as ExpectStatic).element(page.getByTestId('nav-shell')).toBeInTheDocument();
+    console.log(`[story] loginAs(${roleLabel}): done — path=${window.location.pathname}`);
+    return app;
+  } catch (err) {
+    // Unmount on failure to prevent zombie React roots accumulating across tests.
+    app.unmount();
+    throw err;
+  }
 }
 
 /**
@@ -76,30 +88,46 @@ export interface E2EFixture {
 export async function loadFixture(): Promise<E2EFixture> {
   console.log('[story] loadFixture: fetching /__e2e_fixture__');
   const res = await fetch('/__e2e_fixture__');
-  const data = res.json() as Promise<E2EFixture>;
-  console.log('[story] loadFixture: done');
+  const data = (await res.json()) as E2EFixture;
+  console.log(
+    `[story] loadFixture: done partnerPlacementId=${data.partnerPlacementId} closeRunId=${data.closeRunId}`,
+  );
   return data;
+}
+
+function teardown(ref: { current: Mounted | undefined }) {
+  console.log('[story] afterEach: teardown');
+  try {
+    ref.current?.unmount();
+  } catch {
+    /* already unmounted */
+  }
+  ref.current = undefined;
+  navigate('/');
 }
 
 export function useMount(): { current: Mounted | undefined } {
   const ref = { current: undefined as Mounted | undefined };
-  afterEach(() => {
-    try {
-      ref.current?.unmount();
-    } catch {
-      /* already unmounted */
-    }
-    ref.current = undefined;
-    navigate('/');
-  });
+  afterEach(() => teardown(ref));
   return ref;
 }
 
-export function useFixture(): { mount: { current: Mounted | undefined }; fixture: E2EFixture } {
-  const mount = useMount();
-  const state = { mount, fixture: undefined as unknown as E2EFixture };
+export interface FixtureRef {
+  current: Mounted | undefined;
+  fixture: E2EFixture;
+}
+
+/**
+ * Registers beforeAll(loadFixture) + the standard afterEach teardown.
+ * Returns a single mutable ref — callers must NOT destructure fixture out of
+ * it, because fixture is populated asynchronously in beforeAll and a
+ * destructured copy would capture the pre-beforeAll undefined value.
+ */
+export function useFixture(): FixtureRef {
+  const ref = { current: undefined, fixture: undefined } as unknown as FixtureRef;
   beforeAll(async () => {
-    state.fixture = await loadFixture();
+    ref.fixture = await loadFixture();
   });
-  return state as { mount: { current: Mounted | undefined }; fixture: E2EFixture };
+  afterEach(() => teardown(ref));
+  return ref;
 }
