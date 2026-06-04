@@ -478,6 +478,57 @@ export function FinalizeBlockedState({ reason }: { reason: FinalizeBlockedReason
 }
 
 // ---------------------------------------------------------------------------
+// LoadRunForm — load an existing run by ID
+// ---------------------------------------------------------------------------
+
+export interface LoadRunFormProps {
+  onLoad: (runId: string) => Promise<void>;
+  loading: boolean;
+}
+
+export function LoadRunForm({ onLoad, loading }: LoadRunFormProps) {
+  const [runId, setRunId] = useState('');
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (runId.trim()) void onLoad(runId.trim());
+  }
+
+  return (
+    <div data-testid="load-run-form" style={cardStyle}>
+      <h2 style={headingStyle}>Or load an existing run</h2>
+      <form
+        onSubmit={handleSubmit}
+        style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-end' }}
+      >
+        <input
+          data-testid="load-run-id-input"
+          type="text"
+          placeholder="Run UUID…"
+          value={runId}
+          onChange={(e) => setRunId(e.target.value)}
+          style={{
+            padding: '0.5rem',
+            border: '1px solid #d1d5db',
+            borderRadius: '0.375rem',
+            fontSize: '0.875rem',
+            minWidth: '20rem',
+          }}
+        />
+        <button
+          type="submit"
+          data-testid="load-run-queue-button"
+          style={loading ? disabledBtnStyle : primaryBtnStyle}
+          disabled={loading}
+        >
+          {loading ? 'Loading…' : 'Load run'}
+        </button>
+      </form>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // CommissionRunReviewView — pure presentational component
 // ---------------------------------------------------------------------------
 
@@ -486,12 +537,13 @@ export type Phase =
   | { kind: 'loading-queue' }
   | { kind: 'queue'; data: CommissionRunQueueData }
   | { kind: 'error'; message: string }
-  | { kind: 'batch-approved' }
+  | { kind: 'batch-approved'; runId: string }
   | { kind: 'finalized' };
 
 export interface CommissionRunReviewViewProps {
   phase: Phase;
   onStart: (periodStart: string, periodEnd: string, placementIds: string[]) => Promise<void>;
+  onLoadRun: (runId: string) => Promise<void>;
   onApproveRecord: (runId: string, recordId: string) => Promise<void>;
   onBatchApprove: (runId: string) => Promise<void>;
   onFinalize: (runId: string) => Promise<void>;
@@ -507,6 +559,7 @@ export interface CommissionRunReviewViewProps {
 export function CommissionRunReviewView({
   phase,
   onStart,
+  onLoadRun,
   onApproveRecord,
   onBatchApprove,
   onFinalize,
@@ -540,7 +593,10 @@ export function CommissionRunReviewView({
         </header>
 
         {phase.kind === 'start' && (
-          <StartRunForm onStart={onStart} submitting={startSubmitting} error={startError} />
+          <>
+            <StartRunForm onStart={onStart} submitting={startSubmitting} error={startError} />
+            <LoadRunForm onLoad={onLoadRun} loading={startSubmitting} />
+          </>
         )}
 
         {phase.kind === 'loading-queue' && (
@@ -670,19 +726,32 @@ export function CommissionRunReviewView({
         )}
 
         {phase.kind === 'batch-approved' && (
-          <div
-            data-testid="batch-approved-state"
-            role="status"
-            style={{
-              ...cardStyle,
-              background: '#ecfdf5',
-              border: '1px solid #6ee7b7',
-              color: '#065f46',
-            }}
-          >
-            <strong>Run approved.</strong> All records have been individually reviewed and the run
-            is now approved. Proceed to finalize to hand off to payroll.
-          </div>
+          <>
+            <div
+              data-testid="batch-approved-state"
+              role="status"
+              style={{
+                ...cardStyle,
+                background: '#ecfdf5',
+                border: '1px solid #6ee7b7',
+                color: '#065f46',
+              }}
+            >
+              <strong>Run approved.</strong> All records have been individually reviewed and the run
+              is now approved. Proceed to finalize to hand off to payroll.
+            </div>
+            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+              <button
+                data-testid="finalize-button"
+                style={finalizing ? disabledBtnStyle : successBtnStyle}
+                disabled={finalizing}
+                onClick={() => void onFinalize(phase.runId)}
+              >
+                {finalizing ? 'Finalizing…' : 'Finalize run'}
+              </button>
+            </div>
+            {finalizeBlockedReason && <FinalizeBlockedState reason={finalizeBlockedReason} />}
+          </>
         )}
 
         {phase.kind === 'finalized' && (
@@ -776,12 +845,16 @@ export function CommissionRunReview() {
     }
   }
 
+  async function handleLoadRun(runId: string): Promise<void> {
+    await loadQueue(runId);
+  }
+
   async function handleBatchApprove(runId: string): Promise<void> {
     setBatchApproving(true);
     setMutationError(null);
     try {
       await apiPost(`/commission-runs/${runId}/approve`, {});
-      setPhase({ kind: 'batch-approved' });
+      setPhase({ kind: 'batch-approved', runId });
     } catch (err: unknown) {
       if (err instanceof ApiError && err.status === 422) {
         const reason: FinalizeBlockedReason = (err.body as FinalizeBlockedReason | null) ?? {
@@ -823,6 +896,7 @@ export function CommissionRunReview() {
     <CommissionRunReviewView
       phase={phase}
       onStart={handleStart}
+      onLoadRun={handleLoadRun}
       onApproveRecord={handleApproveRecord}
       onBatchApprove={handleBatchApprove}
       onFinalize={handleFinalize}

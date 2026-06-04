@@ -420,29 +420,31 @@ export function InvoiceCollectionView({
   onUpdatePhaseAmounts,
 }: InvoiceCollectionViewProps) {
   return (
-    <PortalCard title="Invoice and collection tracking">
-      {state.loading ? (
-        <LoadingState label="billing phases" />
-      ) : state.error ? (
-        <ErrorState message={state.error} />
-      ) : !state.data || state.data.phases.length === 0 ? (
-        <EmptyState message="No billing phases found for this placement. Retained search placements have retainer and delivery phases." />
-      ) : (
-        <div data-testid="invoice-collection-phases">
-          {state.data.phases.map((phase) => (
-            <PhaseCard
-              key={phase.id}
-              phase={phase}
-              invoice={
-                phase.invoice_id ? (state.data!.invoices.get(phase.invoice_id) ?? null) : null
-              }
-              onUpdateInvoiceStatus={onUpdateInvoiceStatus}
-              onUpdatePhaseAmounts={onUpdatePhaseAmounts}
-            />
-          ))}
-        </div>
-      )}
-    </PortalCard>
+    <div data-testid="invoice-collection">
+      <PortalCard title="Invoice and collection tracking">
+        {state.loading ? (
+          <LoadingState label="billing phases" />
+        ) : state.error ? (
+          <ErrorState message={state.error} />
+        ) : !state.data || state.data.phases.length === 0 ? (
+          <EmptyState message="No billing phases found for this placement. Retained search placements have retainer and delivery phases." />
+        ) : (
+          <div data-testid="phase-rows">
+            {state.data.phases.map((phase) => (
+              <PhaseCard
+                key={phase.id}
+                phase={phase}
+                invoice={
+                  phase.invoice_id ? (state.data!.invoices.get(phase.invoice_id) ?? null) : null
+                }
+                onUpdateInvoiceStatus={onUpdateInvoiceStatus}
+                onUpdatePhaseAmounts={onUpdatePhaseAmounts}
+              />
+            ))}
+          </div>
+        )}
+      </PortalCard>
+    </div>
   );
 }
 

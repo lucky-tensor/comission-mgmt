@@ -10,6 +10,8 @@
 
 import { SplitApproval } from './SplitApproval';
 import { AttributionTimeline } from './AttributionTimeline';
+import { TeamCommissionView } from './TeamCommissionView';
+import { ManagerPortal as SplitEscalation } from './SplitEscalation';
 
 export function ManagerHome() {
   return (
@@ -24,6 +26,8 @@ export function ManagerHome() {
     >
       <SplitApproval />
       <AttributionTimeline />
+      <TeamCommissionView />
+      <SplitEscalation />
     </div>
   );
 }

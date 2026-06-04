@@ -23,6 +23,7 @@ import { PayoutStatement } from './PayoutStatement';
 import { CreditedPlacementsView } from './CreditedPlacements';
 import { TierProgress } from './TierProgress';
 import { DisputeForm } from './DisputeForm';
+import { ProducerPlanAcknowledgment } from '../hr/PlanAcknowledgment';
 import { LoadingState, ErrorState } from './states';
 
 export function ProducerPortal({ onUnauthenticated }: { onUnauthenticated?: () => void }) {
@@ -62,6 +63,8 @@ export function ProducerPortal({ onUnauthenticated }: { onUnauthenticated?: () =
         <PayoutStatement />
 
         <TierProgress />
+
+        <ProducerPlanAcknowledgment />
 
         <CreditedPlacementsView state={records} />
 

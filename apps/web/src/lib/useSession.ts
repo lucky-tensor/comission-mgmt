@@ -32,6 +32,7 @@ export interface UseSessionResult {
   loading: boolean;
   error: string | null;
   unauthenticated: boolean;
+  refreshSession: () => void;
 }
 
 export function useSession(): UseSessionResult {
@@ -39,6 +40,7 @@ export function useSession(): UseSessionResult {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [unauthenticated, setUnauthenticated] = useState(false);
+  const [refreshTick, setRefreshTick] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -46,9 +48,11 @@ export function useSession(): UseSessionResult {
     setError(null);
     setUnauthenticated(false);
 
+    console.log(`[useSession] fetching /me (tick=${refreshTick})`);
     apiGet<SessionInfo>('/me')
       .then((data) => {
         if (active) {
+          console.log(`[useSession] session loaded role=${data.role}`);
           setSession(data);
           setLoading(false);
         }
@@ -56,8 +60,10 @@ export function useSession(): UseSessionResult {
       .catch((err: unknown) => {
         if (!active) return;
         if (err instanceof ApiError && err.status === 401) {
+          console.log('[useSession] unauthenticated (401)');
           setUnauthenticated(true);
         } else {
+          console.log(`[useSession] error: ${err instanceof Error ? err.message : err}`);
           setError(err instanceof Error ? err.message : 'Failed to load session');
         }
         setLoading(false);
@@ -66,7 +72,13 @@ export function useSession(): UseSessionResult {
     return () => {
       active = false;
     };
-  }, []);
+  }, [refreshTick]);
 
-  return { session, loading, error, unauthenticated };
+  return {
+    session,
+    loading,
+    error,
+    unauthenticated,
+    refreshSession: () => setRefreshTick((t) => t + 1),
+  };
 }

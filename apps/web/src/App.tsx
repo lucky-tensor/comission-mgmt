@@ -45,6 +45,7 @@ import { NavShell } from './components/NavShell';
 import { Forbidden } from './components/Forbidden';
 import { ExecTrends } from './components/executive/ExecTrends';
 import { FinanceAdmin } from './components/finance/FinanceAdmin';
+import { FinanceAdminSurface } from './components/finance/FinanceAdminSurface';
 import { ManagerHome } from './components/manager/ManagerHome';
 import { ExecFinancialPosition } from './components/executive/ExecFinancialPosition';
 import { ExecProfitability } from './components/ExecProfitability';
@@ -86,6 +87,7 @@ function AuthenticatedApp({ role, path }: AuthenticatedAppProps) {
             <DataGapQueue />
             <CommissionRunReview />
             <FinanceAdmin />
+            <FinanceAdminSurface />
           </>
         );
       case ROUTES.RECONCILIATION:
@@ -130,7 +132,7 @@ function AuthenticatedApp({ role, path }: AuthenticatedAppProps) {
 
 export default function App() {
   const [path, setPath] = useState(window.location.pathname);
-  const { session, loading, unauthenticated } = useSession();
+  const { session, loading, unauthenticated, refreshSession } = useSession();
 
   useEffect(() => {
     const onPop = () => setPath(window.location.pathname);
@@ -141,8 +143,12 @@ export default function App() {
   // Once session is resolved and user is authenticated, redirect from '/' to
   // the role's landing page.
   useEffect(() => {
+    console.log(
+      `[App] redirect effect: loading=${loading} unauth=${unauthenticated} session=${session?.role ?? 'null'} path=${path}`,
+    );
     if (loading || unauthenticated || !session) return;
     if (path === ROUTES.LOGIN) {
+      console.log(`[App] redirecting to ${landingPathForRole(session.role)}`);
       navigate(landingPathForRole(session.role));
     }
   }, [loading, unauthenticated, session, path]);
@@ -154,7 +160,7 @@ export default function App() {
 
   // No session — show login.
   if (unauthenticated || !session) {
-    return <Login />;
+    return <Login onSuccess={refreshSession} />;
   }
 
   // Authenticated — render the role-aware shell.

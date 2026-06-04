@@ -86,7 +86,7 @@ export function NavShell({ role, currentPath, onNavigate, children }: NavShellPr
           <button
             key={item.path}
             type="button"
-            data-testid={`nav-item-${item.path.replace(/^\//, '')}`}
+            data-testid={`nav-item-${item.path.replace(/\//g, '-').replace(/^-/, '')}`}
             style={navItemStyle(currentPath === item.path)}
             aria-current={currentPath === item.path ? 'page' : undefined}
             onClick={() => onNavigate(item.path)}

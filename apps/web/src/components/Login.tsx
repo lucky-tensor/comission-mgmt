@@ -209,7 +209,11 @@ const createBtnDisabledStyle: React.CSSProperties = {
 // Component
 // ---------------------------------------------------------------------------
 
-export default function Login() {
+interface LoginProps {
+  onSuccess?: () => void;
+}
+
+export default function Login({ onSuccess }: LoginProps) {
   const [tab, setTab] = useState<Tab>('signin');
   const [username, setUsername] = useState('');
   const [error, setError] = useState('');
@@ -219,16 +223,25 @@ export default function Login() {
 
   // Fetch demo users once on mount — if endpoint returns 404 demo section stays hidden
   useEffect(() => {
+    console.log('[Login] fetching demo users');
     fetch('/api/demo/users')
       .then((res) => (res.ok ? (res.json() as Promise<DemoUser[]>) : []))
-      .then((users) => setDemoUsers(Array.isArray(users) ? users : []))
+      .then((users) => {
+        console.log(`[Login] demo users loaded: ${Array.isArray(users) ? users.length : 0}`);
+        setDemoUsers(Array.isArray(users) ? users : []);
+      })
       .catch(() => {
         // Demo mode not active — ignore
       });
   }, []);
 
   function handleSuccess() {
-    window.location.href = '/portal';
+    console.log('[Login] handleSuccess — calling onSuccess()');
+    if (onSuccess) {
+      onSuccess();
+    } else {
+      window.location.href = '/portal';
+    }
   }
 
   function handleError(msg: string) {
@@ -236,6 +249,7 @@ export default function Login() {
   }
 
   async function handleDemoSignIn(userId: string) {
+    console.log(`[Login] handleDemoSignIn userId=${userId}`);
     setError('');
     setDemoLoading(true);
     try {
@@ -248,7 +262,8 @@ export default function Login() {
         const data = (await res.json()) as { error?: string };
         throw new Error(data.error ?? 'Demo sign-in failed');
       }
-      window.location.href = '/portal';
+      console.log('[Login] demo session created — calling handleSuccess');
+      handleSuccess();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Demo sign-in failed');
     } finally {
@@ -258,6 +273,7 @@ export default function Login() {
 
   async function handleDemoCreate() {
     if (!createUsername.trim()) return;
+    console.log(`[Login] handleDemoCreate username=${createUsername.trim()}`);
     setError('');
     setDemoLoading(true);
     try {
@@ -270,7 +286,8 @@ export default function Login() {
         const data = (await res.json()) as { error?: string };
         throw new Error(data.error ?? 'Demo create failed');
       }
-      window.location.href = '/portal';
+      console.log('[Login] demo session created — calling handleSuccess');
+      handleSuccess();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Demo create failed');
     } finally {

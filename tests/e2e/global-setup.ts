@@ -108,6 +108,7 @@ export async function setup(): Promise<void> {
   const fixtureJson = JSON.stringify({
     closeRunId: closeFixture.runId,
     closeIncompletePlacementId: closeFixture.incompletePlacementId,
+    closeCompletePlacementId: closeFixture.completePlacementId,
     partnerPlacementId: partnerFixture.partnerPlacementId,
     unrelatedPlacementId: partnerFixture.unrelatedPlacementId,
   });

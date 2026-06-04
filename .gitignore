@@ -28,3 +28,5 @@ k8s/secrets.yaml
 
 # Note: ./blueprint (relative symlink) and .agents/blueprint/ ARE committed —
 # the blueprint rules must travel with the repo for the architecture/strategy skills.
+.superfield-db
+next_prompt.md

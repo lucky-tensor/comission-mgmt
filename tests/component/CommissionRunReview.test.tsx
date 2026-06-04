@@ -102,6 +102,7 @@ function defaultProps(): CommissionRunReviewViewProps {
   return {
     phase: { kind: 'start' },
     onStart: noop,
+    onLoadRun: noop,
     onApproveRecord: noop,
     onBatchApprove: noop,
     onFinalize: noop,
@@ -469,7 +470,10 @@ describe('CommissionRunReviewView — finalize 422 gate (blocked state)', () => 
 describe('CommissionRunReviewView — batch-approved and finalized terminal states', () => {
   test('renders the batch-approved state', async () => {
     mounted = renderInBrowser(
-      <CommissionRunReviewView {...defaultProps()} phase={{ kind: 'batch-approved' }} />,
+      <CommissionRunReviewView
+        {...defaultProps()}
+        phase={{ kind: 'batch-approved', runId: 'test-run-id' }}
+      />,
     );
 
     await expect.element(page.getByTestId('batch-approved-state')).toBeInTheDocument();
