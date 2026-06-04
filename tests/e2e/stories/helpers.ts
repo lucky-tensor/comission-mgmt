@@ -10,6 +10,34 @@
  * No bare component mounting. No fetch() calls for story assertions.
  * The full App (NavShell, role routing, isPathPermitted guard) is live
  * for every test.
+ *
+ * ## Integration seam contract (dev-scout #176)
+ *
+ * This file is the ONLY shared seam between all role story test files.
+ * The two downstream parallel-eligible story suites import exclusively from here:
+ *
+ *   - finance-admin.stories.e2e.ts (#162/#158): imports `loginAs`, `useFixture`
+ *   - producer.stories.e2e.ts (#156/#164):      imports `loginAs`, `useMount`
+ *
+ * The two story files have NO cross-file touchpoints — they are parallel-safe.
+ *
+ * Console error gate (#175, PR #174):
+ *   A module-level `console.error` interceptor is added to this file by PR #174
+ *   (branch: fix/browser-errors). The gate accumulates non-act errors in
+ *   `_consoleErrors[]` and asserts emptiness inside `teardown()` (called by
+ *   both `useMount` and `useFixture` via `afterEach`). This means every story
+ *   test automatically fails on browser console errors without any per-test
+ *   boilerplate. The gate is transparent to both downstream story files — they
+ *   pick it up automatically via `useMount`/`useFixture`.
+ *
+ * Integration risks discovered:
+ *   - `console.log` is suppressed globally in this module (see PR #174).
+ *     Any future helper that relies on console.log for debugging must restore
+ *     `_origConsoleLog` locally or use a different channel.
+ *   - `useFixture` shares a single `FixtureRef` across all tests in a file.
+ *     Callers must NOT destructure `fixture` out of the ref — it is populated
+ *     asynchronously in `beforeAll` and a destructured copy would be `undefined`
+ *     at test time.
  */
 
 import { expect, beforeAll, afterEach, type ExpectStatic } from 'vitest';
