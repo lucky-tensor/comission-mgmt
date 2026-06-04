@@ -54,6 +54,7 @@ import { PlanAcknowledgment } from './components/hr/PlanAcknowledgment';
 import { DrawBalanceView } from './components/hr/DrawBalanceView';
 import { PartnerPayoutView } from './components/partner/PartnerPayoutView';
 import { useSession } from './lib/useSession';
+import { apiPost } from './lib/apiClient';
 import { isPathPermitted, landingPathForRole, ROUTES } from './lib/roleRoutes';
 
 /** Navigate to a path and notify listeners (pushState doesn't emit popstate). */
@@ -69,9 +70,10 @@ export function navigate(path: string) {
 interface AuthenticatedAppProps {
   role: import('core/auth').AppRole;
   path: string;
+  onLogout: () => void;
 }
 
-function AuthenticatedApp({ role, path }: AuthenticatedAppProps) {
+function AuthenticatedApp({ role, path, onLogout }: AuthenticatedAppProps) {
   const permitted = isPathPermitted(role, path);
 
   function renderSurface() {
@@ -120,7 +122,7 @@ function AuthenticatedApp({ role, path }: AuthenticatedAppProps) {
   }
 
   return (
-    <NavShell role={role} currentPath={path} onNavigate={navigate}>
+    <NavShell role={role} currentPath={path} onNavigate={navigate} onLogout={onLogout}>
       {renderSurface()}
     </NavShell>
   );
@@ -164,5 +166,12 @@ export default function App() {
   }
 
   // Authenticated — render the role-aware shell.
-  return <AuthenticatedApp role={session.role} path={path} />;
+  const handleLogout = () => {
+    apiPost('/auth/logout', {}).finally(() => {
+      navigate(ROUTES.LOGIN);
+      refreshSession();
+    });
+  };
+
+  return <AuthenticatedApp role={session.role} path={path} onLogout={handleLogout} />;
 }

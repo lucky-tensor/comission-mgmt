@@ -46,6 +46,25 @@ import { createRoot, type Root } from 'react-dom/client';
 import { act, createElement } from 'react';
 import App, { navigate } from '../../../apps/web/src/App';
 
+// Suppress app/server debug noise in CI.  Story E2E tests are deterministic
+// — logs that are useful during development are noise in CI output.
+const _origConsoleLog = console.log;
+console.log = () => {};
+
+// Module-level console.error interception for story E2E tests.
+// Every test in the suite will fail if any non-act console.error call
+// is emitted during its execution.  Reset + assertion happens inside
+// teardown() via afterEach.
+const _consoleErrors: string[] = [];
+const _origConsoleError = console.error;
+console.error = (...args: unknown[]) => {
+  const msg = args.map(String).join(' ');
+  if (!msg.includes('inside a test was not wrapped in act')) {
+    _consoleErrors.push(msg);
+  }
+  _origConsoleError.apply(console, args);
+};
+
 export interface Mounted {
   unmount: () => void;
 }
@@ -133,6 +152,10 @@ function teardown(ref: { current: Mounted | undefined }) {
     /* already unmounted */
   }
   ref.current = undefined;
+  const captured = _consoleErrors.splice(0);
+  if (captured.length > 0) {
+    expect(captured, 'Browser console errors').toHaveLength(0);
+  }
   navigate('/');
 }
 

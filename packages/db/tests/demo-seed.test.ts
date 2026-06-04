@@ -1,14 +1,16 @@
 /**
- * Demo seed integration tests.
+ * Demo seed integration tests — Phase 1 (identities only).
+ *
+ * Phase 1 seeds users, orgs, and org_memberships (unencrypted, pre-server).
+ * Phase 2 (encrypted commission data via HTTP API) is tested separately by
+ * the E2E test suite through the running server.
  *
  * Tests:
  *   1. DEMO_MODE guard: exits 1 when DEMO_MODE is unset / not 'true', no DB writes.
- *   2. Seed integration: all entity tables have expected row counts after demo:seed.
+ *   2. Seed integration: identity tables have expected row counts after demo:seed.
  *   3. Idempotency: running demo:seed twice produces identical row counts.
  *   4. Role coverage: 6 distinct roles present in org_memberships after seed.
- *   5. Commission record status distribution: all four statuses present.
- *   6. Encryption round-trip: placements.compensation_base is stored as BYTEA
- *      and decrypts to a positive numeric value via FieldEncryptor.
+ *   5. Encryption round-trip: FieldEncryptor encrypts and decrypts correctly.
  *
  * Requires Docker to be running (uses pg-container for ephemeral Postgres).
  */
@@ -97,7 +99,7 @@ describe('DEMO_MODE guard', () => {
     // No demo users should have been written — guard fired before DB touch
     // (Count may include other test data but no demo-* emails)
     const demoUsers = await sql.unsafe(
-      `SELECT COUNT(*) AS cnt FROM users WHERE email LIKE 'demo-%'`,
+      `SELECT COUNT(*) AS cnt FROM users WHERE email LIKE 'e2e-%'`,
     );
     expect(Number((demoUsers[0] as unknown as { cnt: string }).cnt)).toBe(0);
   });
@@ -114,58 +116,21 @@ describe('seed integration — row counts', () => {
     expect(result.status, `demo:seed exited non-zero: ${result.stderr}`).toBe(0);
   }, 30_000);
 
-  test('6 demo users created', async () => {
+  test('8 demo users created', async () => {
     const rows = await sql.unsafe(
-      `SELECT COUNT(*) AS cnt FROM users WHERE email LIKE 'demo-%@demo.example'`,
+      `SELECT COUNT(*) AS cnt FROM users WHERE email LIKE 'e2e-%@demo.example'`,
     );
-    expect(Number((rows[0] as unknown as { cnt: string }).cnt)).toBe(6);
+    expect(Number((rows[0] as unknown as { cnt: string }).cnt)).toBe(8);
   });
 
   test('1 demo org created', async () => {
-    const rows = await sql.unsafe(`SELECT COUNT(*) AS cnt FROM orgs WHERE name LIKE '%(Demo)'`);
+    const rows = await sql.unsafe(`SELECT COUNT(*) AS cnt FROM orgs WHERE name = 'Demo Company'`);
     expect(Number((rows[0] as unknown as { cnt: string }).cnt)).toBeGreaterThanOrEqual(1);
   });
 
-  test('2 commission plans created', async () => {
-    const rows = await sql.unsafe(
-      `SELECT COUNT(*) AS cnt FROM commission_plans WHERE name LIKE '%(Demo)'`,
-    );
-    expect(Number((rows[0] as unknown as { cnt: string }).cnt)).toBe(2);
-  });
-
-  test('8 placements created', async () => {
-    const count = await rowCount('placements');
+  test('8 org memberships created', async () => {
+    const count = await rowCount('org_memberships');
     expect(count).toBe(8);
-  });
-
-  test('12 contributors created', async () => {
-    const count = await rowCount('contributors');
-    expect(count).toBe(12);
-  });
-
-  test('8 commission records created', async () => {
-    const count = await rowCount('commission_records');
-    expect(count).toBe(8);
-  });
-
-  test('4 invoices created', async () => {
-    const count = await rowCount('invoices');
-    expect(count).toBe(4);
-  });
-
-  test('3 guarantee periods created', async () => {
-    const count = await rowCount('guarantee_periods');
-    expect(count).toBe(3);
-  });
-
-  test('1 draw balance created', async () => {
-    const count = await rowCount('draw_balances');
-    expect(count).toBe(1);
-  });
-
-  test('2 exceptions created', async () => {
-    const count = await rowCount('exceptions');
-    expect(count).toBe(2);
   });
 });
 
@@ -175,20 +140,7 @@ describe('seed integration — row counts', () => {
 
 describe('idempotency', () => {
   test('running demo:seed twice produces identical row counts', async () => {
-    const tables = [
-      'users',
-      'orgs',
-      'commission_plans',
-      'plan_versions',
-      'plan_assignments',
-      'placements',
-      'contributors',
-      'commission_records',
-      'invoices',
-      'guarantee_periods',
-      'draw_balances',
-      'exceptions',
-    ];
+    const tables = ['users', 'orgs', 'org_memberships'];
 
     // Snapshot counts (seed already ran in describe above)
     const before: Record<string, number> = {};
@@ -218,7 +170,7 @@ describe('role coverage', () => {
       SELECT DISTINCT om.role
       FROM org_memberships om
       JOIN users u ON u.id = om.user_id
-      WHERE u.email LIKE 'demo-%@demo.example'
+      WHERE u.email LIKE 'e2e-%@demo.example'
       ORDER BY om.role
     `);
     const roles = rows.map((r) => r.role);
@@ -233,64 +185,12 @@ describe('role coverage', () => {
 });
 
 // ---------------------------------------------------------------------------
-// 5. Commission record status distribution
+// 5. Encryption round-trip — FieldEncryptor
 // ---------------------------------------------------------------------------
-
-describe('commission record status distribution', () => {
-  test('at least one commission record per status (Accrued, Held, Payable, Paid)', async () => {
-    const rows = await sql.unsafe<{ status: string; cnt: string }[]>(`
-      SELECT status, COUNT(*) AS cnt
-      FROM commission_records
-      GROUP BY status
-      ORDER BY status
-    `);
-    const statuses = rows.map((r) => r.status);
-    expect(statuses).toContain('Accrued');
-    expect(statuses).toContain('Held');
-    expect(statuses).toContain('Payable');
-    expect(statuses).toContain('Paid');
-
-    for (const row of rows) {
-      expect(Number(row.cnt), `status "${row.status}" has 0 records`).toBeGreaterThan(0);
-    }
-  });
-
-  test('exactly 2 records in each of the four statuses', async () => {
-    const rows = await sql.unsafe<{ status: string; cnt: string }[]>(`
-      SELECT status, COUNT(*) AS cnt
-      FROM commission_records
-      GROUP BY status
-      ORDER BY status
-    `);
-    for (const row of rows) {
-      expect(Number(row.cnt), `status "${row.status}" should have 2 records`).toBe(2);
-    }
-  });
-});
-
-// ---------------------------------------------------------------------------
-// 6. Encryption round-trip — compensation_base
-// ---------------------------------------------------------------------------
+// Phase 1 does not seed placements (done in Phase 2 via HTTP API), so the
+// BYTEA storage test is exercised by the E2E test suite instead.
 
 describe('encryption round-trip', () => {
-  test('compensation_base is stored as BYTEA (not plaintext)', async () => {
-    const rows = await sql.unsafe<{ raw: Buffer }[]>(`
-      SELECT compensation_base AS raw FROM placements LIMIT 1
-    `);
-    expect(rows.length).toBeGreaterThan(0);
-    const raw = rows[0].raw;
-    // Must be a Buffer (binary), not a plaintext number string
-    expect(
-      Buffer.isBuffer(raw) ||
-        (raw != null && typeof (raw as unknown as { byteLength: number }).byteLength === 'number'),
-    ).toBe(true);
-    // Must not be a simple ASCII number
-    const asString = Buffer.from(raw).toString('utf8');
-    expect(/^\d+(\.\d+)?$/.test(asString)).toBe(false);
-    // Must be long enough to contain IV (12 bytes) + ciphertext + GCM tag (16 bytes)
-    expect(raw.length).toBeGreaterThanOrEqual(12 + 1 + 16);
-  });
-
   test('FieldEncryptor round-trip: encrypts and decrypts a positive numeric value', async () => {
     // The demo-seed subprocess runs with its own FieldEncryptor instance, generating
     // a random DEK that is not persisted beyond that process. A new FieldEncryptor in
@@ -314,7 +214,7 @@ describe('encryption round-trip', () => {
 });
 
 // ---------------------------------------------------------------------------
-// 7. Timing — seed runs under 10 seconds
+// 6. Timing — seed runs under 10 seconds
 // ---------------------------------------------------------------------------
 
 describe('timing', () => {
