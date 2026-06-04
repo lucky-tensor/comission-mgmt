@@ -91,6 +91,7 @@ describe('PayrollExportView — approved run', () => {
         called = true;
       },
     });
+    await expect.element(page.getByTestId('generate-export-button')).toBeInTheDocument();
     await page.getByTestId('generate-export-button').click();
     expect(called).toBe(true);
   });
