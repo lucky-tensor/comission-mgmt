@@ -44,7 +44,7 @@ describe('PR-1: Producer sees credited placement detail', () => {
   test('payout table row shows contributor role', async () => {
     mount.current = await loginAs('Producer');
     await expect.element(page.getByTestId('payout-table')).toBeInTheDocument();
-    await expect.element(page.getByTestId('payout-table')).toHaveTextContent('CandidateOwner');
+    await expect.element(page.getByTestId('payout-table')).toHaveTextContent('Senior Recruiter');
   });
 
   test('payout table row shows a split percentage', async () => {

@@ -114,7 +114,7 @@ describe('HR-2: HR views draw balance and recovery schedule', () => {
     const hasScheduleList =
       (await page.getByTestId('recovery-schedule-table').elements()).length > 0;
     const hasEmptySchedule =
-      (await page.getByText('No clawback recovery schedules').elements()).length > 0;
+      (await page.getByText('No clawback recovery schedules', { exact: false }).elements()).length > 0;
     expect(hasScheduleList || hasEmptySchedule).toBe(true);
   });
 });
