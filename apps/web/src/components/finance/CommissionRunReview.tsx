@@ -751,6 +751,23 @@ export function CommissionRunReviewView({
               </button>
             </div>
             {finalizeBlockedReason && <FinalizeBlockedState reason={finalizeBlockedReason} />}
+            {mutationError && !finalizeBlockedReason && (
+              <div
+                data-testid="mutation-error"
+                role="alert"
+                style={{
+                  padding: '0.75rem 1rem',
+                  background: '#fef2f2',
+                  border: '1px solid #fca5a5',
+                  borderRadius: '0.5rem',
+                  color: '#b91c1c',
+                  fontSize: '0.875rem',
+                  marginBottom: '1rem',
+                }}
+              >
+                {mutationError}
+              </div>
+            )}
           </>
         )}
 

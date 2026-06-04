@@ -181,9 +181,12 @@ describe('FA-2: Finance Admin reviews and approves a commission run', () => {
       finalized = page.getByTestId('finalized-state').elements().length > 0;
       mutationErr = page.getByTestId('mutation-error').elements().length > 0;
       blocked = page.getByTestId('finalize-blocked').elements().length > 0;
-      // If finalize is still in-flight, the button text says "Finalizing…"
+      // If finalize is still in-flight, the button is disabled (text "Finalizing…" or just disabled).
       const btn = page.getByTestId('finalize-button').elements();
-      stillFinalizing = btn.length > 0 && (btn[0]?.textContent?.includes('Finalizing') ?? false);
+      stillFinalizing =
+        btn.length > 0 &&
+        ((btn[0] as HTMLButtonElement).disabled ||
+          (btn[0]?.textContent?.includes('Finalizing') ?? false));
       if (finalized || mutationErr || blocked || stillFinalizing) break;
       await new Promise((r) => setTimeout(r, 200));
     }
