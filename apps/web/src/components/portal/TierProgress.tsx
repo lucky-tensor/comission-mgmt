@@ -62,11 +62,11 @@ function TierProgressBody({ data }: { data: TierProgress }) {
         <div style={{ width: `${pct}%`, height: '100%', background: '#2563eb' }} />
       </div>
       {atTop ? (
-        <p style={{ fontSize: '0.8125rem', color: '#047857', margin: '0.75rem 0 0' }}>
+        <p data-testid="tier-at-cap" style={{ fontSize: '0.8125rem', color: '#047857', margin: '0.75rem 0 0' }}>
           You&apos;ve reached the top tier.
         </p>
       ) : (
-        <p style={{ fontSize: '0.8125rem', color: '#6b7280', margin: '0.75rem 0 0' }}>
+        <p data-testid="tier-next-threshold" style={{ fontSize: '0.8125rem', color: '#6b7280', margin: '0.75rem 0 0' }}>
           <strong data-testid="tier-remaining">
             {formatCurrency(data.remaining_to_next_tier ?? 0)}
           </strong>{' '}
