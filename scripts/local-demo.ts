@@ -195,8 +195,14 @@ function waitForPort(host: string, port: number, timeoutMs = 20_000): Promise<vo
   });
 }
 
-async function runMigrations(): Promise<void> {
-  console.log('\nRunning database migration against demo Postgres...');
+/**
+ * withDbPortForward — opens a single kubectl port-forward to the cluster
+ * Postgres, waits until the port is accepting connections, runs the callback,
+ * then kills the forward.  Using one long-lived forward for both migration and
+ * seeding avoids a race where a SIGTERM'd forward still holds the OS port while
+ * the next spawn tries to bind the same number.
+ */
+async function withDbPortForward<T>(fn: () => T | Promise<T>): Promise<T> {
   console.log(
     `Starting temporary port-forward: svc/commission-dev-postgres ${DB_HOST_PORT}:5432 (namespace ${NAMESPACE})`,
   );
@@ -220,14 +226,7 @@ async function runMigrations(): Promise<void> {
 
   try {
     await waitForPort('127.0.0.1', DB_HOST_PORT);
-    // Migration runs as app_rw (superuser) for all three DBs — the restricted
-    // analytics_w/audit_w roles have no DDL privileges and can't create tables.
-    const HOST_ANALYTICS_URL = `postgres://app_rw:app_rw_password@localhost:${DB_HOST_PORT}/commission_analytics`;
-    const HOST_AUDIT_URL = `postgres://app_rw:app_rw_password@localhost:${DB_HOST_PORT}/commission_audit`;
-    run(
-      `DATABASE_URL=${HOST_DB_URL} ANALYTICS_DATABASE_URL=${HOST_ANALYTICS_URL} AUDIT_DATABASE_URL=${HOST_AUDIT_URL} bun run packages/db/migrate.ts`,
-      { stdio: 'inherit' },
-    );
+    return await fn();
   } finally {
     if (!portForward.killed) {
       portForward.kill('SIGTERM');
@@ -236,54 +235,34 @@ async function runMigrations(): Promise<void> {
 }
 
 /**
- * runDemoSeed — seeds demo personas (and the full commission demo dataset) into
- * the cluster Postgres over a temporary port-forward, mirroring runMigrations.
+ * runMigrationsAndSeed — runs schema migration then demo seed under a single
+ * shared port-forward so there is no window between the two where the port is
+ * unbound and a second spawn races to claim it.
  *
- * Required so the Login page's one-click demo persona buttons appear: the demo
- * bypass UX (apps/web/src/components/Login.tsx) renders persona buttons only
- * when GET /api/demo/users returns a non-empty array, which in turn depends on
- * users + org_memberships being populated. The seed (scripts/demo-seed.ts) is
- * idempotent (ON CONFLICT DO NOTHING with deterministic UUIDs), so re-running
- * local-demo.ts against an existing cluster neither duplicates personas nor errors.
+ * Migration runs as app_rw (superuser) against all three DBs — the restricted
+ * analytics_w/audit_w roles have no DDL privileges.
+ *
+ * Seed is idempotent (ON CONFLICT DO NOTHING with deterministic UUIDs), so
+ * re-running local-demo.ts against an existing cluster is safe.
  *
  * Canonical: docs/prd.md — Demo seed script
  */
-async function runDemoSeed(): Promise<void> {
-  console.log('\nSeeding demo personas into demo Postgres...');
-  console.log(
-    `Starting temporary port-forward: svc/commission-dev-postgres ${DB_HOST_PORT}:5432 (namespace ${NAMESPACE})`,
-  );
+async function runMigrationsAndSeed(): Promise<void> {
+  console.log('\nRunning database migration and seed against demo Postgres...');
 
-  const portForward = spawn(
-    'kubectl',
-    ['port-forward', 'svc/commission-dev-postgres', `${DB_HOST_PORT}:5432`, '-n', NAMESPACE],
-    {
-      cwd: REPO_ROOT,
-      env: { ...process.env },
-      stdio: ['ignore', 'pipe', 'pipe'],
-    },
-  );
+  await withDbPortForward(() => {
+    const HOST_ANALYTICS_URL = `postgres://app_rw:app_rw_password@localhost:${DB_HOST_PORT}/commission_analytics`;
+    const HOST_AUDIT_URL = `postgres://app_rw:app_rw_password@localhost:${DB_HOST_PORT}/commission_audit`;
 
-  portForward.stdout.on('data', (chunk) => {
-    process.stdout.write(String(chunk));
-  });
-  portForward.stderr.on('data', (chunk) => {
-    process.stderr.write(String(chunk));
-  });
+    run(
+      `DATABASE_URL=${HOST_DB_URL} ANALYTICS_DATABASE_URL=${HOST_ANALYTICS_URL} AUDIT_DATABASE_URL=${HOST_AUDIT_URL} bun run packages/db/migrate.ts`,
+      { stdio: 'inherit' },
+    );
 
-  try {
-    await waitForPort('127.0.0.1', DB_HOST_PORT);
-    // demo-seed runs as app_rw against commission_app (the same DB the app pod
-    // uses, just reached over the port-forward). DEMO_MODE=true is the seed's
-    // required safety guard.
     run(`DEMO_MODE=true DATABASE_URL=${HOST_DB_URL} bun run scripts/demo-seed.ts`, {
       stdio: 'inherit',
     });
-  } finally {
-    if (!portForward.killed) {
-      portForward.kill('SIGTERM');
-    }
-  }
+  });
 
   console.log('  Seeded demo personas (one per role):');
   console.log('    - Finance Admin (FinanceAdmin)');
@@ -636,8 +615,7 @@ async function main(): Promise<void> {
 
   ensureCluster();
   applyPostgres();
-  await runMigrations();
-  await runDemoSeed();
+  await runMigrationsAndSeed();
   buildAndImportImage();
   applyDemoApp();
   waitForAppReady();
