@@ -1,10 +1,7 @@
-# test-e2e.yml — Producer Portal component + E2E browser suite (headless Chromium).
+# test-e2e.yml — Browser component + E2E story suite (headless Chromium).
 #
-# Runs the Vitest browser-mode harness (vitest.browser.config.ts): React
-# component tests and the producer-portal E2E user-story test, in a real
-# headless Chromium via the Playwright provider. The E2E test's globalSetup
-# starts an ephemeral postgres:16 container (Docker, available on ubuntu-latest),
-# seeds a producer persona, and spawns the real API server.
+# Each test file runs as an independent matrix job with its own ephemeral
+# Postgres container and API server, so all jobs parallelize on GitHub Actions.
 #
 # Blueprint: TEST-D-004 / IMPL-TEST-002 (headless-browser provider, never JSDOM).
 # Issue: feat: Producer Portal UI + headless-Chromium browser/E2E harness (#78)
@@ -13,18 +10,47 @@ name: E2E browser tests
 
 on:
   push:
-    branches: [main, 'feat/**', 'fix/**']
+    branches: [main, 'feat/**', 'fix/**', 'test/**', 'e2e/**']
   pull_request:
     branches: [main]
   workflow_dispatch:
 
 concurrency:
-  group: test-e2e-${{ github.ref }}
+  group: test-e2e-${{ github.ref }}-${{ matrix.file }}
   cancel-in-progress: true
 
 jobs:
   test-e2e:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Component tests (no real server calls, but globalSetup still runs)
+          - name: component
+            file: tests/component
+
+          # Standalone E2E suites
+          - name: e2e-app-shell
+            file: tests/e2e/app-shell.e2e.ts
+          - name: e2e-partner-flow
+            file: tests/e2e/partner-flow.e2e.ts
+
+          # User story suites — one per role
+          - name: stories-finance-admin
+            file: tests/e2e/stories/finance-admin.stories.e2e.ts
+          - name: stories-producer
+            file: tests/e2e/stories/producer.stories.e2e.ts
+          - name: stories-manager
+            file: tests/e2e/stories/manager.stories.e2e.ts
+          - name: stories-executive
+            file: tests/e2e/stories/executive.stories.e2e.ts
+          - name: stories-hr
+            file: tests/e2e/stories/hr.stories.e2e.ts
+          - name: stories-partner
+            file: tests/e2e/stories/partner.stories.e2e.ts
+
+    name: ${{ matrix.name }}
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
@@ -32,6 +58,5 @@ jobs:
         run: bun install --frozen-lockfile
       - name: Install Playwright Chromium
         run: bunx playwright install --with-deps chromium
-      - name: Run browser component + E2E suite
-        # Runs vitest.browser.config.ts (via the test:browser script).
-        run: bun run test:browser
+      - name: Run ${{ matrix.name }}
+        run: bun run test:browser -- ${{ matrix.file }}
