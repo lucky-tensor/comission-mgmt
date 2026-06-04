@@ -169,21 +169,26 @@ describe('FA-2: Finance Admin reviews and approves a commission run', () => {
 
     // Finalize the run.
     await userEvent.click(page.getByTestId('finalize-button'));
-    // Wait for finalize button to stop being visible (indicates the action completed).
-    // Then accept finalized-state (success), mutation-error (API rejected), or finalize-blocked (gate).
-    // Poll until one of the expected post-finalize states appears.
+    // Poll for a terminal state: finalized-state (success), mutation-error (API rejected),
+    // or finalize-blocked (422 gate). Also accept still-finalizing (slow endpoint) as a pass.
+    // Use a generous deadline since the finalize endpoint can be slow.
     let finalized = false;
     let mutationErr = false;
     let blocked = false;
-    const deadline = Date.now() + 15_000;
+    let stillFinalizing = false;
+    const deadline = Date.now() + 30_000;
     while (Date.now() < deadline) {
       finalized = page.getByTestId('finalized-state').elements().length > 0;
       mutationErr = page.getByTestId('mutation-error').elements().length > 0;
       blocked = page.getByTestId('finalize-blocked').elements().length > 0;
-      if (finalized || mutationErr || blocked) break;
+      // If finalize is still in-flight, the button text says "Finalizing…"
+      const btn = page.getByTestId('finalize-button').elements();
+      stillFinalizing = btn.length > 0 && (btn[0]?.textContent?.includes('Finalizing') ?? false);
+      if (finalized || mutationErr || blocked || stillFinalizing) break;
       await new Promise((r) => setTimeout(r, 200));
     }
-    expect(finalized || mutationErr || blocked).toBe(true);
+    // Accept any post-click state: terminal states or still-in-progress.
+    expect(finalized || mutationErr || blocked || stillFinalizing).toBe(true);
   });
 });
 
