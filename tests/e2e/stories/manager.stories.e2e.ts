@@ -212,7 +212,7 @@ describe('MG-4: Manager escalates a contested split', () => {
   test('escalation-list shows at least one open dispute', async () => {
     current = await loginAs('Manager');
     await expect.element(page.getByTestId('escalation-list')).toBeInTheDocument();
-    const items = page.getByTestId('escalation-list').getByRole('listitem');
+    const items = page.getByTestId('escalation-list').getByRole('row');
     expect((await items.elements()).length).toBeGreaterThan(0);
   });
 
