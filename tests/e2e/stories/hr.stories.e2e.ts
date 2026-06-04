@@ -25,7 +25,11 @@ import { loginAs, type Mounted } from './helpers';
 let current: Mounted | undefined;
 
 afterEach(() => {
-  try { current?.unmount(); } catch { /* already unmounted */ }
+  try {
+    current?.unmount();
+  } catch {
+    /* already unmounted */
+  }
   current = undefined;
   navigate('/');
 });
@@ -118,8 +122,10 @@ describe('HR-2: HR views draw balance and recovery schedule', () => {
     await userEvent.fill(page.getByTestId('producer-id-input'), SEEDED.producerId);
     await userEvent.click(page.getByTestId('lookup-btn'));
     await expect.element(page.getByTestId('draw-balance-panel')).toBeInTheDocument();
-    const hasScheduleList = (await page.getByTestId('recovery-schedule-table').elements()).length > 0;
-    const hasEmptySchedule = (await page.getByText('No clawback recovery schedules').elements()).length > 0;
+    const hasScheduleList =
+      (await page.getByTestId('recovery-schedule-table').elements()).length > 0;
+    const hasEmptySchedule =
+      (await page.getByText('No clawback recovery schedules').elements()).length > 0;
     expect(hasScheduleList || hasEmptySchedule).toBe(true);
   });
 });

@@ -23,7 +23,11 @@ import { loginAs, type Mounted } from './helpers';
 let current: Mounted | undefined;
 
 afterEach(() => {
-  try { current?.unmount(); } catch { /* already unmounted */ }
+  try {
+    current?.unmount();
+  } catch {
+    /* already unmounted */
+  }
   current = undefined;
   navigate('/');
 });
@@ -51,18 +55,14 @@ describe('PR-1: Producer sees credited placement detail', () => {
   test('payout table row shows contributor role', async () => {
     current = await loginAs('Producer');
     await expect.element(page.getByTestId('payout-table')).toBeInTheDocument();
-    await expect
-      .element(page.getByTestId('payout-table'))
-      .toHaveTextContent('CandidateOwner');
+    await expect.element(page.getByTestId('payout-table')).toHaveTextContent('CandidateOwner');
   });
 
   test('payout table row shows a split percentage', async () => {
     current = await loginAs('Producer');
     await expect.element(page.getByTestId('payout-table')).toBeInTheDocument();
     // Split percentage cell should contain a % value.
-    await expect
-      .element(page.getByTestId('payout-table'))
-      .toHaveTextContent('%');
+    await expect.element(page.getByTestId('payout-table')).toHaveTextContent('%');
   });
 
   test('credited placements list renders', async () => {
@@ -91,9 +91,7 @@ describe('PR-2: Producer sees tier progress', () => {
   test('current tier rate is displayed', async () => {
     current = await loginAs('Producer');
     await expect.element(page.getByTestId('tier-progress')).toBeInTheDocument();
-    await expect
-      .element(page.getByTestId('tier-progress'))
-      .toHaveTextContent('%');
+    await expect.element(page.getByTestId('tier-progress')).toHaveTextContent('%');
   });
 
   test('next threshold or at-cap message is displayed', async () => {
@@ -138,9 +136,7 @@ describe('PR-3: Producer sees hold status and reason for held payouts', () => {
     current = await loginAs('Producer');
     await expect.element(page.getByTestId('placements-list')).toBeInTheDocument();
     // Every record renders a plain-language explanation from the explanation engine.
-    await expect
-      .element(page.getByTestId('placements-list'))
-      .toHaveTextContent('Your');
+    await expect.element(page.getByTestId('placements-list')).toHaveTextContent('Your');
   });
 });
 
@@ -160,7 +156,7 @@ describe('PR-4: Producer submits a dispute', () => {
     const select = page.getByTestId('dispute-record');
     await expect.element(select).toBeInTheDocument();
     const options = await select.element()?.querySelectorAll('option');
-    expect((options?.length ?? 0)).toBeGreaterThan(0);
+    expect(options?.length ?? 0).toBeGreaterThan(0);
   });
 
   test('filling the form and submitting shows the confirmation', async () => {
@@ -168,7 +164,7 @@ describe('PR-4: Producer submits a dispute', () => {
     await expect.element(page.getByTestId('dispute-form')).toBeInTheDocument();
     // Select the first commission record.
     const select = page.getByTestId('dispute-record');
-    const selectEl = await select.element() as HTMLSelectElement;
+    const selectEl = (await select.element()) as HTMLSelectElement;
     const firstOption = selectEl?.querySelectorAll('option')[0];
     if (firstOption) {
       await userEvent.selectOptions(selectEl, firstOption.getAttribute('value') ?? '');

@@ -29,7 +29,11 @@ beforeAll(async () => {
 });
 
 afterEach(() => {
-  try { current?.unmount(); } catch { /* already unmounted */ }
+  try {
+    current?.unmount();
+  } catch {
+    /* already unmounted */
+  }
   current = undefined;
   navigate('/');
 });
@@ -53,17 +57,13 @@ describe('FA-1: Finance Admin sees and resolves data gaps', () => {
     await expect
       .element(page.getByTestId(`gap-row-${fixture.closeIncompletePlacementId}`))
       .toBeInTheDocument();
-    await expect
-      .element(page.getByTestId('missing-field-tag-fee_amount'))
-      .toBeInTheDocument();
+    await expect.element(page.getByTestId('missing-field-tag-fee_amount')).toBeInTheDocument();
   });
 
   test('clicking resolve opens the inline form', async () => {
     current = await loginAs('Finance Admin');
     await expect.element(page.getByTestId('data-gap-queue')).toBeInTheDocument();
-    await userEvent.click(
-      page.getByTestId(`resolve-btn-${fixture.closeIncompletePlacementId}`),
-    );
+    await userEvent.click(page.getByTestId(`resolve-btn-${fixture.closeIncompletePlacementId}`));
     await expect
       .element(page.getByTestId(`resolve-form-${fixture.closeIncompletePlacementId}`))
       .toBeInTheDocument();
@@ -72,16 +72,12 @@ describe('FA-1: Finance Admin sees and resolves data gaps', () => {
   test('filling the form and saving removes the row from the queue', async () => {
     current = await loginAs('Finance Admin');
     await expect.element(page.getByTestId('data-gap-queue')).toBeInTheDocument();
-    await userEvent.click(
-      page.getByTestId(`resolve-btn-${fixture.closeIncompletePlacementId}`),
-    );
+    await userEvent.click(page.getByTestId(`resolve-btn-${fixture.closeIncompletePlacementId}`));
     await userEvent.fill(
       page.getByTestId(`input-${fixture.closeIncompletePlacementId}-fee_amount`),
       '12000',
     );
-    await userEvent.click(
-      page.getByTestId(`save-btn-${fixture.closeIncompletePlacementId}`),
-    );
+    await userEvent.click(page.getByTestId(`save-btn-${fixture.closeIncompletePlacementId}`));
     await expect
       .element(page.getByTestId(`gap-row-${fixture.closeIncompletePlacementId}`))
       .not.toBeInTheDocument();
@@ -179,7 +175,9 @@ describe('FA-3: Finance Admin generates a payroll-ready export', () => {
     await expect.element(page.getByTestId('finance-home')).toBeInTheDocument();
     // Fill run ID and select Approved status, then load via FinanceAdminSurface form.
     await userEvent.fill(page.getByTestId('run-id-input'), fixture.closeRunId);
-    const statusSelect = await page.getByTestId('run-status-select').element() as HTMLSelectElement;
+    const statusSelect = (await page
+      .getByTestId('run-status-select')
+      .element()) as HTMLSelectElement;
     await userEvent.selectOptions(statusSelect, 'Approved');
     await userEvent.click(page.getByTestId('load-run-button'));
     await expect.element(page.getByTestId('export-generate-section')).toBeInTheDocument();
@@ -189,7 +187,9 @@ describe('FA-3: Finance Admin generates a payroll-ready export', () => {
     current = await loginAs('Finance Admin');
     await expect.element(page.getByTestId('finance-home')).toBeInTheDocument();
     await userEvent.fill(page.getByTestId('run-id-input'), fixture.closeRunId);
-    const statusSelect = await page.getByTestId('run-status-select').element() as HTMLSelectElement;
+    const statusSelect = (await page
+      .getByTestId('run-status-select')
+      .element()) as HTMLSelectElement;
     await userEvent.selectOptions(statusSelect, 'Approved');
     await userEvent.click(page.getByTestId('load-run-button'));
     await expect.element(page.getByTestId('generate-export-button')).toBeInTheDocument();
@@ -200,7 +200,9 @@ describe('FA-3: Finance Admin generates a payroll-ready export', () => {
     current = await loginAs('Finance Admin');
     await expect.element(page.getByTestId('finance-home')).toBeInTheDocument();
     await userEvent.fill(page.getByTestId('run-id-input'), fixture.closeRunId);
-    const statusSelect = await page.getByTestId('run-status-select').element() as HTMLSelectElement;
+    const statusSelect = (await page
+      .getByTestId('run-status-select')
+      .element()) as HTMLSelectElement;
     await userEvent.selectOptions(statusSelect, 'Approved');
     await userEvent.click(page.getByTestId('load-run-button'));
     await userEvent.click(page.getByTestId('generate-export-button'));
@@ -226,7 +228,7 @@ describe('FA-4: Finance Admin tracks invoice and collection status', () => {
     await expect.element(page.getByTestId('finance-admin')).toBeInTheDocument();
     const select = page.getByTestId('placement-select');
     await expect.element(select).toBeInTheDocument();
-    const selectEl = await select.element() as HTMLSelectElement;
+    const selectEl = (await select.element()) as HTMLSelectElement;
     const firstRealOption = selectEl?.querySelectorAll('option')[1];
     if (firstRealOption) {
       await userEvent.selectOptions(selectEl, firstRealOption.getAttribute('value') ?? '');
@@ -239,7 +241,7 @@ describe('FA-4: Finance Admin tracks invoice and collection status', () => {
     await expect.element(page.getByTestId('finance-admin')).toBeInTheDocument();
     const select = page.getByTestId('placement-select');
     await expect.element(select).toBeInTheDocument();
-    const selectEl = await select.element() as HTMLSelectElement;
+    const selectEl = (await select.element()) as HTMLSelectElement;
     const firstRealOption = selectEl?.querySelectorAll('option')[1];
     if (firstRealOption) {
       await userEvent.selectOptions(selectEl, firstRealOption.getAttribute('value') ?? '');
@@ -256,7 +258,7 @@ describe('FA-4: Finance Admin tracks invoice and collection status', () => {
     await expect.element(page.getByTestId('finance-admin')).toBeInTheDocument();
     const select = page.getByTestId('placement-select');
     await expect.element(select).toBeInTheDocument();
-    const selectEl = await select.element() as HTMLSelectElement;
+    const selectEl = (await select.element()) as HTMLSelectElement;
     const firstRealOption = selectEl?.querySelectorAll('option')[1];
     if (!firstRealOption) return;
     await userEvent.selectOptions(selectEl, firstRealOption.getAttribute('value') ?? '');
@@ -265,15 +267,20 @@ describe('FA-4: Finance Admin tracks invoice and collection status', () => {
     // Look for an invoice-status select (retainer or delivery phase).
     const retainerSelect = await page.getByTestId('invoice-status-select-retainer').elements();
     const deliverySelect = await page.getByTestId('invoice-status-select-delivery').elements();
-    const phaseKey = retainerSelect.length > 0 ? 'retainer' : deliverySelect.length > 0 ? 'delivery' : null;
+    const phaseKey =
+      retainerSelect.length > 0 ? 'retainer' : deliverySelect.length > 0 ? 'delivery' : null;
     if (!phaseKey) return; // no invoice linked — skip
 
-    const statusSelect = await page.getByTestId(`invoice-status-select-${phaseKey}`).element() as HTMLSelectElement;
+    const statusSelect = (await page
+      .getByTestId(`invoice-status-select-${phaseKey}`)
+      .element()) as HTMLSelectElement;
     await userEvent.selectOptions(statusSelect, 'Paid');
     await userEvent.click(page.getByTestId(`save-btn-${phaseKey}`));
     // Save success or gate badge updates to "Gate: Satisfied".
-    const hasSaveSuccess = (await page.getByTestId(`save-success-${phaseKey}`).elements()).length > 0;
-    const hasGateSatisfied = (await page.getByText('Gate: Satisfied', { exact: false }).elements()).length > 0;
+    const hasSaveSuccess =
+      (await page.getByTestId(`save-success-${phaseKey}`).elements()).length > 0;
+    const hasGateSatisfied =
+      (await page.getByText('Gate: Satisfied', { exact: false }).elements()).length > 0;
     expect(hasSaveSuccess || hasGateSatisfied).toBe(true);
   });
 });

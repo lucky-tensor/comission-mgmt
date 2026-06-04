@@ -26,7 +26,11 @@ beforeAll(async () => {
 });
 
 afterEach(() => {
-  try { current?.unmount(); } catch { /* already unmounted */ }
+  try {
+    current?.unmount();
+  } catch {
+    /* already unmounted */
+  }
   current = undefined;
   navigate('/');
 });
@@ -65,11 +69,13 @@ describe('EP-1: External Partner sees only their own deals', () => {
     const amountCell = page
       .getByTestId(`partner-placement-row-${fixture.partnerPlacementId}`)
       .getByTestId('partner-placement-amount-owed');
-    await expect.element(amountCell).toHaveTextContent(
-      new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(
-        Number(PARTNER.feeAmount),
-      ),
-    );
+    await expect
+      .element(amountCell)
+      .toHaveTextContent(
+        new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(
+          Number(PARTNER.feeAmount),
+        ),
+      );
   });
 
   test('payment-trigger cell shows the placement start date', async () => {

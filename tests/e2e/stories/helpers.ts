@@ -52,9 +52,7 @@ export async function loginAs(roleLabel: string): Promise<Mounted> {
   const app = mountApp();
   await (expect as ExpectStatic).element(page.getByTestId('login-container')).toBeInTheDocument();
   await (expect as ExpectStatic).element(page.getByTestId('demo-section')).toBeInTheDocument();
-  await userEvent.click(
-    page.getByTestId('demo-section').getByRole('button', { name: roleLabel }),
-  );
+  await userEvent.click(page.getByTestId('demo-section').getByRole('button', { name: roleLabel }));
   return app;
 }
 

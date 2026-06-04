@@ -46,7 +46,11 @@ beforeAll(async () => {
 });
 
 afterEach(() => {
-  try { current?.unmount(); } catch { /* already unmounted */ }
+  try {
+    current?.unmount();
+  } catch {
+    /* already unmounted */
+  }
   current = undefined;
   navigate('/');
 });

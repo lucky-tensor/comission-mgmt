@@ -497,14 +497,23 @@ export function LoadRunForm({ onLoad, loading }: LoadRunFormProps) {
   return (
     <div data-testid="load-run-form" style={cardStyle}>
       <h2 style={headingStyle}>Or load an existing run</h2>
-      <form onSubmit={handleSubmit} style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-end' }}>
+      <form
+        onSubmit={handleSubmit}
+        style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-end' }}
+      >
         <input
           data-testid="load-run-id-input"
           type="text"
           placeholder="Run UUID…"
           value={runId}
           onChange={(e) => setRunId(e.target.value)}
-          style={{ padding: '0.5rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.875rem', minWidth: '20rem' }}
+          style={{
+            padding: '0.5rem',
+            border: '1px solid #d1d5db',
+            borderRadius: '0.375rem',
+            fontSize: '0.875rem',
+            minWidth: '20rem',
+          }}
         />
         <button
           type="submit"

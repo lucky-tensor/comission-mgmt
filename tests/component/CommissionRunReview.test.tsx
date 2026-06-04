@@ -470,7 +470,10 @@ describe('CommissionRunReviewView — finalize 422 gate (blocked state)', () => 
 describe('CommissionRunReviewView — batch-approved and finalized terminal states', () => {
   test('renders the batch-approved state', async () => {
     mounted = renderInBrowser(
-      <CommissionRunReviewView {...defaultProps()} phase={{ kind: 'batch-approved', runId: 'test-run-id' }} />,
+      <CommissionRunReviewView
+        {...defaultProps()}
+        phase={{ kind: 'batch-approved', runId: 'test-run-id' }}
+      />,
     );
 
     await expect.element(page.getByTestId('batch-approved-state')).toBeInTheDocument();

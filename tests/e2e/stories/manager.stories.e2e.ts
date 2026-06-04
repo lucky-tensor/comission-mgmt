@@ -40,7 +40,9 @@ beforeAll(async () => {
   // Discover pending placement.
   const approvalRes = await fetch('/api/me/team/pending-approvals', { credentials: 'same-origin' });
   if (approvalRes.ok) {
-    const data = (await approvalRes.json()) as { pending_approvals: Array<{ placement_id: string }> };
+    const data = (await approvalRes.json()) as {
+      pending_approvals: Array<{ placement_id: string }>;
+    };
     pendingPlacementId = data.pending_approvals[0]?.placement_id ?? '';
   }
 
@@ -56,7 +58,11 @@ beforeAll(async () => {
 });
 
 afterEach(() => {
-  try { current?.unmount(); } catch { /* already unmounted */ }
+  try {
+    current?.unmount();
+  } catch {
+    /* already unmounted */
+  }
   current = undefined;
   navigate('/');
 });
@@ -77,9 +83,7 @@ describe('MG-1: Manager approves split allocations', () => {
   test('pending deal row is visible in the split-approval list', async () => {
     current = await loginAs('Manager');
     await expect.element(page.getByTestId('split-approval')).toBeInTheDocument();
-    await expect
-      .element(page.getByTestId(`deal-row-${pendingPlacementId}`))
-      .toBeInTheDocument();
+    await expect.element(page.getByTestId(`deal-row-${pendingPlacementId}`)).toBeInTheDocument();
   });
 
   test('expanding a deal row shows the contributors table', async () => {
@@ -147,9 +151,7 @@ describe('MG-2: Manager views attribution timeline', () => {
     await userEvent.fill(page.getByTestId('placement-id-input'), pendingPlacementId);
     await userEvent.click(page.getByTestId('search-timeline-btn'));
     await expect.element(page.getByTestId('timeline-events')).toBeInTheDocument();
-    await expect
-      .element(page.getByTestId('timeline-events'))
-      .toHaveTextContent(/\d{4}/); // year in a timestamp
+    await expect.element(page.getByTestId('timeline-events')).toHaveTextContent(/\d{4}/); // year in a timestamp
   });
 });
 
@@ -194,7 +196,8 @@ describe('MG-3: Manager views team commission accruals', () => {
     await expect.element(page.getByTestId('team-commission-view')).toBeInTheDocument();
     // TeamCommissionView renders an OpenDisputesPanel for exception requests.
     const hasDisputesTable = (await page.getByTestId('disputes-table').elements()).length > 0;
-    const hasNoDisputes = (await page.getByText('No open disputes', { exact: false }).elements()).length > 0;
+    const hasNoDisputes =
+      (await page.getByText('No open disputes', { exact: false }).elements()).length > 0;
     expect(hasDisputesTable || hasNoDisputes).toBe(true);
   });
 });
