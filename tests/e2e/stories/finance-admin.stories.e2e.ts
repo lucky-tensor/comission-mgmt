@@ -14,7 +14,7 @@
  *
  * Canonical docs: docs/prd.md §4, §5.1, §5.4, §5.5, §5.7
  * Test plan: docs/code-review/test-plan.md
- * Issue: #158
+ * Issue: #162
  */
 
 import { describe, test, expect } from 'vitest';
