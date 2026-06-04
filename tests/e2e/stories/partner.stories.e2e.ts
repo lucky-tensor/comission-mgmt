@@ -26,7 +26,7 @@ const s = useFixture();
 
 describe('EP-1: External Partner sees only their own deals', () => {
   test('login lands on /partner with the partner payout surface', async () => {
-    s.current =await loginAs('External Partner');
+    s.current = await loginAs('External Partner');
     await expect.element(page.getByTestId('nav-shell')).toBeInTheDocument();
     await expect.element(page.getByTestId('nav-role-badge')).toHaveTextContent('ExternalPartner');
     expect(window.location.pathname).toBe('/partner');
@@ -34,12 +34,12 @@ describe('EP-1: External Partner sees only their own deals', () => {
   });
 
   test('partner-placements-list renders', async () => {
-    s.current =await loginAs('External Partner');
+    s.current = await loginAs('External Partner');
     await expect.element(page.getByTestId('partner-placements-list')).toBeInTheDocument();
   });
 
   test('own split deal row is visible', async () => {
-    s.current =await loginAs('External Partner');
+    s.current = await loginAs('External Partner');
     await expect.element(page.getByTestId('partner-placements-list')).toBeInTheDocument();
     await expect
       .element(page.getByTestId(`partner-placement-row-${s.fixture.partnerPlacementId}`))
@@ -47,7 +47,7 @@ describe('EP-1: External Partner sees only their own deals', () => {
   });
 
   test('amount-owed cell shows the correct seeded fee amount', async () => {
-    s.current =await loginAs('External Partner');
+    s.current = await loginAs('External Partner');
     await expect
       .element(page.getByTestId(`partner-placement-row-${s.fixture.partnerPlacementId}`))
       .toBeInTheDocument();
@@ -64,7 +64,7 @@ describe('EP-1: External Partner sees only their own deals', () => {
   });
 
   test('payment-trigger cell shows the placement start date', async () => {
-    s.current =await loginAs('External Partner');
+    s.current = await loginAs('External Partner');
     await expect
       .element(page.getByTestId(`partner-placement-row-${s.fixture.partnerPlacementId}`))
       .toBeInTheDocument();
@@ -75,7 +75,7 @@ describe('EP-1: External Partner sees only their own deals', () => {
   });
 
   test('payment-status badge is present on the own deal row', async () => {
-    s.current =await loginAs('External Partner');
+    s.current = await loginAs('External Partner');
     await expect
       .element(page.getByTestId(`partner-placement-row-${s.fixture.partnerPlacementId}`))
       .toBeInTheDocument();
@@ -89,7 +89,7 @@ describe('EP-1: External Partner sees only their own deals', () => {
   });
 
   test('unrelated placement row is absent from the list', async () => {
-    s.current =await loginAs('External Partner');
+    s.current = await loginAs('External Partner');
     await expect.element(page.getByTestId('partner-placements-list')).toBeInTheDocument();
     await expect
       .element(page.getByTestId(`partner-placement-row-${s.fixture.unrelatedPlacementId}`))
@@ -97,7 +97,7 @@ describe('EP-1: External Partner sees only their own deals', () => {
   });
 
   test('navigating to /finance renders the Forbidden surface', async () => {
-    s.current =await loginAs('External Partner');
+    s.current = await loginAs('External Partner');
     await expect.element(page.getByTestId('partner-payout-view')).toBeInTheDocument();
     navigate('/finance');
     await expect.element(page.getByTestId('forbidden-surface')).toBeInTheDocument();

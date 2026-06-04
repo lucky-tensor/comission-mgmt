@@ -143,7 +143,9 @@ export default function App() {
   // Once session is resolved and user is authenticated, redirect from '/' to
   // the role's landing page.
   useEffect(() => {
-    console.log(`[App] redirect effect: loading=${loading} unauth=${unauthenticated} session=${session?.role ?? 'null'} path=${path}`);
+    console.log(
+      `[App] redirect effect: loading=${loading} unauth=${unauthenticated} session=${session?.role ?? 'null'} path=${path}`,
+    );
     if (loading || unauthenticated || !session) return;
     if (path === ROUTES.LOGIN) {
       console.log(`[App] redirecting to ${landingPathForRole(session.role)}`);

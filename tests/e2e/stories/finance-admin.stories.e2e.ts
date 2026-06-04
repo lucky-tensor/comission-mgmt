@@ -29,7 +29,7 @@ const s = useFixture();
 
 describe('FA-1: Finance Admin sees and resolves data gaps', () => {
   test('login lands on /finance with the data-gap-queue rendered', async () => {
-    s.current =await loginAs('Finance Admin');
+    s.current = await loginAs('Finance Admin');
     await expect.element(page.getByTestId('nav-shell')).toBeInTheDocument();
     await expect.element(page.getByTestId('nav-role-badge')).toHaveTextContent('FinanceAdmin');
     expect(window.location.pathname).toBe('/finance');
@@ -37,7 +37,7 @@ describe('FA-1: Finance Admin sees and resolves data gaps', () => {
   });
 
   test('seeded incomplete placement appears in the queue with a missing-field tag', async () => {
-    s.current =await loginAs('Finance Admin');
+    s.current = await loginAs('Finance Admin');
     await expect.element(page.getByTestId('data-gap-queue')).toBeInTheDocument();
     await expect
       .element(page.getByTestId(`gap-row-${s.fixture.closeIncompletePlacementId}`))
@@ -46,7 +46,7 @@ describe('FA-1: Finance Admin sees and resolves data gaps', () => {
   });
 
   test('clicking resolve opens the inline form', async () => {
-    s.current =await loginAs('Finance Admin');
+    s.current = await loginAs('Finance Admin');
     await expect.element(page.getByTestId('data-gap-queue')).toBeInTheDocument();
     await userEvent.click(page.getByTestId(`resolve-btn-${s.fixture.closeIncompletePlacementId}`));
     await expect
@@ -55,7 +55,7 @@ describe('FA-1: Finance Admin sees and resolves data gaps', () => {
   });
 
   test('filling the form and saving removes the row from the queue', async () => {
-    s.current =await loginAs('Finance Admin');
+    s.current = await loginAs('Finance Admin');
     await expect.element(page.getByTestId('data-gap-queue')).toBeInTheDocument();
     await userEvent.click(page.getByTestId(`resolve-btn-${s.fixture.closeIncompletePlacementId}`));
     await userEvent.fill(
@@ -75,12 +75,12 @@ describe('FA-1: Finance Admin sees and resolves data gaps', () => {
 
 describe('FA-2: Finance Admin reviews and approves a commission run', () => {
   test('commission-run-review surface renders on /finance', async () => {
-    s.current =await loginAs('Finance Admin');
+    s.current = await loginAs('Finance Admin');
     await expect.element(page.getByTestId('commission-run-review')).toBeInTheDocument();
   });
 
   test('loading an existing run by ID shows the queue table', async () => {
-    s.current =await loginAs('Finance Admin');
+    s.current = await loginAs('Finance Admin');
     await expect.element(page.getByTestId('commission-run-review')).toBeInTheDocument();
     // Use the load-by-ID form to load the pre-seeded run.
     await userEvent.fill(page.getByTestId('load-run-id-input'), s.fixture.closeRunId);
@@ -89,11 +89,14 @@ describe('FA-2: Finance Admin reviews and approves a commission run', () => {
   });
 
   test('starting a new run with period dates and placement ID shows the queue table', async () => {
-    s.current =await loginAs('Finance Admin');
+    s.current = await loginAs('Finance Admin');
     await expect.element(page.getByTestId('commission-run-review')).toBeInTheDocument();
     await userEvent.fill(page.getByTestId('period-start-input'), '2025-06-01');
     await userEvent.fill(page.getByTestId('period-end-input'), '2025-06-30');
-    await userEvent.fill(page.getByTestId('placement-ids-input'), s.fixture.closeCompletePlacementId);
+    await userEvent.fill(
+      page.getByTestId('placement-ids-input'),
+      s.fixture.closeCompletePlacementId,
+    );
     await userEvent.click(page.getByTestId('start-run-button'));
     // Either queue-table (records found) or empty-queue (no records for this period) renders.
     const hasQueue = (await page.getByTestId('queue-table').elements()).length > 0;
@@ -102,7 +105,7 @@ describe('FA-2: Finance Admin reviews and approves a commission run', () => {
   });
 
   test('individually approving a record transitions it to approved state', async () => {
-    s.current =await loginAs('Finance Admin');
+    s.current = await loginAs('Finance Admin');
     await expect.element(page.getByTestId('commission-run-review')).toBeInTheDocument();
     // Load the pre-seeded run which has records ready for approval.
     await userEvent.fill(page.getByTestId('load-run-id-input'), s.fixture.closeRunId);
@@ -113,7 +116,7 @@ describe('FA-2: Finance Admin reviews and approves a commission run', () => {
   });
 
   test('finalize succeeds after all discrepancies are acknowledged', async () => {
-    s.current =await loginAs('Finance Admin');
+    s.current = await loginAs('Finance Admin');
     await expect.element(page.getByTestId('commission-run-review')).toBeInTheDocument();
     // Acknowledge the reconciliation discrepancy first.
     navigate('/reconciliation');
@@ -151,12 +154,12 @@ describe('FA-2: Finance Admin reviews and approves a commission run', () => {
 
 describe('FA-3: Finance Admin generates a payroll-ready export', () => {
   test('finance-home surface renders on /finance (FinanceAdminSurface)', async () => {
-    s.current =await loginAs('Finance Admin');
+    s.current = await loginAs('Finance Admin');
     await expect.element(page.getByTestId('finance-home')).toBeInTheDocument();
   });
 
   test('loading a run reveals export-generate-section', async () => {
-    s.current =await loginAs('Finance Admin');
+    s.current = await loginAs('Finance Admin');
     await expect.element(page.getByTestId('finance-home')).toBeInTheDocument();
     // Fill run ID and select Approved status, then load via FinanceAdminSurface form.
     await userEvent.fill(page.getByTestId('run-id-input'), s.fixture.closeRunId);
@@ -169,7 +172,7 @@ describe('FA-3: Finance Admin generates a payroll-ready export', () => {
   });
 
   test('generate-export-button is present when run status is Approved', async () => {
-    s.current =await loginAs('Finance Admin');
+    s.current = await loginAs('Finance Admin');
     await expect.element(page.getByTestId('finance-home')).toBeInTheDocument();
     await userEvent.fill(page.getByTestId('run-id-input'), s.fixture.closeRunId);
     const statusSelect = (await page
@@ -182,7 +185,7 @@ describe('FA-3: Finance Admin generates a payroll-ready export', () => {
   });
 
   test('clicking generate produces an export row or shows a generate error', async () => {
-    s.current =await loginAs('Finance Admin');
+    s.current = await loginAs('Finance Admin');
     await expect.element(page.getByTestId('finance-home')).toBeInTheDocument();
     await userEvent.fill(page.getByTestId('run-id-input'), s.fixture.closeRunId);
     const statusSelect = (await page
@@ -204,12 +207,12 @@ describe('FA-3: Finance Admin generates a payroll-ready export', () => {
 
 describe('FA-4: Finance Admin tracks invoice and collection status', () => {
   test('finance-admin placement picker renders on /finance', async () => {
-    s.current =await loginAs('Finance Admin');
+    s.current = await loginAs('Finance Admin');
     await expect.element(page.getByTestId('finance-admin')).toBeInTheDocument();
   });
 
   test('selecting a placement loads invoice/collection surface', async () => {
-    s.current =await loginAs('Finance Admin');
+    s.current = await loginAs('Finance Admin');
     await expect.element(page.getByTestId('finance-admin')).toBeInTheDocument();
     const select = page.getByTestId('placement-select');
     await expect.element(select).toBeInTheDocument();
@@ -222,7 +225,7 @@ describe('FA-4: Finance Admin tracks invoice and collection status', () => {
   });
 
   test('billing phase rows are visible or empty state renders', async () => {
-    s.current =await loginAs('Finance Admin');
+    s.current = await loginAs('Finance Admin');
     await expect.element(page.getByTestId('finance-admin')).toBeInTheDocument();
     const select = page.getByTestId('placement-select');
     await expect.element(select).toBeInTheDocument();
@@ -239,7 +242,7 @@ describe('FA-4: Finance Admin tracks invoice and collection status', () => {
   });
 
   test('invoice status can be updated when a phase with invoice exists', async () => {
-    s.current =await loginAs('Finance Admin');
+    s.current = await loginAs('Finance Admin');
     await expect.element(page.getByTestId('finance-admin')).toBeInTheDocument();
     const select = page.getByTestId('placement-select');
     await expect.element(select).toBeInTheDocument();
@@ -277,18 +280,24 @@ describe('FA-4: Finance Admin tracks invoice and collection status', () => {
 
 describe('FA-5: Finance Admin applies adjustments via the append-only ledger', () => {
   test('adjustment-ledger renders when a placement is loaded in FinanceAdminSurface', async () => {
-    s.current =await loginAs('Finance Admin');
+    s.current = await loginAs('Finance Admin');
     await expect.element(page.getByTestId('finance-home')).toBeInTheDocument();
     // Use the placement-id-input form in FinanceAdminSurface.
-    await userEvent.fill(page.getByTestId('placement-id-input'), s.fixture.closeCompletePlacementId);
+    await userEvent.fill(
+      page.getByTestId('placement-id-input'),
+      s.fixture.closeCompletePlacementId,
+    );
     await userEvent.click(page.getByTestId('placement-id-submit'));
     await expect.element(page.getByTestId('adjustment-ledger')).toBeInTheDocument();
   });
 
   test('trigger form is visible after loading placement ledger', async () => {
-    s.current =await loginAs('Finance Admin');
+    s.current = await loginAs('Finance Admin');
     await expect.element(page.getByTestId('finance-home')).toBeInTheDocument();
-    await userEvent.fill(page.getByTestId('placement-id-input'), s.fixture.closeCompletePlacementId);
+    await userEvent.fill(
+      page.getByTestId('placement-id-input'),
+      s.fixture.closeCompletePlacementId,
+    );
     await userEvent.click(page.getByTestId('placement-id-submit'));
     await expect.element(page.getByTestId('adjustment-ledger')).toBeInTheDocument();
     await expect.element(page.getByTestId('trigger-form')).toBeInTheDocument();
@@ -298,9 +307,12 @@ describe('FA-5: Finance Admin applies adjustments via the append-only ledger', (
   });
 
   test('submitting the trigger form shows a result (adjustment row or trigger error)', async () => {
-    s.current =await loginAs('Finance Admin');
+    s.current = await loginAs('Finance Admin');
     await expect.element(page.getByTestId('finance-home')).toBeInTheDocument();
-    await userEvent.fill(page.getByTestId('placement-id-input'), s.fixture.closeCompletePlacementId);
+    await userEvent.fill(
+      page.getByTestId('placement-id-input'),
+      s.fixture.closeCompletePlacementId,
+    );
     await userEvent.click(page.getByTestId('placement-id-submit'));
     await expect.element(page.getByTestId('trigger-form')).toBeInTheDocument();
     // Submit with defaults (first available event_type and rule).

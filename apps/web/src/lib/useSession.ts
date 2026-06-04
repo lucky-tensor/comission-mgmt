@@ -74,5 +74,11 @@ export function useSession(): UseSessionResult {
     };
   }, [refreshTick]);
 
-  return { session, loading, error, unauthenticated, refreshSession: () => setRefreshTick((t) => t + 1) };
+  return {
+    session,
+    loading,
+    error,
+    unauthenticated,
+    refreshSession: () => setRefreshTick((t) => t + 1),
+  };
 }

@@ -60,7 +60,9 @@ export async function loginAs(roleLabel: string): Promise<Mounted> {
     console.log(`[story] loginAs(${roleLabel}): waiting for demo-section`);
     await (expect as ExpectStatic).element(page.getByTestId('demo-section')).toBeInTheDocument();
     console.log(`[story] loginAs(${roleLabel}): clicking button`);
-    await userEvent.click(page.getByTestId('demo-section').getByRole('button', { name: roleLabel }));
+    await userEvent.click(
+      page.getByTestId('demo-section').getByRole('button', { name: roleLabel }),
+    );
     // Wait for nav-shell to confirm the redirect completed before returning.
     console.log(`[story] loginAs(${roleLabel}): waiting for nav-shell`);
     await (expect as ExpectStatic).element(page.getByTestId('nav-shell')).toBeInTheDocument();
