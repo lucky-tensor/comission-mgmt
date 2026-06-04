@@ -189,6 +189,9 @@ describe('MG-3: Manager views team commission accruals', () => {
   test('open disputes/exceptions panel renders (disputes-table or empty state)', async () => {
     mount.current = await loginAs('Manager');
     await expect.element(page.getByTestId('team-commission-view')).toBeInTheDocument();
+    // Wait for the OpenDisputesPanel to finish loading (disputes-table or empty state).
+    // open-disputes-loaded is rendered only after the API response resolves.
+    await expect.element(page.getByTestId('open-disputes-loaded')).toBeInTheDocument();
     // TeamCommissionView renders an OpenDisputesPanel for exception requests.
     const hasDisputesTable = (await page.getByTestId('disputes-table').elements()).length > 0;
     const hasNoDisputes =

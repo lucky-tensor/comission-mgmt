@@ -208,46 +208,54 @@ function TeamPlacementsPanel({ state }: { state: AsyncState<TeamPlacementRow[]> 
 function OpenDisputesPanel({ state }: { state: AsyncState<TeamDisputeRow[]> }) {
   return (
     <PortalCard title="Open Team Disputes">
-      {state.loading ? (
-        <LoadingState label="team disputes" />
-      ) : state.error ? (
-        <ErrorState message={state.error} />
-      ) : !state.data || state.data.length === 0 ? (
-        <EmptyState message="No open disputes for your team." />
-      ) : (
-        <div data-testid="disputes-table-wrapper">
-          <table style={tableStyle} data-testid="disputes-table">
-            <thead>
-              <tr>
-                <th style={thStyle}>Dispute ID</th>
-                <th style={thStyle}>Placement</th>
-                <th style={thStyle}>Description</th>
-                <th style={thStyle}>State</th>
-                <th style={thStyle}>Submitted</th>
-              </tr>
-            </thead>
-            <tbody>
-              {state.data.map((d) => (
-                <tr key={d.id} data-testid={`dispute-row-${d.id}`}>
-                  <td style={tdStyle}>
-                    <span style={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>{d.id}</span>
-                  </td>
-                  <td style={tdStyle}>
-                    <span style={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>
-                      {d.placement_id}
-                    </span>
-                  </td>
-                  <td style={tdStyle}>{d.description}</td>
-                  <td style={tdStyle}>
-                    <span style={badgeStyle}>{d.state}</span>
-                  </td>
-                  <td style={tdStyle}>{formatDate(d.created_at)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <div data-testid="open-disputes-panel">
+        {state.loading ? (
+          <LoadingState label="team disputes" />
+        ) : state.error ? (
+          <div data-testid="open-disputes-loaded">
+            <ErrorState message={state.error} />
+          </div>
+        ) : !state.data || state.data.length === 0 ? (
+          <div data-testid="open-disputes-loaded">
+            <EmptyState message="No open disputes for your team." />
+          </div>
+        ) : (
+          <div data-testid="open-disputes-loaded">
+            <div data-testid="disputes-table-wrapper">
+              <table style={tableStyle} data-testid="disputes-table">
+                <thead>
+                  <tr>
+                    <th style={thStyle}>Dispute ID</th>
+                    <th style={thStyle}>Placement</th>
+                    <th style={thStyle}>Description</th>
+                    <th style={thStyle}>State</th>
+                    <th style={thStyle}>Submitted</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {state.data.map((d) => (
+                    <tr key={d.id} data-testid={`dispute-row-${d.id}`}>
+                      <td style={tdStyle}>
+                        <span style={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>{d.id}</span>
+                      </td>
+                      <td style={tdStyle}>
+                        <span style={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>
+                          {d.placement_id}
+                        </span>
+                      </td>
+                      <td style={tdStyle}>{d.description}</td>
+                      <td style={tdStyle}>
+                        <span style={badgeStyle}>{d.state}</span>
+                      </td>
+                      <td style={tdStyle}>{formatDate(d.created_at)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
     </PortalCard>
   );
 }
