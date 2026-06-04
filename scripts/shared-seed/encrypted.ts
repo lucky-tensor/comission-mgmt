@@ -202,9 +202,38 @@ export async function seedEncrypted(
       }
     }
 
-    // ── 3. E2E: Producer payout placement (PR-1, PR-2 via lifecycle Active) ──
-    // Already covered by lifecycleDefs[1] (Product Manager, Active, $22500 fee)
-    // The producer sees this placement in their payout portal.
+    // ── 3. E2E: Producer payout placement (PR-1) ────────────────────────────
+    const { plan: prodPlan, version: prodVersion } = await admin.post<{
+      plan: { id: string }; version: { id: string };
+    }>('/plans', {
+      name: 'Producer Payout Plan', effective_from: '2025-01-01',
+      rules: { rate_type: 'gross_fee', base_rate: 0.25 },
+    });
+    await admin.post(`/plans/${prodPlan.id}/versions/${prodVersion.id}/activate`);
+    await admin.post(`/plans/${prodPlan.id}/assignments`, {
+      producer_id: SEEDED.producerId, plan_version_id: prodVersion.id,
+    });
+
+    const { id: prodPlacementId } = await admin.post<{ id: string }>('/placements', {
+      candidate_id: crypto.randomUUID(), client_entity_id: crypto.randomUUID(),
+      job_title: 'Senior Recruiter', compensation_base: '120000',
+      fee_amount: '20000', start_date: '2025-04-01', guarantee_days: null,
+    });
+    await sql.unsafe(`UPDATE placements SET status = 'Active' WHERE id = $1`, [prodPlacementId]);
+    await admin.post(`/placements/${prodPlacementId}/contributors`, {
+      producer_id: SEEDED.producerId, role: 'CandidateOwner', split_pct: 1.0,
+    });
+    const { commission_records: prodRecords } = await admin.post<{
+      commission_records: Array<{ id: string }>;
+    }>(`/placements/${prodPlacementId}/calculate`);
+    const { id: prodRunId } = await admin.post<{ id: string }>('/commission-runs', {
+      period_start: '2025-04-01', period_end: '2025-04-30',
+      placement_ids: [prodPlacementId],
+    });
+    for (const rec of prodRecords) {
+      await admin.post(`/commission-runs/${prodRunId}/records/${rec.id}/approve`);
+    }
+    await admin.post(`/commission-runs/${prodRunId}/approve`);
 
     // ── 4. E2E: Manager — PendingApproval placement (MG-1, MG-2) ─────────
     const { id: pendingPlacementId } = await admin.post<{ id: string }>('/placements', {
