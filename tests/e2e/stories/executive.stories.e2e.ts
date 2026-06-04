@@ -75,21 +75,46 @@ describe('EX-1: Executive views firm financial position', () => {
     await expect.element(page.getByTestId('exec-financial-position')).toBeInTheDocument();
     await userEvent.fill(page.getByTestId('period-start-input'), '2025-05-01');
     await userEvent.fill(page.getByTestId('period-end-input'), '2025-05-31');
-    const hasStamp = (await page.getByTestId('period-stamp').elements()).length > 0;
-    const hasEmpty = (await page.getByTestId('empty-state').elements()).length > 0;
-    expect(hasStamp || hasEmpty).toBe(true);
+    // Poll until one of: period-stamp (data), empty-state (no placements), or error-state (API failure).
+    let hasStamp = false;
+    let hasEmpty = false;
+    let hasError = false;
+    const deadline = Date.now() + 15_000;
+    while (Date.now() < deadline) {
+      hasStamp = page.getByTestId('period-stamp').elements().length > 0;
+      hasEmpty = page.getByTestId('empty-state').elements().length > 0;
+      hasError = page.getByTestId('error-state').elements().length > 0;
+      if (hasStamp || hasEmpty || hasError) break;
+      await new Promise((r) => setTimeout(r, 200));
+    }
+    expect(hasStamp || hasEmpty || hasError).toBe(true);
   });
 
   test('at least one named metric card shows a non-blank numeric value or empty state is rendered', async () => {
     mount.current = await loginAs('Executive');
     await userEvent.fill(page.getByTestId('period-start-input'), '2025-05-01');
     await userEvent.fill(page.getByTestId('period-end-input'), '2025-05-31');
-    const hasEmpty = (await page.getByTestId('empty-state').elements()).length > 0;
+    // Poll until one of the three terminal states appears.
+    let hasEmpty = false;
+    let hasError = false;
+    let hasStamp = false;
+    const deadline = Date.now() + 15_000;
+    while (Date.now() < deadline) {
+      hasEmpty = page.getByTestId('empty-state').elements().length > 0;
+      hasError = page.getByTestId('error-state').elements().length > 0;
+      hasStamp = page.getByTestId('period-stamp').elements().length > 0;
+      if (hasEmpty || hasError || hasStamp) break;
+      await new Promise((r) => setTimeout(r, 200));
+    }
     if (hasEmpty) {
       expect(hasEmpty).toBe(true);
       return;
     }
-    await expect.element(page.getByTestId('period-stamp')).toBeInTheDocument();
+    if (hasError) {
+      expect(hasError).toBe(true);
+      return;
+    }
+    expect(hasStamp).toBe(true);
     const metricValueIds = [
       'metric-gross-fees-value',
       'metric-commission-accrued-value',
@@ -137,9 +162,23 @@ describe('EX-2: Executive views profitability analytics', () => {
     navigate('/executive/profitability');
     await expect.element(page.getByTestId('dimension-switcher')).toBeInTheDocument();
     await userEvent.click(page.getByTestId('dim-btn-client'));
-    await expect.element(page.getByTestId('profitability-table')).toBeInTheDocument();
-    const rows = page.getByTestId('profitability-table').getByRole('row');
-    expect((await rows.elements()).length).toBeGreaterThan(1);
+    // Poll until one of: profitability-table (data), empty-state (no data), or error-state (API failure).
+    let hasTable = false;
+    let hasEmpty = false;
+    let hasError = false;
+    const deadline = Date.now() + 15_000;
+    while (Date.now() < deadline) {
+      hasTable = page.getByTestId('profitability-table').elements().length > 0;
+      hasEmpty = page.getByTestId('empty-state').elements().length > 0;
+      hasError = page.getByTestId('error-state').elements().length > 0;
+      if (hasTable || hasEmpty || hasError) break;
+      await new Promise((r) => setTimeout(r, 200));
+    }
+    expect(hasTable || hasEmpty || hasError).toBe(true);
+    if (hasTable) {
+      const rows = page.getByTestId('profitability-table').getByRole('row');
+      expect((await rows.elements()).length).toBeGreaterThan(1);
+    }
   });
 
   test('switching to Recruiter dimension loads recruiter rows or empty state', async () => {

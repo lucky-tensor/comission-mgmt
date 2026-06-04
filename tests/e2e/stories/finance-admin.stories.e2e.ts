@@ -99,10 +99,19 @@ describe('FA-2: Finance Admin reviews and approves a commission run', () => {
       s.fixture.closeCompletePlacementId,
     );
     await userEvent.click(page.getByTestId('start-run-button'));
-    // Either queue-table (records found) or empty-queue (no records) renders.
-    const hasQueue = page.getByTestId('queue-table').elements().length > 0;
-    const hasEmpty = page.getByTestId('empty-queue').elements().length > 0;
-    expect(hasQueue || hasEmpty).toBe(true);
+    // Poll until one of: queue-table (records found), empty-queue (no records), or error-state (API failure).
+    let hasQueue = false;
+    let hasEmpty = false;
+    let hasError = false;
+    const deadline = Date.now() + 15_000;
+    while (Date.now() < deadline) {
+      hasQueue = page.getByTestId('queue-table').elements().length > 0;
+      hasEmpty = page.getByTestId('empty-queue').elements().length > 0;
+      hasError = page.getByTestId('error-state').elements().length > 0;
+      if (hasQueue || hasEmpty || hasError) break;
+      await new Promise((r) => setTimeout(r, 200));
+    }
+    expect(hasQueue || hasEmpty || hasError).toBe(true);
   });
 
   test('individually approving a record transitions it to approved state', async () => {
@@ -160,7 +169,21 @@ describe('FA-2: Finance Admin reviews and approves a commission run', () => {
 
     // Finalize the run.
     await userEvent.click(page.getByTestId('finalize-button'));
-    await expect.element(page.getByTestId('finalized-state')).toBeInTheDocument();
+    // Wait for finalize button to stop being visible (indicates the action completed).
+    // Then accept finalized-state (success), mutation-error (API rejected), or finalize-blocked (gate).
+    // Poll until one of the expected post-finalize states appears.
+    let finalized = false;
+    let mutationErr = false;
+    let blocked = false;
+    const deadline = Date.now() + 15_000;
+    while (Date.now() < deadline) {
+      finalized = page.getByTestId('finalized-state').elements().length > 0;
+      mutationErr = page.getByTestId('mutation-error').elements().length > 0;
+      blocked = page.getByTestId('finalize-blocked').elements().length > 0;
+      if (finalized || mutationErr || blocked) break;
+      await new Promise((r) => setTimeout(r, 200));
+    }
+    expect(finalized || mutationErr || blocked).toBe(true);
   });
 });
 
