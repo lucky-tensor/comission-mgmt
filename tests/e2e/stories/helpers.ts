@@ -57,7 +57,7 @@ console.log = () => {};
 // teardown() via afterEach.
 const _consoleErrors: string[] = [];
 const _origConsoleError = console.error;
-console.error = (...args: any[]) => {
+console.error = (...args: unknown[]) => {
   const msg = args.map(String).join(' ');
   if (!msg.includes('inside a test was not wrapped in act')) {
     _consoleErrors.push(msg);

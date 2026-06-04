@@ -79,7 +79,7 @@ export async function seedEncrypted(
       plan: { id: string }; version: { id: string };
     }>('/plans', {
       name: 'Tiered Plan', effective_from: '2025-01-01',
-      rules: { type: 'tiered', tiers: [{ threshold: 0, rate: 0.12 }, { threshold: 50000, rate: 0.15 }, { threshold: 100000, rate: 0.18 }], basis: 'gross_fee' },
+      rules: { rate_type: 'gross_fee', base_rate: 0.12, tiers: [{ threshold: 0, rate: 0.12 }, { threshold: 50000, rate: 0.15 }, { threshold: 100000, rate: 0.18 }] },
     });
     await admin.post(`/plans/${tieredPlan.id}/versions/${tieredVersion.id}/activate`);
     await admin.post(`/plans/${tieredPlan.id}/assignments`, {
