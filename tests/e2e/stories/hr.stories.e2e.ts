@@ -110,7 +110,9 @@ describe('HR-2: HR views draw balance and recovery schedule', () => {
     mount.current = await loginAs('HR');
     await userEvent.fill(page.getByTestId('producer-id-input'), SEEDED.producerId);
     await userEvent.click(page.getByTestId('lookup-btn'));
-    await expect.element(page.getByTestId('draw-balance-panel')).toBeInTheDocument();
+    // Wait for the data to finish loading before inspecting the schedule section.
+    // draw-balance-summary only renders after the API response resolves.
+    await expect.element(page.getByTestId('draw-balance-summary')).toBeInTheDocument();
     const hasScheduleList =
       (await page.getByTestId('recovery-schedule-table').elements()).length > 0;
     const hasEmptySchedule =
