@@ -43,6 +43,7 @@
     "check:sql-injection": "bun run scripts/check-sql-injection.ts",
     "check:vitest-coverage": "bun run scripts/check-vitest-coverage.ts",
     "test:browser": "vitest run --config vitest.browser.config.ts",
+    "test:stories-partner": "vitest run --config vitest.browser.config.ts tests/e2e/stories/partner.stories.e2e.ts",
     "migrate": "bun run packages/db/migrate.ts",
     "demo:seed": "bun run scripts/demo-seed.ts",
     "typecheck": "bun tsc --noEmit",
