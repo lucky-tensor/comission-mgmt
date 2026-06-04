@@ -314,17 +314,11 @@ async function seedPhase2(): Promise<void> {
   const phase2Port = 30000 + Math.floor(Math.random() * 10000);
   const baseUrl = `http://127.0.0.1:${phase2Port}`;
 
-  await withKubectlPortForward(
-    `svc/${APP_SERVICE}`,
-    phase2Port,
-    80,
-    async () => {
-      run(
-        `BASE_URL=${baseUrl} DATABASE_URL=${HOST_DB_URL} bun run scripts/phase2-seed.ts`,
-        { stdio: 'inherit' },
-      );
-    },
-  );
+  await withKubectlPortForward(`svc/${APP_SERVICE}`, phase2Port, 80, async () => {
+    run(`BASE_URL=${baseUrl} DATABASE_URL=${HOST_DB_URL} bun run scripts/phase2-seed.ts`, {
+      stdio: 'inherit',
+    });
+  });
 
   console.log('  Phase 2 complete — encrypted commission data seeded.');
 }

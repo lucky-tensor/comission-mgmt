@@ -66,11 +66,7 @@ export async function setup(): Promise<void> {
   // in-memory DEK cache can decrypt the data on subsequent reads.
   const fixture = await seedEncrypted(`http://localhost:${PORT}`, pg.url);
 
-  writeFileSync(
-    resolve(ROOT, '.e2e-fixture.json'),
-    JSON.stringify(fixture),
-    'utf-8',
-  );
+  writeFileSync(resolve(ROOT, '.e2e-fixture.json'), JSON.stringify(fixture), 'utf-8');
 }
 
 export async function teardown(): Promise<void> {
