@@ -235,20 +235,48 @@ async function withDbPortForward<T>(fn: () => T | Promise<T>): Promise<T> {
 }
 
 /**
- * runMigrationsAndSeed — runs schema migration then demo seed under a single
- * shared port-forward so there is no window between the two where the port is
- * unbound and a second spawn races to claim it.
+ * withKubectlPortForward — generic kubectl port-forward that runs a callback
+ * while the forward is active, then tears it down.
+ */
+async function withKubectlPortForward<T>(
+  target: string,
+  localPort: number,
+  remotePort: number,
+  fn: () => T | Promise<T>,
+): Promise<T> {
+  console.log(
+    `Starting temporary port-forward: ${target} ${localPort}:${remotePort} (namespace ${NAMESPACE})`,
+  );
+
+  const portForward = spawn(
+    'kubectl',
+    ['port-forward', target, `${localPort}:${remotePort}`, '-n', NAMESPACE],
+    { cwd: REPO_ROOT, env: { ...process.env }, stdio: ['ignore', 'pipe', 'pipe'] },
+  );
+
+  portForward.stdout.on('data', (chunk) => process.stdout.write(String(chunk)));
+  portForward.stderr.on('data', (chunk) => process.stderr.write(String(chunk)));
+
+  try {
+    await waitForPort('127.0.0.1', localPort);
+    return await fn();
+  } finally {
+    if (!portForward.killed) portForward.kill('SIGTERM');
+  }
+}
+
+/**
+ * runMigrationAndPhase1 — runs schema migration then Phase 1 (identity rows)
+ * under a single shared port-forward.
  *
- * Migration runs as app_rw (superuser) against all three DBs — the restricted
- * analytics_w/audit_w roles have no DDL privileges.
- *
- * Seed is idempotent (ON CONFLICT DO NOTHING with deterministic UUIDs), so
- * re-running local-demo.ts against an existing cluster is safe.
+ * Phase 2 (encrypted commission data via HTTP API) runs AFTER the app is
+ * deployed, because only the server's in-memory DEK cache can encrypt data
+ * that it can later decrypt.
  *
  * Canonical: docs/prd.md — Demo seed script
  */
-async function runMigrationsAndSeed(): Promise<void> {
-  console.log('\nRunning database migration and seed against demo Postgres...');
+async function runMigrationAndPhase1(): Promise<void> {
+  console.log('\nRunning database migration and Phase 1 (identities) against demo Postgres...');
 
   await withDbPortForward(() => {
     const HOST_ANALYTICS_URL = `postgres://app_rw:app_rw_password@localhost:${DB_HOST_PORT}/commission_analytics`;
@@ -264,13 +292,41 @@ async function runMigrationsAndSeed(): Promise<void> {
     });
   });
 
-  console.log('  Seeded demo personas (one per role):');
+  console.log('  Seeded demo identities (one user per role):');
   console.log('    - Finance Admin (FinanceAdmin)');
   console.log('    - Producer (Producer)');
   console.log('    - Manager (Manager)');
   console.log('    - Executive (Executive)');
   console.log('    - HR (HR)');
   console.log('    - External Partner (ExternalPartner)');
+}
+
+/**
+ * seedPhase2 — seeds encrypted commission data through the running app's HTTP
+ * API. Must be called AFTER the app is deployed and its ingress is reachable.
+ *
+ * Uses a temporary port-forward to the app Service so the Bun script can reach
+ * the API from the host without the cloudflared tunnel being live.
+ */
+async function seedPhase2(): Promise<void> {
+  console.log('\nSeeding Phase 2 (encrypted commission data) through app API...');
+
+  const phase2Port = 30000 + Math.floor(Math.random() * 10000);
+  const baseUrl = `http://127.0.0.1:${phase2Port}`;
+
+  await withKubectlPortForward(
+    `svc/${APP_SERVICE}`,
+    phase2Port,
+    80,
+    async () => {
+      run(
+        `BASE_URL=${baseUrl} DATABASE_URL=${HOST_DB_URL} bun run scripts/phase2-seed.ts`,
+        { stdio: 'inherit' },
+      );
+    },
+  );
+
+  console.log('  Phase 2 complete — encrypted commission data seeded.');
 }
 
 function buildAndImportImage(): void {
@@ -615,14 +671,14 @@ async function main(): Promise<void> {
 
   ensureCluster();
   applyPostgres();
-  await runMigrationsAndSeed();
+  await runMigrationAndPhase1();
   buildAndImportImage();
   applyDemoApp();
   waitForAppReady();
-
-  await smokeTest();
-
   waitForIngress();
+
+  await seedPhase2();
+  await smokeTest();
 
   const externalIps = Object.values(networkInterfaces())
     .flat()
