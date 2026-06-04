@@ -140,11 +140,7 @@ describe('seed integration — row counts', () => {
 
 describe('idempotency', () => {
   test('running demo:seed twice produces identical row counts', async () => {
-    const tables = [
-      'users',
-      'orgs',
-      'org_memberships',
-    ];
+    const tables = ['users', 'orgs', 'org_memberships'];
 
     // Snapshot counts (seed already ran in describe above)
     const before: Record<string, number> = {};

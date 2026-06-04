@@ -84,7 +84,6 @@ describe('EX-1: Executive views firm financial position', () => {
     mount.current = await loginAs('Executive');
     await userEvent.fill(page.getByTestId('period-start-input'), '2025-05-01');
     await userEvent.fill(page.getByTestId('period-end-input'), '2025-05-31');
-    const hasStamp = (await page.getByTestId('period-stamp').elements()).length > 0;
     const hasEmpty = (await page.getByTestId('empty-state').elements()).length > 0;
     if (hasEmpty) {
       expect(hasEmpty).toBe(true);
