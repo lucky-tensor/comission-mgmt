@@ -99,16 +99,10 @@ describe('FA-2: Finance Admin reviews and approves a commission run', () => {
       s.fixture.closeCompletePlacementId,
     );
     await userEvent.click(page.getByTestId('start-run-button'));
-    // Wait for either queue-table (records found) or empty-queue (no records) with retry.
-    const queueEl = await page
-      .getByTestId('queue-table')
-      .element()
-      .catch(() => null);
-    const emptyEl = await page
-      .getByTestId('empty-queue')
-      .element()
-      .catch(() => null);
-    expect(queueEl !== null || emptyEl !== null).toBe(true);
+    // Either queue-table (records found) or empty-queue (no records) renders.
+    const hasQueue = page.getByTestId('queue-table').elements().length > 0;
+    const hasEmpty = page.getByTestId('empty-queue').elements().length > 0;
+    expect(hasQueue || hasEmpty).toBe(true);
   });
 
   test('individually approving a record transitions it to approved state', async () => {
@@ -156,16 +150,12 @@ describe('FA-2: Finance Admin reviews and approves a commission run', () => {
       // All records are individually approved; batch-approve to proceed.
       await userEvent.click(page.getByTestId('batch-approve-button'));
       // Accept either batch-approved-state (success) or mutation-error (API rejected).
-      const approvedEl = await page
-        .getByTestId('batch-approved-state')
-        .element()
-        .catch(() => null);
-      const errorEl = await page
-        .getByTestId('mutation-error')
-        .element()
-        .catch(() => null);
-      expect(approvedEl !== null || errorEl !== null).toBe(true);
-      if (errorEl) return; // can't proceed to finalize
+      try {
+        await expect.element(page.getByTestId('batch-approved-state')).toBeInTheDocument();
+      } catch {
+        await expect.element(page.getByTestId('mutation-error')).toBeInTheDocument();
+        return; // can't proceed to finalize
+      }
     }
 
     // Finalize the run.
@@ -221,16 +211,12 @@ describe('FA-3: Finance Admin generates a payroll-ready export', () => {
     await userEvent.selectOptions(statusSelect, 'Approved');
     await userEvent.click(page.getByTestId('load-run-button'));
     await userEvent.click(page.getByTestId('generate-export-button'));
-    // Wait for either exports-list (success) or generate-error (API rejection) with retry.
-    const listEl = await page
-      .getByTestId('exports-list')
-      .element()
-      .catch(() => null);
-    const errorEl = await page
-      .getByTestId('generate-error')
-      .element()
-      .catch(() => null);
-    expect(listEl !== null || errorEl !== null).toBe(true);
+    // Wait for either exports-list (success) or generate-error (API rejection).
+    try {
+      await expect.element(page.getByTestId('exports-list')).toBeInTheDocument();
+    } catch {
+      await expect.element(page.getByTestId('generate-error')).toBeInTheDocument();
+    }
   });
 });
 
@@ -363,15 +349,11 @@ describe('FA-5: Finance Admin applies adjustments via the append-only ledger', (
     await expect.element(page.getByTestId('trigger-form')).toBeInTheDocument();
     // Submit with defaults (first available event_type and rule).
     await userEvent.click(page.getByTestId('trigger-submit'));
-    // Wait for either adjustment-row (success) or trigger-error (API rejection) with retry.
-    const rowEl = await page
-      .getByTestId('adjustment-row')
-      .element()
-      .catch(() => null);
-    const errorEl = await page
-      .getByTestId('trigger-error')
-      .element()
-      .catch(() => null);
-    expect(rowEl !== null || errorEl !== null).toBe(true);
+    // Wait for either adjustment-row (success) or trigger-error (API rejection).
+    try {
+      await expect.element(page.getByTestId('adjustment-row')).toBeInTheDocument();
+    } catch {
+      await expect.element(page.getByTestId('trigger-error')).toBeInTheDocument();
+    }
   });
 });
