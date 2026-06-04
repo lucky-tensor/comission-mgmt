@@ -5,6 +5,7 @@
  * Login UI by clicking the 'Executive' demo button, then drives the story
  * steps via userEvent against real DOM elements.
  *
+ * Issue: #161
  * Stories covered (docs/prd.md §4, Executive):
  *   EX-1  Firm financial position
  *   EX-2  Profitability analytics
