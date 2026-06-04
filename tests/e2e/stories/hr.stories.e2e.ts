@@ -16,23 +16,12 @@
  * Test plan: docs/code-review/test-plan.md
  */
 
-import { describe, test, expect, afterEach } from 'vitest';
+import { describe, test, expect } from 'vitest';
 import { page, userEvent } from '@vitest/browser/context';
 import { SEEDED } from '../fixtures/ids';
-import { navigate } from '../../../apps/web/src/App';
-import { loginAs, type Mounted } from './helpers';
+import { loginAs, useMount } from './helpers';
 
-let current: Mounted | undefined;
-
-afterEach(() => {
-  try {
-    current?.unmount();
-  } catch {
-    /* already unmounted */
-  }
-  current = undefined;
-  navigate('/');
-});
+const mount = useMount();
 
 // ---------------------------------------------------------------------------
 // HR-1 — Plan acknowledgment (single sequential describe — ordering matters)
@@ -40,7 +29,7 @@ afterEach(() => {
 
 describe('HR-1: Plan acknowledgment two-role flow', () => {
   test('HR sees producer row as Pending before acknowledgment', async () => {
-    current = await loginAs('HR');
+    mount.current = await loginAs('HR');
     await expect.element(page.getByTestId('nav-shell')).toBeInTheDocument();
     await expect.element(page.getByTestId('nav-role-badge')).toHaveTextContent('HR');
     expect(window.location.pathname).toBe('/hr');
@@ -48,31 +37,31 @@ describe('HR-1: Plan acknowledgment two-role flow', () => {
     await expect.element(page.getByTestId('acknowledgment-table')).toBeInTheDocument();
     const pendingBadges = page.getByText('Pending');
     await expect.element(pendingBadges.all()[0]).toBeInTheDocument();
-    current.unmount();
-    current = undefined;
+    mount.current?.unmount();
+    mount.current = undefined;
   });
 
   test('Producer sees plan acknowledgment widget and can acknowledge', async () => {
-    current = await loginAs('Producer');
+    mount.current = await loginAs('Producer');
     await expect.element(page.getByTestId('nav-shell')).toBeInTheDocument();
     await expect.element(page.getByTestId('producer-plan-acknowledgment')).toBeInTheDocument();
     await expect.element(page.getByTestId('acknowledge-btn')).toBeInTheDocument();
     await userEvent.click(page.getByTestId('acknowledge-btn'));
     await expect.element(page.getByTestId('acknowledge-confirmed')).toBeInTheDocument();
     await expect.element(page.getByTestId('acknowledge-btn')).not.toBeInTheDocument();
-    current.unmount();
-    current = undefined;
+    mount.current?.unmount();
+    mount.current = undefined;
   });
 
   test('HR sees producer row as Acknowledged after producer acknowledges', async () => {
-    current = await loginAs('HR');
+    mount.current = await loginAs('HR');
     await expect.element(page.getByTestId('acknowledgment-table')).toBeInTheDocument();
     const acknowledgedBadges = page.getByText('Acknowledged');
     await expect.element(acknowledgedBadges.all()[0]).toBeInTheDocument();
   });
 
   test('acknowledged_at cell contains a real date value', async () => {
-    current = await loginAs('HR');
+    mount.current = await loginAs('HR');
     await expect.element(page.getByTestId('acknowledgment-table')).toBeInTheDocument();
     const ackAtCell = page.getByRole('cell', { name: /[A-Z][a-z]{2} \d+, \d{4}/ });
     await expect.element(ackAtCell.all()[0]).toBeInTheDocument();
@@ -85,7 +74,7 @@ describe('HR-1: Plan acknowledgment two-role flow', () => {
 
 describe('HR-2: HR views draw balance and recovery schedule', () => {
   test('draw-balance-view renders on /hr', async () => {
-    current = await loginAs('HR');
+    mount.current = await loginAs('HR');
     await expect.element(page.getByTestId('draw-balance-view')).toBeInTheDocument();
     await expect
       .element(page.getByTestId('draw-balance-heading'))
@@ -93,14 +82,14 @@ describe('HR-2: HR views draw balance and recovery schedule', () => {
   });
 
   test('producer-id-input and lookup-btn are present', async () => {
-    current = await loginAs('HR');
+    mount.current = await loginAs('HR');
     await expect.element(page.getByTestId('draw-balance-view')).toBeInTheDocument();
     await expect.element(page.getByTestId('producer-id-input')).toBeInTheDocument();
     await expect.element(page.getByTestId('lookup-btn')).toBeInTheDocument();
   });
 
   test('entering a valid producer UUID and clicking lookup renders the balance panel', async () => {
-    current = await loginAs('HR');
+    mount.current = await loginAs('HR');
     await expect.element(page.getByTestId('draw-balance-view')).toBeInTheDocument();
     await userEvent.fill(page.getByTestId('producer-id-input'), SEEDED.producerId);
     await userEvent.click(page.getByTestId('lookup-btn'));
@@ -109,7 +98,7 @@ describe('HR-2: HR views draw balance and recovery schedule', () => {
   });
 
   test('outstanding-balance cell renders with a numeric value', async () => {
-    current = await loginAs('HR');
+    mount.current = await loginAs('HR');
     await userEvent.fill(page.getByTestId('producer-id-input'), SEEDED.producerId);
     await userEvent.click(page.getByTestId('lookup-btn'));
     await expect.element(page.getByTestId('outstanding-balance')).toBeInTheDocument();
@@ -118,7 +107,7 @@ describe('HR-2: HR views draw balance and recovery schedule', () => {
   });
 
   test('recovery schedule section renders (empty-state or schedule rows)', async () => {
-    current = await loginAs('HR');
+    mount.current = await loginAs('HR');
     await userEvent.fill(page.getByTestId('producer-id-input'), SEEDED.producerId);
     await userEvent.click(page.getByTestId('lookup-btn'));
     await expect.element(page.getByTestId('draw-balance-panel')).toBeInTheDocument();

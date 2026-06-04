@@ -18,18 +18,19 @@
  * Test plan: docs/code-review/test-plan.md
  */
 
-import { describe, test, expect, beforeAll, afterEach } from 'vitest';
+import { describe, test, expect, beforeAll } from 'vitest';
 import { page, userEvent } from '@vitest/browser/context';
 import { SEEDED } from '../fixtures/ids';
 import { navigate } from '../../../apps/web/src/App';
-import { loginAs, type Mounted } from './helpers';
+import { loginAs, useMount } from './helpers';
 
 let pendingPlacementId = '';
 let _disputedPlacementId = '';
 
-let current: Mounted | undefined;
+const mount = useMount();
 
 beforeAll(async () => {
+  console.log('[story] manager beforeAll: establishing session');
   // Establish a manager session for fixture discovery.
   await fetch('/api/demo/session', {
     method: 'POST',
@@ -38,6 +39,7 @@ beforeAll(async () => {
   });
 
   // Discover pending placement.
+  console.log('[story] manager beforeAll: fetching pending-approvals');
   const approvalRes = await fetch('/api/me/team/pending-approvals', { credentials: 'same-origin' });
   if (approvalRes.ok) {
     const data = (await approvalRes.json()) as {
@@ -45,8 +47,10 @@ beforeAll(async () => {
     };
     pendingPlacementId = data.pending_approvals[0]?.placement_id ?? '';
   }
+  console.log(`[story] manager beforeAll: pendingPlacementId=${pendingPlacementId || '(none)'}`);
 
   // Discover an active placement for escalation.
+  console.log('[story] manager beforeAll: fetching placements');
   const placRes = await fetch('/api/me/team/placements', { credentials: 'same-origin' });
   if (placRes.ok) {
     const data = (await placRes.json()) as { placements: Array<{ id: string; status: string }> };
@@ -54,17 +58,9 @@ beforeAll(async () => {
   }
 
   // Clear the session so loginAs() can show the Login page for each test.
+  console.log('[story] manager beforeAll: logout');
   await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' });
-});
-
-afterEach(() => {
-  try {
-    current?.unmount();
-  } catch {
-    /* already unmounted */
-  }
-  current = undefined;
-  navigate('/');
+  console.log('[story] manager beforeAll: done');
 });
 
 // ---------------------------------------------------------------------------
@@ -73,7 +69,7 @@ afterEach(() => {
 
 describe('MG-1: Manager approves split allocations', () => {
   test('login lands on /manager with split-approval rendered', async () => {
-    current = await loginAs('Manager');
+    mount.current = await loginAs('Manager');
     await expect.element(page.getByTestId('nav-shell')).toBeInTheDocument();
     await expect.element(page.getByTestId('nav-role-badge')).toHaveTextContent('Manager');
     expect(window.location.pathname).toBe('/manager');
@@ -81,13 +77,13 @@ describe('MG-1: Manager approves split allocations', () => {
   });
 
   test('pending deal row is visible in the split-approval list', async () => {
-    current = await loginAs('Manager');
+    mount.current = await loginAs('Manager');
     await expect.element(page.getByTestId('split-approval')).toBeInTheDocument();
     await expect.element(page.getByTestId(`deal-row-${pendingPlacementId}`)).toBeInTheDocument();
   });
 
   test('expanding a deal row shows the contributors table', async () => {
-    current = await loginAs('Manager');
+    mount.current = await loginAs('Manager');
     await expect.element(page.getByTestId('split-approval')).toBeInTheDocument();
     await userEvent.click(page.getByTestId(`expand-btn-${pendingPlacementId}`));
     await expect
@@ -96,7 +92,7 @@ describe('MG-1: Manager approves split allocations', () => {
   });
 
   test('contributors table shows role and split percentage for each row', async () => {
-    current = await loginAs('Manager');
+    mount.current = await loginAs('Manager');
     await expect.element(page.getByTestId('split-approval')).toBeInTheDocument();
     await userEvent.click(page.getByTestId(`expand-btn-${pendingPlacementId}`));
     await expect
@@ -108,7 +104,7 @@ describe('MG-1: Manager approves split allocations', () => {
   });
 
   test('approving the split removes the deal row from the pending list', async () => {
-    current = await loginAs('Manager');
+    mount.current = await loginAs('Manager');
     await expect.element(page.getByTestId('split-approval')).toBeInTheDocument();
     await userEvent.click(page.getByTestId(`expand-btn-${pendingPlacementId}`));
     await userEvent.click(page.getByTestId(`approve-btn-${pendingPlacementId}`));
@@ -124,13 +120,13 @@ describe('MG-1: Manager approves split allocations', () => {
 
 describe('MG-2: Manager views attribution timeline', () => {
   test('attribution-timeline renders on /manager in idle state', async () => {
-    current = await loginAs('Manager');
+    mount.current = await loginAs('Manager');
     await expect.element(page.getByTestId('attribution-timeline')).toBeInTheDocument();
     await expect.element(page.getByTestId('timeline-idle')).toBeInTheDocument();
   });
 
   test('searching by placement ID loads timeline events', async () => {
-    current = await loginAs('Manager');
+    mount.current = await loginAs('Manager');
     await expect.element(page.getByTestId('attribution-timeline')).toBeInTheDocument();
     await userEvent.fill(page.getByTestId('placement-id-input'), pendingPlacementId);
     await userEvent.click(page.getByTestId('search-timeline-btn'));
@@ -138,7 +134,7 @@ describe('MG-2: Manager views attribution timeline', () => {
   });
 
   test('timeline events include at least one event with an actor', async () => {
-    current = await loginAs('Manager');
+    mount.current = await loginAs('Manager');
     await userEvent.fill(page.getByTestId('placement-id-input'), pendingPlacementId);
     await userEvent.click(page.getByTestId('search-timeline-btn'));
     await expect.element(page.getByTestId('timeline-events')).toBeInTheDocument();
@@ -147,7 +143,7 @@ describe('MG-2: Manager views attribution timeline', () => {
   });
 
   test('each event node shows a timestamp', async () => {
-    current = await loginAs('Manager');
+    mount.current = await loginAs('Manager');
     await userEvent.fill(page.getByTestId('placement-id-input'), pendingPlacementId);
     await userEvent.click(page.getByTestId('search-timeline-btn'));
     await expect.element(page.getByTestId('timeline-events')).toBeInTheDocument();
@@ -161,7 +157,7 @@ describe('MG-2: Manager views attribution timeline', () => {
 
 describe('MG-3: Manager views team commission accruals', () => {
   test('team-commission-view-heading renders on /manager', async () => {
-    current = await loginAs('Manager');
+    mount.current = await loginAs('Manager');
     await expect.element(page.getByTestId('team-commission-view-heading')).toBeInTheDocument();
     await expect
       .element(page.getByTestId('team-commission-view-heading'))
@@ -169,7 +165,7 @@ describe('MG-3: Manager views team commission accruals', () => {
   });
 
   test('placements table renders with at least one placement row', async () => {
-    current = await loginAs('Manager');
+    mount.current = await loginAs('Manager');
     await expect.element(page.getByTestId('placements-table')).toBeInTheDocument();
     const rows = page.getByTestId('placements-table').getByRole('row');
     // At least one data row (beyond the header).
@@ -177,14 +173,14 @@ describe('MG-3: Manager views team commission accruals', () => {
   });
 
   test('commission summary panel renders', async () => {
-    current = await loginAs('Manager');
+    mount.current = await loginAs('Manager');
     await expect
       .element(page.getByText('Commission Summary by Producer', { exact: false }))
       .toBeInTheDocument();
   });
 
   test('team isolation: Manager 2 placement is absent from Manager 1 view', async () => {
-    current = await loginAs('Manager');
+    mount.current = await loginAs('Manager');
     await expect.element(page.getByTestId('placements-table')).toBeInTheDocument();
     await expect
       .element(page.getByText('Finance Director (Isolated)', { exact: false }))
@@ -192,7 +188,7 @@ describe('MG-3: Manager views team commission accruals', () => {
   });
 
   test('open disputes/exceptions panel renders (disputes-table or empty state)', async () => {
-    current = await loginAs('Manager');
+    mount.current = await loginAs('Manager');
     await expect.element(page.getByTestId('team-commission-view')).toBeInTheDocument();
     // TeamCommissionView renders an OpenDisputesPanel for exception requests.
     const hasDisputesTable = (await page.getByTestId('disputes-table').elements()).length > 0;
@@ -208,19 +204,19 @@ describe('MG-3: Manager views team commission accruals', () => {
 
 describe('MG-4: Manager escalates a contested split', () => {
   test('escalation-form renders on /manager', async () => {
-    current = await loginAs('Manager');
+    mount.current = await loginAs('Manager');
     await expect.element(page.getByTestId('escalation-form')).toBeInTheDocument();
   });
 
   test('escalation-list shows at least one open dispute', async () => {
-    current = await loginAs('Manager');
+    mount.current = await loginAs('Manager');
     await expect.element(page.getByTestId('escalation-list')).toBeInTheDocument();
     const items = page.getByTestId('escalation-list').getByRole('row');
     expect((await items.elements()).length).toBeGreaterThan(0);
   });
 
   test('filling the rationale and submitting shows confirmation', async () => {
-    current = await loginAs('Manager');
+    mount.current = await loginAs('Manager');
     await expect.element(page.getByTestId('escalation-form')).toBeInTheDocument();
     await userEvent.fill(
       page.getByTestId('escalation-rationale'),
@@ -231,7 +227,7 @@ describe('MG-4: Manager escalates a contested split', () => {
   });
 
   test('escalation state is a recognised value after submission', async () => {
-    current = await loginAs('Manager');
+    mount.current = await loginAs('Manager');
     await expect.element(page.getByTestId('escalation-form')).toBeInTheDocument();
     await userEvent.fill(
       page.getByTestId('escalation-rationale'),

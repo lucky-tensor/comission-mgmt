@@ -15,22 +15,11 @@
  * Test plan: docs/code-review/test-plan.md
  */
 
-import { describe, test, expect, afterEach } from 'vitest';
+import { describe, test, expect } from 'vitest';
 import { page, userEvent } from '@vitest/browser/context';
-import { navigate } from '../../../apps/web/src/App';
-import { loginAs, type Mounted } from './helpers';
+import { loginAs, useMount } from './helpers';
 
-let current: Mounted | undefined;
-
-afterEach(() => {
-  try {
-    current?.unmount();
-  } catch {
-    /* already unmounted */
-  }
-  current = undefined;
-  navigate('/');
-});
+const mount = useMount();
 
 // ---------------------------------------------------------------------------
 // PR-1 — Credited placement detail
@@ -38,7 +27,7 @@ afterEach(() => {
 
 describe('PR-1: Producer sees credited placement detail', () => {
   test('login lands on /portal with the payout portal rendered', async () => {
-    current = await loginAs('Producer');
+    mount.current = await loginAs('Producer');
     await expect.element(page.getByTestId('nav-shell')).toBeInTheDocument();
     await expect.element(page.getByTestId('nav-role-badge')).toHaveTextContent('Producer');
     expect(window.location.pathname).toBe('/portal');
@@ -46,27 +35,27 @@ describe('PR-1: Producer sees credited placement detail', () => {
   });
 
   test('payout table renders with at least one payout amount', async () => {
-    current = await loginAs('Producer');
+    mount.current = await loginAs('Producer');
     await expect.element(page.getByTestId('payout-table')).toBeInTheDocument();
     const amountCell = page.getByTestId('payout-table').getByRole('cell', { name: '$5,000.00' });
     await expect.element(amountCell).toBeInTheDocument();
   });
 
   test('payout table row shows contributor role', async () => {
-    current = await loginAs('Producer');
+    mount.current = await loginAs('Producer');
     await expect.element(page.getByTestId('payout-table')).toBeInTheDocument();
     await expect.element(page.getByTestId('payout-table')).toHaveTextContent('CandidateOwner');
   });
 
   test('payout table row shows a split percentage', async () => {
-    current = await loginAs('Producer');
+    mount.current = await loginAs('Producer');
     await expect.element(page.getByTestId('payout-table')).toBeInTheDocument();
     // Split percentage cell should contain a % value.
     await expect.element(page.getByTestId('payout-table')).toHaveTextContent('%');
   });
 
   test('credited placements list renders', async () => {
-    current = await loginAs('Producer');
+    mount.current = await loginAs('Producer');
     await expect.element(page.getByTestId('placements-list')).toBeInTheDocument();
   });
 });
@@ -77,25 +66,25 @@ describe('PR-1: Producer sees credited placement detail', () => {
 
 describe('PR-2: Producer sees tier progress', () => {
   test('tier-progress widget renders on /portal', async () => {
-    current = await loginAs('Producer');
+    mount.current = await loginAs('Producer');
     await expect.element(page.getByTestId('tier-progress')).toBeInTheDocument();
   });
 
   test('current production figure is displayed', async () => {
-    current = await loginAs('Producer');
+    mount.current = await loginAs('Producer');
     await expect.element(page.getByTestId('tier-production')).toBeInTheDocument();
     const text = (await page.getByTestId('tier-production').element())?.textContent ?? '';
     expect(text.length).toBeGreaterThan(0);
   });
 
   test('current tier rate is displayed', async () => {
-    current = await loginAs('Producer');
+    mount.current = await loginAs('Producer');
     await expect.element(page.getByTestId('tier-progress')).toBeInTheDocument();
     await expect.element(page.getByTestId('tier-progress')).toHaveTextContent('%');
   });
 
   test('next threshold or at-cap message is displayed', async () => {
-    current = await loginAs('Producer');
+    mount.current = await loginAs('Producer');
     await expect.element(page.getByTestId('tier-progress')).toBeInTheDocument();
     // Either a next-threshold element or an at-cap element must be present.
     const hasThreshold = (await page.getByTestId('tier-next-threshold').elements()).length > 0;
@@ -110,14 +99,14 @@ describe('PR-2: Producer sees tier progress', () => {
 
 describe('PR-3: Producer sees hold status and reason for held payouts', () => {
   test('placements list renders with at least one commission record', async () => {
-    current = await loginAs('Producer');
+    mount.current = await loginAs('Producer');
     await expect.element(page.getByTestId('placements-list')).toBeInTheDocument();
     const items = page.getByTestId('placements-list').getByRole('listitem');
     expect((await items.elements()).length).toBeGreaterThan(0);
   });
 
   test('placements list shows a record with a recognisable status badge', async () => {
-    current = await loginAs('Producer');
+    mount.current = await loginAs('Producer');
     await expect.element(page.getByTestId('placements-list')).toBeInTheDocument();
     // Records show their status text (e.g. Accrued, Held, Payable, Released).
     const statusValues = ['Accrued', 'Held', 'Payable', 'Released'];
@@ -133,7 +122,7 @@ describe('PR-3: Producer sees hold status and reason for held payouts', () => {
   });
 
   test('placements list shows an explanation text for each record', async () => {
-    current = await loginAs('Producer');
+    mount.current = await loginAs('Producer');
     await expect.element(page.getByTestId('placements-list')).toBeInTheDocument();
     // Every record renders a plain-language explanation from the explanation engine.
     await expect.element(page.getByTestId('placements-list')).toHaveTextContent('Your');
@@ -146,12 +135,12 @@ describe('PR-3: Producer sees hold status and reason for held payouts', () => {
 
 describe('PR-4: Producer submits a dispute', () => {
   test('dispute form renders on /portal', async () => {
-    current = await loginAs('Producer');
+    mount.current = await loginAs('Producer');
     await expect.element(page.getByTestId('dispute-form')).toBeInTheDocument();
   });
 
   test('dispute-record select contains at least one commission record option', async () => {
-    current = await loginAs('Producer');
+    mount.current = await loginAs('Producer');
     await expect.element(page.getByTestId('dispute-form')).toBeInTheDocument();
     const select = page.getByTestId('dispute-record');
     await expect.element(select).toBeInTheDocument();
@@ -160,7 +149,7 @@ describe('PR-4: Producer submits a dispute', () => {
   });
 
   test('filling the form and submitting shows the confirmation', async () => {
-    current = await loginAs('Producer');
+    mount.current = await loginAs('Producer');
     await expect.element(page.getByTestId('dispute-form')).toBeInTheDocument();
     // Select the first commission record.
     const select = page.getByTestId('dispute-record');

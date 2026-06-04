@@ -15,17 +15,18 @@
  * Test plan: docs/code-review/test-plan.md
  */
 
-import { describe, test, expect, beforeAll, afterEach } from 'vitest';
+import { describe, test, expect, beforeAll } from 'vitest';
 import { page, userEvent } from '@vitest/browser/context';
 import { SEEDED } from '../fixtures/ids';
 import { navigate } from '../../../apps/web/src/App';
-import { loginAs, type Mounted } from './helpers';
+import { loginAs, useMount } from './helpers';
 
 let escalatedDisputeId = '';
 
-let current: Mounted | undefined;
+const mount = useMount();
 
 beforeAll(async () => {
+  console.log('[story] executive beforeAll: establishing session');
   // Establish an executive session to discover fixture IDs (disputes endpoint).
   await fetch('/api/demo/session', {
     method: 'POST',
@@ -33,6 +34,7 @@ beforeAll(async () => {
     body: JSON.stringify({ userId: SEEDED.executiveId }),
   });
 
+  console.log('[story] executive beforeAll: fetching disputes');
   const res = await fetch('/api/disputes', { credentials: 'same-origin' });
   if (res.ok) {
     const data = (await res.json()) as {
@@ -40,19 +42,12 @@ beforeAll(async () => {
     };
     escalatedDisputeId = data.disputes.find((d) => d.state === 'UnderReview')?.id ?? '';
   }
+  console.log(`[story] executive beforeAll: escalatedDisputeId=${escalatedDisputeId || '(none)'}`);
 
   // Clear the session so loginAs() can mount a fresh App that shows the Login page.
+  console.log('[story] executive beforeAll: logout');
   await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' });
-});
-
-afterEach(() => {
-  try {
-    current?.unmount();
-  } catch {
-    /* already unmounted */
-  }
-  current = undefined;
-  navigate('/');
+  console.log('[story] executive beforeAll: done');
 });
 
 // ---------------------------------------------------------------------------
@@ -61,7 +56,7 @@ afterEach(() => {
 
 describe('EX-1: Executive views firm financial position', () => {
   test('login lands on /executive with financial position surface', async () => {
-    current = await loginAs('Executive');
+    mount.current = await loginAs('Executive');
     await expect.element(page.getByTestId('nav-shell')).toBeInTheDocument();
     await expect.element(page.getByTestId('nav-role-badge')).toHaveTextContent('Executive');
     expect(window.location.pathname).toBe('/executive');
@@ -69,13 +64,13 @@ describe('EX-1: Executive views firm financial position', () => {
   });
 
   test('period selector inputs are present', async () => {
-    current = await loginAs('Executive');
+    mount.current = await loginAs('Executive');
     await expect.element(page.getByTestId('period-start-input')).toBeInTheDocument();
     await expect.element(page.getByTestId('period-end-input')).toBeInTheDocument();
   });
 
   test('setting period to seed range renders the period stamp', async () => {
-    current = await loginAs('Executive');
+    mount.current = await loginAs('Executive');
     await expect.element(page.getByTestId('exec-financial-position')).toBeInTheDocument();
     await userEvent.fill(page.getByTestId('period-start-input'), '2025-05-01');
     await userEvent.fill(page.getByTestId('period-end-input'), '2025-05-31');
@@ -83,7 +78,7 @@ describe('EX-1: Executive views firm financial position', () => {
   });
 
   test('at least one named metric card shows a non-blank numeric value', async () => {
-    current = await loginAs('Executive');
+    mount.current = await loginAs('Executive');
     await userEvent.fill(page.getByTestId('period-start-input'), '2025-05-01');
     await userEvent.fill(page.getByTestId('period-end-input'), '2025-05-31');
     await expect.element(page.getByTestId('period-stamp')).toBeInTheDocument();
@@ -115,7 +110,7 @@ describe('EX-1: Executive views firm financial position', () => {
 
 describe('EX-2: Executive views profitability analytics', () => {
   test('navigating to /executive/profitability via nav renders the surface', async () => {
-    current = await loginAs('Executive');
+    mount.current = await loginAs('Executive');
     await expect.element(page.getByTestId('nav-shell')).toBeInTheDocument();
     // NavShell renders buttons with data-testid derived from path (slashes → dashes).
     await userEvent.click(page.getByTestId('nav-item-executive-profitability'));
@@ -124,14 +119,14 @@ describe('EX-2: Executive views profitability analytics', () => {
   });
 
   test('dimension-switcher is present', async () => {
-    current = await loginAs('Executive');
+    mount.current = await loginAs('Executive');
     navigate('/executive/profitability');
     await expect.element(page.getByTestId('exec-profitability')).toBeInTheDocument();
     await expect.element(page.getByTestId('dimension-switcher')).toBeInTheDocument();
   });
 
   test('switching to Client dimension loads client rows', async () => {
-    current = await loginAs('Executive');
+    mount.current = await loginAs('Executive');
     navigate('/executive/profitability');
     await expect.element(page.getByTestId('dimension-switcher')).toBeInTheDocument();
     await userEvent.click(page.getByTestId('dim-btn-client'));
@@ -141,7 +136,7 @@ describe('EX-2: Executive views profitability analytics', () => {
   });
 
   test('switching to Recruiter dimension loads recruiter rows', async () => {
-    current = await loginAs('Executive');
+    mount.current = await loginAs('Executive');
     navigate('/executive/profitability');
     await expect.element(page.getByTestId('dimension-switcher')).toBeInTheDocument();
     await userEvent.click(page.getByTestId('dim-btn-recruiter'));
@@ -157,7 +152,7 @@ describe('EX-2: Executive views profitability analytics', () => {
 
 describe('EX-3: Executive views exception and dispute rate trends', () => {
   test('navigating to /executive/trends via nav renders the trends surface', async () => {
-    current = await loginAs('Executive');
+    mount.current = await loginAs('Executive');
     await expect.element(page.getByTestId('nav-shell')).toBeInTheDocument();
     await userEvent.click(page.getByTestId('nav-item-executive-trends'));
     await expect.element(page.getByTestId('exec-trends')).toBeInTheDocument();
@@ -165,7 +160,7 @@ describe('EX-3: Executive views exception and dispute rate trends', () => {
   });
 
   test('period inputs are present on the trends surface', async () => {
-    current = await loginAs('Executive');
+    mount.current = await loginAs('Executive');
     navigate('/executive/trends');
     await expect.element(page.getByTestId('exec-trends')).toBeInTheDocument();
     await expect.element(page.getByTestId('trends-range-start-input')).toBeInTheDocument();
@@ -173,7 +168,7 @@ describe('EX-3: Executive views exception and dispute rate trends', () => {
   });
 
   test('fetching the seed period renders the trends table', async () => {
-    current = await loginAs('Executive');
+    mount.current = await loginAs('Executive');
     navigate('/executive/trends');
     await expect.element(page.getByTestId('exec-trends')).toBeInTheDocument();
     await userEvent.fill(page.getByTestId('trends-range-start-input'), '2025-05-01');
@@ -183,7 +178,7 @@ describe('EX-3: Executive views exception and dispute rate trends', () => {
   });
 
   test('fetching the seed period shows data or empty state (no chart error)', async () => {
-    current = await loginAs('Executive');
+    mount.current = await loginAs('Executive');
     navigate('/executive/trends');
     await expect.element(page.getByTestId('exec-trends')).toBeInTheDocument();
     await userEvent.fill(page.getByTestId('trends-range-start-input'), '2025-05-01');
@@ -203,13 +198,13 @@ describe('EX-3: Executive views exception and dispute rate trends', () => {
 
 describe('EX-4: Executive approves an escalated dispute', () => {
   test('exec-dispute-approval renders on /executive', async () => {
-    current = await loginAs('Executive');
+    mount.current = await loginAs('Executive');
     await expect.element(page.getByTestId('exec-dispute-approval')).toBeInTheDocument();
     await expect.element(page.getByTestId('exec-dispute-heading')).toBeInTheDocument();
   });
 
   test('seeded UnderReview dispute row is visible', async () => {
-    current = await loginAs('Executive');
+    mount.current = await loginAs('Executive');
     await expect.element(page.getByTestId('exec-dispute-approval')).toBeInTheDocument();
     if (escalatedDisputeId) {
       await expect
@@ -220,7 +215,7 @@ describe('EX-4: Executive approves an escalated dispute', () => {
 
   test('clicking Review opens the dispute detail with attribution timeline', async () => {
     if (!escalatedDisputeId) return;
-    current = await loginAs('Executive');
+    mount.current = await loginAs('Executive');
     await expect.element(page.getByTestId('exec-dispute-approval')).toBeInTheDocument();
     await userEvent.click(page.getByTestId(`review-btn-${escalatedDisputeId}`));
     await expect.element(page.getByTestId('dispute-detail')).toBeInTheDocument();
@@ -230,7 +225,7 @@ describe('EX-4: Executive approves an escalated dispute', () => {
 
   test('resolve form is present in the detail view', async () => {
     if (!escalatedDisputeId) return;
-    current = await loginAs('Executive');
+    mount.current = await loginAs('Executive');
     await expect.element(page.getByTestId('exec-dispute-approval')).toBeInTheDocument();
     await userEvent.click(page.getByTestId(`review-btn-${escalatedDisputeId}`));
     await expect.element(page.getByTestId('resolve-form')).toBeInTheDocument();
@@ -240,7 +235,7 @@ describe('EX-4: Executive approves an escalated dispute', () => {
 
   test('filling rationale and clicking Resolve shows confirmation', async () => {
     if (!escalatedDisputeId) return;
-    current = await loginAs('Executive');
+    mount.current = await loginAs('Executive');
     await expect.element(page.getByTestId('exec-dispute-approval')).toBeInTheDocument();
     await userEvent.click(page.getByTestId(`review-btn-${escalatedDisputeId}`));
     await expect.element(page.getByTestId('resolve-form')).toBeInTheDocument();
@@ -254,7 +249,7 @@ describe('EX-4: Executive approves an escalated dispute', () => {
 
   test('resolved dispute no longer appears as UnderReview in the queue', async () => {
     if (!escalatedDisputeId) return;
-    current = await loginAs('Executive');
+    mount.current = await loginAs('Executive');
     await expect.element(page.getByTestId('exec-dispute-approval')).toBeInTheDocument();
     const row = page.getByTestId(`dispute-row-${escalatedDisputeId}`);
     const rowElements = await row.elements();

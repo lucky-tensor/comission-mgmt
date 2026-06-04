@@ -12,7 +12,7 @@
  * for every test.
  */
 
-import { expect, type ExpectStatic } from 'vitest';
+import { expect, beforeAll, afterEach, type ExpectStatic } from 'vitest';
 import { page, userEvent } from '@vitest/browser/context';
 import { createRoot, type Root } from 'react-dom/client';
 import { act, createElement } from 'react';
@@ -48,11 +48,16 @@ export function mountApp(): Mounted {
  * 'External Partner').
  */
 export async function loginAs(roleLabel: string): Promise<Mounted> {
+  console.log(`[story] loginAs(${roleLabel}): navigate + mountApp`);
   navigate('/');
   const app = mountApp();
+  console.log(`[story] loginAs(${roleLabel}): waiting for login-container`);
   await (expect as ExpectStatic).element(page.getByTestId('login-container')).toBeInTheDocument();
+  console.log(`[story] loginAs(${roleLabel}): waiting for demo-section`);
   await (expect as ExpectStatic).element(page.getByTestId('demo-section')).toBeInTheDocument();
+  console.log(`[story] loginAs(${roleLabel}): clicking button`);
   await userEvent.click(page.getByTestId('demo-section').getByRole('button', { name: roleLabel }));
+  console.log(`[story] loginAs(${roleLabel}): done`);
   return app;
 }
 
@@ -69,6 +74,32 @@ export interface E2EFixture {
 }
 
 export async function loadFixture(): Promise<E2EFixture> {
+  console.log('[story] loadFixture: fetching /__e2e_fixture__');
   const res = await fetch('/__e2e_fixture__');
-  return res.json() as Promise<E2EFixture>;
+  const data = res.json() as Promise<E2EFixture>;
+  console.log('[story] loadFixture: done');
+  return data;
+}
+
+export function useMount(): { current: Mounted | undefined } {
+  const ref = { current: undefined as Mounted | undefined };
+  afterEach(() => {
+    try {
+      ref.current?.unmount();
+    } catch {
+      /* already unmounted */
+    }
+    ref.current = undefined;
+    navigate('/');
+  });
+  return ref;
+}
+
+export function useFixture(): { mount: { current: Mounted | undefined }; fixture: E2EFixture } {
+  const mount = useMount();
+  const state = { mount, fixture: undefined as unknown as E2EFixture };
+  beforeAll(async () => {
+    state.fixture = await loadFixture();
+  });
+  return state as { mount: { current: Mounted | undefined }; fixture: E2EFixture };
 }
