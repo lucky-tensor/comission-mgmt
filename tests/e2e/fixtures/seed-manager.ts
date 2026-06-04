@@ -126,6 +126,8 @@ export const MANAGER_SEEDED = {
   disputedRecordId: '',
   /** Dispute ID (Submitted state — models an escalated/contested split). */
   disputeId: '',
+  /** Second dispute ID — used by the second MG-4 escalation test so each test resolves its own dispute. */
+  disputeId2: '',
   /** Placement under Manager 2's team (for team isolation assertion). */
   isolationPlacementId: '',
 };
@@ -269,6 +271,24 @@ export async function seedManagerViaHttp(
     MANAGER_SEEDED.disputedPlacementId = disputedPlacementId;
     MANAGER_SEEDED.disputedRecordId = targetRecordId;
     MANAGER_SEEDED.disputeId = dispute.id;
+
+    // Create a second dispute (against a second record on the same placement) so that
+    // each MG-4 escalation test can resolve its own fresh dispute without cross-test
+    // contamination (test 1 resolves dispute 1; test 2 resolves dispute 2).
+    if (producerRecords.length >= 2) {
+      const dispute2 = await producer.post<{ id: string }>('/disputes', {
+        commission_record_id: producerRecords[1].id,
+        description: 'Second split dispute for escalation state test.',
+      });
+      MANAGER_SEEDED.disputeId2 = dispute2.id;
+    } else {
+      // Fall back: create another dispute against the same record (server allows it).
+      const dispute2 = await producer.post<{ id: string }>('/disputes', {
+        commission_record_id: targetRecordId,
+        description: 'Second split dispute for escalation state test.',
+      });
+      MANAGER_SEEDED.disputeId2 = dispute2.id;
+    }
 
     // -----------------------------------------------------------------------
     // Placement C: Manager 2's team — for team isolation assertion.

@@ -11,7 +11,7 @@
  * RBAC:
  *   POST /disputes          — Producer (and FinanceAdmin) may create disputes.
  *   GET  /disputes          — FinanceAdmin/Executive: all tenant disputes; Producer: own only.
- *   POST /disputes/:id/resolve — FinanceAdmin or Executive (final approver); Producer returns 403.
+ *   POST /disputes/:id/resolve — FinanceAdmin, Executive, or Manager (escalation); Producer returns 403.
  *
  * Audit: resolving a dispute writes an AuditLogEntry to the audit DB.
  *
@@ -254,10 +254,11 @@ export interface ResolveDisputeBody {
  * Optionally links to an `exception_id` if an exception was created.
  * An AuditLogEntry is written for the state transition.
  *
- * RBAC: Finance Admin or Executive (final approver for escalated disputes). Producer returns 403.
+ * RBAC: Finance Admin, Executive, or Manager (escalation path for cross-team split disputes).
+ * Producer returns 403.
  *
  * Returns 200 with the updated dispute.
- * Returns 403 for non-Finance Admin.
+ * Returns 403 for non-Finance Admin, non-Executive, non-Manager.
  * Returns 404 if dispute not found.
  * Returns 409 if already Resolved.
  *
@@ -274,8 +275,8 @@ export async function handleResolveDispute(
   sqlClient?: SqlClient,
   auditSqlClient?: SqlClient,
 ): Promise<Response> {
-  if (claims.role !== 'FinanceAdmin' && claims.role !== 'Executive') {
-    return errorResponse('Forbidden: Finance Admin or Executive role required', 403);
+  if (claims.role !== 'FinanceAdmin' && claims.role !== 'Executive' && claims.role !== 'Manager') {
+    return errorResponse('Forbidden: Finance Admin, Executive, or Manager role required', 403);
   }
 
   let body: Partial<ResolveDisputeBody>;

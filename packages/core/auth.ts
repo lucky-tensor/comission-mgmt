@@ -99,6 +99,7 @@ export const ROLE_PERMISSIONS: Record<AppRole, Permission[]> = {
     { method: 'GET', pathPrefix: '/contributors' },
     { method: 'POST', pathPrefix: '/contributors' },
     { method: 'PATCH', pathPrefix: '/contributors' },
+    { method: 'DELETE', pathPrefix: '/contributors' },
     { method: 'GET', pathPrefix: '/commission-records' },
     { method: 'PATCH', pathPrefix: '/commission-records' },
     { method: 'GET', pathPrefix: '/commission-plans' },
@@ -110,6 +111,9 @@ export const ROLE_PERMISSIONS: Record<AppRole, Permission[]> = {
     { method: 'GET', pathPrefix: '/me' },
     // Manager Team View — issue #21
     { method: 'GET', pathPrefix: '/me/team' },
+    // Split escalation — Manager can escalate contested splits via POST /disputes/:id/resolve
+    { method: 'POST', pathPrefix: '/disputes' },
+    { method: 'GET', pathPrefix: '/disputes' },
     { method: 'POST', pathPrefix: '/auth/logout' },
     { method: 'GET', pathPrefix: '/healthz' },
     { method: 'GET', pathPrefix: '/readyz' },

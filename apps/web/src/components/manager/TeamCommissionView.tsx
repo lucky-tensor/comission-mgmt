@@ -208,13 +208,15 @@ function TeamPlacementsPanel({ state }: { state: AsyncState<TeamPlacementRow[]> 
 function OpenDisputesPanel({ state }: { state: AsyncState<TeamDisputeRow[]> }) {
   return (
     <PortalCard title="Open Team Disputes">
+      <div data-testid="open-disputes-panel">
       {state.loading ? (
         <LoadingState label="team disputes" />
       ) : state.error ? (
-        <ErrorState message={state.error} />
+        <div data-testid="open-disputes-loaded"><ErrorState message={state.error} /></div>
       ) : !state.data || state.data.length === 0 ? (
-        <EmptyState message="No open disputes for your team." />
+        <div data-testid="open-disputes-loaded"><EmptyState message="No open disputes for your team." /></div>
       ) : (
+        <div data-testid="open-disputes-loaded">
         <div data-testid="disputes-table-wrapper">
           <table style={tableStyle} data-testid="disputes-table">
             <thead>
@@ -247,7 +249,9 @@ function OpenDisputesPanel({ state }: { state: AsyncState<TeamDisputeRow[]> }) {
             </tbody>
           </table>
         </div>
+        </div>
       )}
+      </div>
     </PortalCard>
   );
 }
