@@ -173,5 +173,9 @@ export default function App() {
     });
   };
 
+  // Still on the login path — the redirect effect hasn't fired yet; avoid
+  // rendering AuthenticatedApp (which would hit the switch default → Forbidden).
+  if (path === ROUTES.LOGIN) return null;
+
   return <AuthenticatedApp role={session.role} path={path} onLogout={handleLogout} />;
 }
