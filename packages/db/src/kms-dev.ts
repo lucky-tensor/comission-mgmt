@@ -14,7 +14,7 @@
  * Total length: 12 + 32 + 16 = 60 bytes.
  */
 
-import { createCipheriv, createDecipheriv } from 'crypto';
+import { createCipheriv, createDecipheriv, createHmac } from 'crypto';
 import type { IKmsAdapter } from './kms.js';
 
 /**
@@ -27,7 +27,7 @@ export class LocalDevKmsAdapter implements IKmsAdapter {
   private getMasterKey(): Buffer {
     if (this.masterKey) return this.masterKey;
 
-    const hex = process.env.DEV_ENCRYPTION_KEY;
+    const hex = process.env.DEV_ENCRYPTION_KEY ?? process.env.ENCRYPTION_MASTER_KEY;
     if (!hex) {
       // Provide a deterministic test key so tests can run without env config.
       // This is intentionally weak — 32 zero bytes — suitable only for CI.
@@ -77,6 +77,10 @@ export class LocalDevKmsAdapter implements IKmsAdapter {
     decipher.setAuthTag(tag);
 
     return Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+  }
+
+  async deriveKey(context: string): Promise<Buffer> {
+    return createHmac('sha256', this.getMasterKey()).update(context).digest();
   }
 
   /** Reset cached master key (for test isolation). */

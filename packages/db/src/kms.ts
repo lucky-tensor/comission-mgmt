@@ -42,6 +42,17 @@ export interface IKmsAdapter {
    * @returns 32-byte plaintext data encryption key
    */
   unwrapKey(wrappedDek: Buffer): Promise<Buffer>;
+
+  /**
+   * Derives a stable 32-byte DEK for a given field context without requiring
+   * a stored wrapped DEK. Used by local dev adapters to ensure deterministic
+   * encryption across restarts; production adapters should persist wrapped DEKs
+   * in the registry instead.
+   *
+   * @param context  Opaque string identifying the field, e.g. 'commission_records:gross_amount'
+   * @returns 32-byte DEK, stable for the same context and master key
+   */
+  deriveKey(context: string): Promise<Buffer>;
 }
 
 // ---------------------------------------------------------------------------
@@ -150,6 +161,14 @@ export class GcpKmsAdapter implements IKmsAdapter {
 
     const json = (await res.json()) as { plaintext: string };
     return Buffer.from(json.plaintext, 'base64');
+  }
+
+  async deriveKey(_context: string): Promise<Buffer> {
+    // Production must persist wrapped DEKs in encryption_key_registry and use
+    // wrapKey/unwrapKey; this fallback should never be reached in a properly
+    // configured deployment.
+    const { randomBytes } = await import('crypto');
+    return randomBytes(32);
   }
 }
 

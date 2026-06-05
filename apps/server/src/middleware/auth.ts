@@ -91,7 +91,10 @@ export async function authenticateRequest(req: Request): Promise<AuthContext | R
  */
 export function enforceRbac(role: AppRole, req: Request): Response | null {
   const url = new URL(req.url);
-  const result = checkPermission(role, req.method, url.pathname);
+  let pathname = url.pathname;
+  if (pathname.startsWith('/api/')) pathname = pathname.slice(4);
+  else if (pathname === '/api') pathname = '/';
+  const result = checkPermission(role, req.method, pathname);
   if (result.denied) return result.response;
   return null;
 }

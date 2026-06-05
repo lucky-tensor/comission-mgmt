@@ -14,29 +14,30 @@ class ApiSession {
       body: JSON.stringify({ userId }),
     });
     if (!res.ok) throw new Error(`demo login failed: ${res.status}`);
+    await res.json();
     const setCookie = res.headers.get('set-cookie');
     if (!setCookie) throw new Error('demo login returned no cookie');
     this.cookie = setCookie.split(';')[0];
   }
 
   async post<T>(path: string, body?: unknown): Promise<T> {
-    const res = await fetch(`${this.base}${path}`, {
+    const res = await fetch(`${this.base}/api${path}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', cookie: this.cookie },
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
     const text = await res.text();
-    if (!res.ok) throw new Error(`POST ${path} → ${res.status}: ${text}`);
+    if (!res.ok) throw new Error(`POST /api${path} → ${res.status}: ${text}`);
     return (text ? JSON.parse(text) : null) as T;
   }
 
   async get<T>(path: string): Promise<T> {
-    const res = await fetch(`${this.base}${path}`, {
+    const res = await fetch(`${this.base}/api${path}`, {
       method: 'GET',
       headers: { cookie: this.cookie },
     });
     const text = await res.text();
-    if (!res.ok) throw new Error(`GET ${path} → ${res.status}: ${text}`);
+    if (!res.ok) throw new Error(`GET /api${path} → ${res.status}: ${text}`);
     return (text ? JSON.parse(text) : null) as T;
   }
 }
@@ -391,19 +392,19 @@ export async function seedEncrypted(
     await producer.login(SEEDED.producer2Id);
 
     const targetRecordId = disputeRecords[0].id;
-    await producer.post('/disputes', {
+    await producer.post('/me/disputes', {
       commission_record_id: targetRecordId,
       description: 'Split allocation does not reflect my contribution to this placement.',
     });
 
     // Second dispute (for separate escalation test)
     if (disputeRecords.length >= 2) {
-      await producer.post('/disputes', {
+      await producer.post('/me/disputes', {
         commission_record_id: disputeRecords[1].id,
         description: 'Second split dispute for escalation state test.',
       });
     } else {
-      await producer.post('/disputes', {
+      await producer.post('/me/disputes', {
         commission_record_id: targetRecordId,
         description: 'Second split dispute for escalation state test.',
       });
@@ -594,7 +595,7 @@ export async function seedEncrypted(
     const execProducer = new ApiSession(baseUrl);
     await execProducer.login(SEEDED.producerId);
 
-    const execDispute = await execProducer.post<{ id: string }>('/disputes', {
+    const execDispute = await execProducer.post<{ id: string }>('/me/disputes', {
       commission_record_id: execTargetRecordId,
       description: 'Attribution dispute for executive escalation test.',
     });
