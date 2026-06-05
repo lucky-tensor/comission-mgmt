@@ -315,8 +315,10 @@ async function seedPhase2(): Promise<void> {
   const baseUrl = `http://127.0.0.1:${phase2Port}`;
 
   await withKubectlPortForward(`svc/${APP_SERVICE}`, phase2Port, 80, async () => {
-    run(`BASE_URL=${baseUrl} DATABASE_URL=${HOST_DB_URL} bun run scripts/phase2-seed.ts`, {
-      stdio: 'inherit',
+    await withDbPortForward(() => {
+      run(`BASE_URL=${baseUrl} DATABASE_URL=${HOST_DB_URL} bun run scripts/phase2-seed.ts`, {
+        stdio: 'inherit',
+      });
     });
   });
 
@@ -377,6 +379,8 @@ spec:
             - name: PORT
               value: "31415"
             - name: DEMO_MODE
+              value: "true"
+            - name: CSRF_DISABLED
               value: "true"
             - name: DATABASE_URL
               valueFrom:

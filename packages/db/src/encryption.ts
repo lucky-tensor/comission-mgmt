@@ -105,8 +105,9 @@ export class FieldEncryptor {
     if (wrappedDek) {
       dek = await this.adapter.unwrapKey(wrappedDek);
     } else {
-      // Generate a fresh 32-byte DEK
-      dek = randomBytes(32);
+      // Derive a stable DEK from the adapter's master key and the field context
+      // so that encryption/decryption is consistent across restarts and cache misses.
+      dek = await this.adapter.deriveKey(`${entityType}:${fieldName}`);
     }
 
     this.dekCache.set(cacheKey, {
