@@ -153,8 +153,7 @@ export default function App() {
       `[App] redirect effect: loading=${loading} unauth=${unauthenticated} session=${session?.role ?? 'null'} path=${path}`,
     );
     if (loading || unauthenticated || !session) return;
-    const roleChanged =
-      prevRoleRef.current !== null && prevRoleRef.current !== session.role;
+    const roleChanged = prevRoleRef.current !== null && prevRoleRef.current !== session.role;
     prevRoleRef.current = session.role;
     if (path === ROUTES.LOGIN || roleChanged) {
       console.log(`[App] redirecting to ${landingPathForRole(session.role)}`);
