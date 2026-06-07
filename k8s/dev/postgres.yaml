@@ -119,9 +119,9 @@ spec:
               command:
                 - pg_isready
                 - -U
-                - $(POSTGRES_USER)
+                - app_rw
                 - -d
-                - $(POSTGRES_DB)
+                - commission_app
             initialDelaySeconds: 10
             periodSeconds: 10
             timeoutSeconds: 5
@@ -131,9 +131,9 @@ spec:
               command:
                 - pg_isready
                 - -U
-                - $(POSTGRES_USER)
+                - app_rw
                 - -d
-                - $(POSTGRES_DB)
+                - commission_app
             initialDelaySeconds: 5
             periodSeconds: 5
             timeoutSeconds: 5
