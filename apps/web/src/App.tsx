@@ -142,14 +142,15 @@ export default function App() {
     return () => window.removeEventListener('popstate', onPop);
   }, []);
 
-  // Once session is resolved and user is authenticated, redirect from '/' to
-  // the role's landing page.
+  // Once session is resolved and user is authenticated, redirect to the role's
+  // landing page when on the login path OR when the current path isn't
+  // permitted for the resolved role (e.g. after a demo account switch).
   useEffect(() => {
     console.log(
       `[App] redirect effect: loading=${loading} unauth=${unauthenticated} session=${session?.role ?? 'null'} path=${path}`,
     );
     if (loading || unauthenticated || !session) return;
-    if (path === ROUTES.LOGIN) {
+    if (path === ROUTES.LOGIN || !isPathPermitted(session.role, path)) {
       console.log(`[App] redirecting to ${landingPathForRole(session.role)}`);
       navigate(landingPathForRole(session.role));
     }
