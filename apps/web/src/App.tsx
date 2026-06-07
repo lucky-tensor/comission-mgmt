@@ -35,7 +35,7 @@
  *         feat: HR/People Ops UI — draw balance and recovery schedule view (#115)
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Login from './components/Login';
 import { ProducerPortal } from './components/portal/ProducerPortal';
 import { DataGapQueue } from './components/finance/DataGapQueue';
@@ -142,15 +142,21 @@ export default function App() {
     return () => window.removeEventListener('popstate', onPop);
   }, []);
 
-  // Once session is resolved and user is authenticated, redirect to the role's
-  // landing page when on the login path OR when the current path isn't
-  // permitted for the resolved role (e.g. after a demo account switch).
+  // Track the previously resolved role so we can detect demo account switches.
+  const prevRoleRef = useRef<import('core/auth').AppRole | null>(null);
+
+  // Redirect to the role's landing when on the login path, or when the role
+  // changes (e.g. after a demo account switch). Manual navigation to an
+  // unauthorized route intentionally shows the Forbidden surface instead.
   useEffect(() => {
     console.log(
       `[App] redirect effect: loading=${loading} unauth=${unauthenticated} session=${session?.role ?? 'null'} path=${path}`,
     );
     if (loading || unauthenticated || !session) return;
-    if (path === ROUTES.LOGIN || !isPathPermitted(session.role, path)) {
+    const roleChanged =
+      prevRoleRef.current !== null && prevRoleRef.current !== session.role;
+    prevRoleRef.current = session.role;
+    if (path === ROUTES.LOGIN || roleChanged) {
       console.log(`[App] redirecting to ${landingPathForRole(session.role)}`);
       navigate(landingPathForRole(session.role));
     }
