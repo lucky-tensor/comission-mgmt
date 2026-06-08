@@ -160,12 +160,21 @@ function isRetriableError(error: unknown): boolean {
     }
 
     // Network errors are retriable
-    if (message.includes('network') || message.includes('econnrefused') || message.includes('enotfound')) {
+    if (
+      message.includes('network') ||
+      message.includes('econnrefused') ||
+      message.includes('enotfound')
+    ) {
       return true;
     }
 
     // 5xx errors are retriable
-    if (message.includes('500') || message.includes('502') || message.includes('503') || message.includes('504')) {
+    if (
+      message.includes('500') ||
+      message.includes('502') ||
+      message.includes('503') ||
+      message.includes('504')
+    ) {
       return true;
     }
 
@@ -186,11 +195,20 @@ function getErrorCode(error: unknown): string {
   if (error instanceof Error) {
     const message = error.message.toLowerCase();
     if (message.includes('timeout') || message.includes('abort')) return 'timeout';
-    if (message.includes('401') || message.includes('403') || message.includes('unauthorized') || message.includes('forbidden')) {
+    if (
+      message.includes('401') ||
+      message.includes('403') ||
+      message.includes('unauthorized') ||
+      message.includes('forbidden')
+    ) {
       return 'auth_error';
     }
     if (message.includes('429') || message.includes('rate limit')) return 'rate_limit';
-    if (message.includes('network') || message.includes('econnrefused') || message.includes('enotfound')) {
+    if (
+      message.includes('network') ||
+      message.includes('econnrefused') ||
+      message.includes('enotfound')
+    ) {
       return 'network_error';
     }
   }
