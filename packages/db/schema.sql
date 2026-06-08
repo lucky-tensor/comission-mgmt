@@ -144,7 +144,85 @@ CREATE INDEX IF NOT EXISTS idx_worker_tokens_pod ON worker_tokens (pod_id) WHERE
 -- Workers discover, claim, and submit tasks exclusively through the application
 -- API using single-use, task-scoped delegated tokens. The application server
 -- performs all task_queue reads and the claim UPDATE on the worker's behalf.
+--
+-- Phase: Arbitration & Simulation (dev-scout #188)
+-- ═════════════════════════════════════════════════════════════════════════
+-- Task queue views for arbitration and simulation agents.
+-- These views expose only the columns needed for workers to decide whether to
+-- claim a task (id, job_type, status, payload, correlation_id, priority, created_at,
+-- attempt, max_attempts). Sensitive columns (delegated_token, created_by, result,
+-- error_message) are excluded — workers receive delegated tokens only through the
+-- API claim response.
+--
+-- Canonical: docs/arbitration-simulation.md (scout #188)
 -- =============================================================================
+
+-- Task queue view for arbitration agent type.
+-- Filters tasks by agent_type='arbitration_agent' and shows non-sensitive columns.
+CREATE VIEW IF NOT EXISTS task_queue_view_arbitration AS
+  SELECT
+    id,
+    job_type,
+    status,
+    payload,
+    correlation_id,
+    priority,
+    created_at,
+    attempt,
+    max_attempts
+  FROM task_queue
+  WHERE agent_type = 'arbitration_agent'
+  ORDER BY priority ASC, created_at ASC;
+
+-- Task queue view for simulation agent type.
+-- Filters tasks by agent_type='simulation_agent' and shows non-sensitive columns.
+CREATE VIEW IF NOT EXISTS task_queue_view_simulation AS
+  SELECT
+    id,
+    job_type,
+    status,
+    payload,
+    correlation_id,
+    priority,
+    created_at,
+    attempt,
+    max_attempts
+  FROM task_queue
+  WHERE agent_type = 'simulation_agent'
+  ORDER BY priority ASC, created_at ASC;
+
+-- =============================================================================
+-- Database Roles for Agent Types
+--
+-- Per WORKER-P-001 (read-only-database-access) and WORKER-D-007 (per-agent-type
+-- database role), agents are issued database credentials scoped to their type.
+-- Roles are read-only to task-queue views; all writes are delegated to the API
+-- layer using single-use, task-scoped tokens (WORKER-P-002, WORKER-P-006).
+--
+-- Startup guard (IMPL-TQ-RS-006): each agent-type role has SELECT-only, no INSERT,
+-- UPDATE, DELETE, or TRUNCATE. A worker started with a write-capable role panics
+-- before the main loop.
+--
+-- Canonical: docs/arbitration-simulation.md, database role assignment table (scout #188)
+-- =============================================================================
+
+-- Arbitration agent role: SELECT on arbitration task queue view + delegated token write path.
+-- The delegated token write path refers to the POST endpoints that accept the single-use
+-- token and write results (e.g., POST /disputes/:id/arbitration-result).
+CREATE ROLE arbitration_agent WITH LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE;
+
+-- Grant SELECT on arbitration task queue view (read task data only).
+GRANT SELECT ON task_queue_view_arbitration TO arbitration_agent;
+
+-- Simulation agent role: SELECT on simulation task queue view + delegated token write path.
+CREATE ROLE simulation_agent WITH LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE;
+
+-- Grant SELECT on simulation task queue view (read task data only).
+GRANT SELECT ON task_queue_view_simulation TO simulation_agent;
+
+-- Explicitly revoke all other permissions to enforce read-only at startup guard time.
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON ALL TABLES IN SCHEMA public FROM arbitration_agent;
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON ALL TABLES IN SCHEMA public FROM simulation_agent;
 
 -- =============================================================================
 -- Encryption Key Registry
