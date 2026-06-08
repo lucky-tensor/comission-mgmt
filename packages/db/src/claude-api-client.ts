@@ -60,7 +60,7 @@ export interface ClaudeApiContext {
 export async function callClaudeAPI<T = string>(
   context: ClaudeApiContext,
   prompt: string,
-  timeoutMs: number = 30000,
+  _timeoutMs: number = 30000,
   maxAttempts: number = 3,
 ): Promise<ClaudeApiResponse<T>> {
   const apiKey = process.env.CLAUDE_API_KEY;
@@ -201,7 +201,7 @@ function getErrorCode(error: unknown): string {
  * Log a successful Claude API call to the audit database.
  * STUB: This is a placeholder. Real implementation will write to the audit DB.
  */
-async function logClaudeApiSuccess(context: ClaudeApiContext, result: string): Promise<void> {
+async function logClaudeApiSuccess(_context: ClaudeApiContext, _result: string): Promise<void> {
   try {
     // STUB: Placeholder for audit logging.
     // Real implementation will:
@@ -210,7 +210,7 @@ async function logClaudeApiSuccess(context: ClaudeApiContext, result: string): P
     // - Include task_id, job_type, correlation_id, user_id, timestamp
     //
     // For now, just log to console
-    console.log(`[claude-api] Audit: success for task ${context.taskId} (${context.jobType})`);
+    console.log(`[claude-api] Audit: success for task ${_context.taskId} (${_context.jobType})`);
   } catch (err) {
     // Audit logging failure should be logged but not thrown
     console.error(`[claude-api] Audit logging failed:`, err);

@@ -24,7 +24,9 @@
  * simulation inside it, and returns predictions without mutation.
  */
 
-import { callClaudeAPI, type ClaudeApiResponse, type ClaudeApiContext } from 'packages/db';
+import { type ClaudeApiContext } from 'packages/db';
+// Note: callClaudeAPI is not imported in this stub. Real feature (#187) will
+// import callClaudeAPI and invoke it inside executeSimulationTask().
 
 /**
  * Simulation agent task payload.
@@ -73,7 +75,7 @@ export interface SimulationTaskResult {
 export async function executeSimulationTask(
   taskId: string,
   payload: SimulationTaskPayload,
-  delegatedToken: string,
+  _delegatedToken: string,
 ): Promise<SimulationTaskResult> {
   try {
     console.log(
@@ -93,7 +95,7 @@ export async function executeSimulationTask(
     // The twin is discarded after simulation. Promotion to live submission is a
     // separate, explicitly authorized step.
 
-    const context: ClaudeApiContext = {
+    const _context: ClaudeApiContext = {
       taskId,
       jobType: 'producer_simulation',
       correlationId: payload.deal_id,
@@ -102,7 +104,7 @@ export async function executeSimulationTask(
     console.log(
       `[simulation-worker] Task ${taskId}: would call Claude API for deal ${payload.deal_id}`,
     );
-    // await callClaudeAPI(context, '<deal simulation prompt>');
+    // await callClaudeAPI(_context, '<deal simulation prompt>');
 
     const result: SimulationTaskResult = {
       status: 'success',

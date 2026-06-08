@@ -23,7 +23,9 @@
  * Return contract: { status: 'success' | 'error', result_or_error: any }
  */
 
-import { callClaudeAPI, type ClaudeApiResponse, type ClaudeApiContext } from 'packages/db';
+import { type ClaudeApiContext } from 'packages/db';
+// Note: callClaudeAPI is not imported in this stub. Real feature (#186) will
+// import callClaudeAPI and invoke it inside executeArbitrationTask().
 
 /**
  * Arbitration agent task payload.
@@ -70,7 +72,7 @@ export interface ArbitrationTaskResult {
 export async function executeArbitrationTask(
   taskId: string,
   payload: ArbitrationTaskPayload,
-  delegatedToken: string,
+  _delegatedToken: string,
 ): Promise<ArbitrationTaskResult> {
   try {
     console.log(`[arbitration-worker] Executing task ${taskId} for dispute ${payload.dispute_id}`);
@@ -84,7 +86,7 @@ export async function executeArbitrationTask(
     // 5. Return result for submission via delegated token
 
     // For now, return a stub success response
-    const context: ClaudeApiContext = {
+    const _context: ClaudeApiContext = {
       taskId,
       jobType: 'dispute_arbitration',
       correlationId: payload.dispute_id,
@@ -93,7 +95,7 @@ export async function executeArbitrationTask(
     console.log(
       `[arbitration-worker] Task ${taskId}: would call Claude API for dispute ${payload.dispute_id}`,
     );
-    // await callClaudeAPI(context, '<dispute resolution prompt>');
+    // await callClaudeAPI(_context, '<dispute resolution prompt>');
 
     const result: ArbitrationTaskResult = {
       status: 'success',
