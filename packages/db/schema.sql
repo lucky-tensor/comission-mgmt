@@ -159,7 +159,8 @@ CREATE INDEX IF NOT EXISTS idx_worker_tokens_pod ON worker_tokens (pod_id) WHERE
 
 -- Task queue view for arbitration agent type.
 -- Filters tasks by agent_type='arbitration_agent' and shows non-sensitive columns.
-CREATE VIEW IF NOT EXISTS task_queue_view_arbitration AS
+DROP VIEW IF EXISTS task_queue_view_arbitration;
+CREATE VIEW task_queue_view_arbitration AS
   SELECT
     id,
     job_type,
@@ -171,12 +172,12 @@ CREATE VIEW IF NOT EXISTS task_queue_view_arbitration AS
     attempt,
     max_attempts
   FROM task_queue
-  WHERE agent_type = 'arbitration_agent'
-  ORDER BY priority ASC, created_at ASC;
+  WHERE agent_type = 'arbitration_agent';
 
 -- Task queue view for simulation agent type.
 -- Filters tasks by agent_type='simulation_agent' and shows non-sensitive columns.
-CREATE VIEW IF NOT EXISTS task_queue_view_simulation AS
+DROP VIEW IF EXISTS task_queue_view_simulation;
+CREATE VIEW task_queue_view_simulation AS
   SELECT
     id,
     job_type,
@@ -188,8 +189,7 @@ CREATE VIEW IF NOT EXISTS task_queue_view_simulation AS
     attempt,
     max_attempts
   FROM task_queue
-  WHERE agent_type = 'simulation_agent'
-  ORDER BY priority ASC, created_at ASC;
+  WHERE agent_type = 'simulation_agent';
 
 -- =============================================================================
 -- Database Roles for Agent Types
@@ -209,20 +209,23 @@ CREATE VIEW IF NOT EXISTS task_queue_view_simulation AS
 -- Arbitration agent role: SELECT on arbitration task queue view + delegated token write path.
 -- The delegated token write path refers to the POST endpoints that accept the single-use
 -- token and write results (e.g., POST /disputes/:id/arbitration-result).
-CREATE ROLE arbitration_agent WITH LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE;
+-- Roles start with no permissions; we explicitly grant SELECT on views.
+DO $$ BEGIN
+  CREATE ROLE arbitration_agent WITH LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE;
+EXCEPTION WHEN DUPLICATE_OBJECT THEN NULL;
+END $$;
 
 -- Grant SELECT on arbitration task queue view (read task data only).
 GRANT SELECT ON task_queue_view_arbitration TO arbitration_agent;
 
 -- Simulation agent role: SELECT on simulation task queue view + delegated token write path.
-CREATE ROLE simulation_agent WITH LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE;
+DO $$ BEGIN
+  CREATE ROLE simulation_agent WITH LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE;
+EXCEPTION WHEN DUPLICATE_OBJECT THEN NULL;
+END $$;
 
 -- Grant SELECT on simulation task queue view (read task data only).
 GRANT SELECT ON task_queue_view_simulation TO simulation_agent;
-
--- Explicitly revoke all other permissions to enforce read-only at startup guard time.
-REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON ALL TABLES IN SCHEMA public FROM arbitration_agent;
-REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON ALL TABLES IN SCHEMA public FROM simulation_agent;
 
 -- =============================================================================
 -- Encryption Key Registry
