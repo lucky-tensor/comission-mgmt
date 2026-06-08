@@ -13,7 +13,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import postgres from 'postgres';
 import { startPostgres, type PgContainer } from 'db/pg-container';
-import { migrate, createSql } from 'db/index';
+import { createSql } from 'db/index';
 
 let pg: PgContainer;
 let superUserSql: ReturnType<typeof postgres>;
@@ -23,8 +23,8 @@ beforeAll(async () => {
   superUserSql = createSql(pg.url);
 
   // Run migrations
-  const { migrate } = await import('packages/db');
-  await migrate({
+  const { migrate: runMigrate } = await import('db/index');
+  await runMigrate({
     databaseUrl: pg.url,
     auditDatabaseUrl: null,
     analyticsDatabaseUrl: null,
@@ -150,7 +150,8 @@ describe('Worker Database Roles', () => {
         AND table_name = 'task_queue_view_arbitration'
         AND privilege_type = 'SELECT'
     `;
-    const count = typeof result[0].count === 'string' ? parseInt(result[0].count) : Number(result[0].count);
+    const count =
+      typeof result[0].count === 'string' ? parseInt(result[0].count) : Number(result[0].count);
     expect(count).toBeGreaterThan(0);
 
     // Clean up
@@ -166,7 +167,8 @@ describe('Worker Database Roles', () => {
         AND table_name = 'task_queue_view_simulation'
         AND privilege_type = 'SELECT'
     `;
-    const count = typeof result[0].count === 'string' ? parseInt(result[0].count) : Number(result[0].count);
+    const count =
+      typeof result[0].count === 'string' ? parseInt(result[0].count) : Number(result[0].count);
     expect(count).toBeGreaterThan(0);
   });
 
@@ -179,7 +181,8 @@ describe('Worker Database Roles', () => {
         AND table_name = 'task_queue'
         AND privilege_type IN ('INSERT', 'UPDATE', 'DELETE', 'TRUNCATE')
     `;
-    const count = typeof result[0].count === 'string' ? parseInt(result[0].count) : Number(result[0].count);
+    const count =
+      typeof result[0].count === 'string' ? parseInt(result[0].count) : Number(result[0].count);
     expect(count).toBe(0);
   });
 
@@ -192,7 +195,8 @@ describe('Worker Database Roles', () => {
         AND table_name = 'task_queue'
         AND privilege_type IN ('INSERT', 'UPDATE', 'DELETE', 'TRUNCATE')
     `;
-    const count = typeof result[0].count === 'string' ? parseInt(result[0].count) : Number(result[0].count);
+    const count =
+      typeof result[0].count === 'string' ? parseInt(result[0].count) : Number(result[0].count);
     expect(count).toBe(0);
   });
 });
