@@ -109,6 +109,11 @@ import {
 } from './api/exceptions';
 import { handleCreatePayrollExport, handleListPayrollExports } from './api/exports';
 import { handleCreateDispute, handleListDisputes, handleResolveDispute } from './api/disputes';
+import {
+  handleCreateActualSimulation,
+  handleCreateHypotheticalSimulation,
+  handleListMySimulations,
+} from './api/simulations';
 import { handleDemoUsers, handleDemoSession, isDemoMode } from './api/demo-session';
 import { requireAuth } from './middleware/auth';
 // Producer Portal /me routes — issue #16
@@ -599,6 +604,19 @@ export async function fetchHandler(req: Request): Promise<Response> {
   }
   if (req.method === 'GET' && pathname === '/me/clawback-exposure') {
     return handleGetMyClawbackExposure(authResult.claims);
+  }
+
+  // Producer deal simulation routes — issue #187
+  // The current scout reserves the producer-facing transport seam only; all
+  // handlers return 501 until the simulation workflow is implemented.
+  if (req.method === 'POST' && pathname === '/producer/simulations/actual') {
+    return handleCreateActualSimulation(req, authResult.claims);
+  }
+  if (req.method === 'POST' && pathname === '/producer/simulations/hypothetical') {
+    return handleCreateHypotheticalSimulation(req, authResult.claims);
+  }
+  if (req.method === 'GET' && pathname === '/producer/simulations') {
+    return handleListMySimulations(req, authResult.claims);
   }
 
   // Per-producer draw balance and recovery schedule — issue #124

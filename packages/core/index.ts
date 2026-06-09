@@ -12,3 +12,4 @@ export * from './commission-run';
 export * from './invoice-trigger';
 export * from './guarantee-state';
 export * from './clawback-ledger';
+export * from './producer-simulation';

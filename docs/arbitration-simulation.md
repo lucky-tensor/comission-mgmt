@@ -289,6 +289,16 @@ This scout prepares infrastructure for two features:
 - Digital twin infrastructure (existing WORKER-P-007)
 - Delegated token write path at `POST /producer/simulations/:id/result`
 
+**Current scout seam**:
+- `apps/server/src/api/simulations.ts` reserves the producer-facing route namespace
+  (`POST /producer/simulations/actual`, `POST /producer/simulations/hypothetical`,
+  `GET /producer/simulations`) and returns 501 until feature work lands.
+- `packages/core/producer-simulation.ts` defines the shared request/response types for the
+  future producer simulation history payloads.
+- The existing worker/queue contract remains `simulation_agent` + `producer_simulation`;
+  the issue body's user-facing wording (`simulate_deal`, `role_agent_simulator`) should be
+  treated as product naming unless the downstream feature intentionally aliases it.
+
 **Must implement**:
 - Deal simulation logic (Claude prompting, parsing, digital twin interaction)
 - Actual call to `callClaudeAPI()` inside `executeSimulationTask()`
