@@ -73,6 +73,7 @@ jobs:
           - vitest.security.config.ts
           - vitest.tasks.config.ts
           - vitest.tier-progress.config.ts
+          - vitest.worker-infrastructure.config.ts
           - vitest.worker.config.ts
     steps:
       - uses: actions/checkout@v4
