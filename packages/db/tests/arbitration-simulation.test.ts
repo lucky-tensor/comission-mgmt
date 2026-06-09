@@ -111,7 +111,9 @@ describe('task queue views and roles', () => {
     `;
 
     await withRole('arbitration_agent', async (roleSql) => {
-      const rows = await roleSql<{ id: string; job_type: string; payload: Record<string, unknown> }[]>`
+      const rows = await roleSql<
+        { id: string; job_type: string; payload: Record<string, unknown> }[]
+      >`
         SELECT id, job_type, payload
         FROM task_queue_view_arbitration
         WHERE id = ${arbitrationTask.id}
@@ -128,7 +130,9 @@ describe('task queue views and roles', () => {
       await expect(roleSql.unsafe(`SELECT * FROM task_queue_view_simulation`)).rejects.toThrow(
         /permission denied/i,
       );
-      await expect(roleSql.unsafe(`SELECT * FROM task_queue`)).rejects.toThrow(/permission denied/i);
+      await expect(roleSql.unsafe(`SELECT * FROM task_queue`)).rejects.toThrow(
+        /permission denied/i,
+      );
     });
   });
 
@@ -160,7 +164,9 @@ describe('task queue views and roles', () => {
     `;
 
     await withRole('simulation_agent', async (roleSql) => {
-      const rows = await roleSql<{ id: string; job_type: string; payload: Record<string, unknown> }[]>`
+      const rows = await roleSql<
+        { id: string; job_type: string; payload: Record<string, unknown> }[]
+      >`
         SELECT id, job_type, payload
         FROM task_queue_view_simulation
         WHERE id = ${simulationTask.id}
