@@ -42,7 +42,10 @@ export function validateArbitrationResultBody(payload: unknown): payload is Arbi
 
   if (typeof body.recommendation !== 'string' || body.recommendation.trim() === '') return false;
   if (typeof body.reasoning !== 'string' || body.reasoning.trim() === '') return false;
-  if (!Array.isArray(body.edge_cases) || !body.edge_cases.every((item) => typeof item === 'string')) {
+  if (
+    !Array.isArray(body.edge_cases) ||
+    !body.edge_cases.every((item) => typeof item === 'string')
+  ) {
     return false;
   }
   if (typeof body.payout_adjustment !== 'number' || Number.isNaN(body.payout_adjustment)) {
