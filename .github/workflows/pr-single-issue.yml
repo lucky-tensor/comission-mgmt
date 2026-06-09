@@ -11,7 +11,7 @@ name: PR closes exactly one issue
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, 'phase/**']
     types: [opened, edited, reopened, synchronize]
 
 permissions:

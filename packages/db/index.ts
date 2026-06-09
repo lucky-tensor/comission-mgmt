@@ -291,6 +291,10 @@ export type {
   CreateDrawBalanceInput,
 } from './src/draw-balance.js';
 
+// Claude API client for AI-driven worker tasks — dev-scout #188
+export { callClaudeAPI } from './src/claude-api-client.js';
+export type { ClaudeApiResponse, ClaudeApiContext } from './src/claude-api-client.js';
+
 const DEFAULT_DATABASE_URLS = {
   app: 'postgres://app_rw:app_rw_password@localhost:5432/commission_app',
   audit: 'postgres://audit_w:audit_w_password@localhost:5432/commission_audit',
