@@ -23,7 +23,7 @@
  * Return contract: { status: 'success' | 'error', result_or_error: any }
  */
 
-import { type ClaudeApiContext } from 'packages/db';
+import { type ClaudeApiContext } from 'db';
 // Note: callClaudeAPI is not imported in this stub. Real feature (#186) will
 // import callClaudeAPI and invoke it inside executeArbitrationTask().
 

@@ -59,7 +59,7 @@ export interface ClaudeApiContext {
  */
 export async function callClaudeAPI<T = string>(
   context: ClaudeApiContext,
-  prompt: string,
+  _prompt: string,
   _timeoutMs: number = 30000,
   maxAttempts: number = 3,
 ): Promise<ClaudeApiResponse<T>> {

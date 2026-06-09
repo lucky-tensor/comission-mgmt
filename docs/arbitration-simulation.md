@@ -127,7 +127,7 @@ export type { ClaudeApiResponse, ClaudeApiContext };
 ### Usage
 
 ```typescript
-import { callClaudeAPI } from 'packages/db';
+import { callClaudeAPI, type ClaudeApiContext } from 'db';
 
 const context: ClaudeApiContext = {
   taskId: '<task-uuid>',

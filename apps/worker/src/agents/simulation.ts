@@ -24,7 +24,7 @@
  * simulation inside it, and returns predictions without mutation.
  */
 
-import { type ClaudeApiContext } from 'packages/db';
+import { type ClaudeApiContext } from 'db';
 // Note: callClaudeAPI is not imported in this stub. Real feature (#187) will
 // import callClaudeAPI and invoke it inside executeSimulationTask().
 
