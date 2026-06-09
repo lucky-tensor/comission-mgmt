@@ -575,6 +575,11 @@ export async function fetchHandler(req: Request): Promise<Response> {
     return handleResolveDispute(disputeResolveMatch[1], req, authResult.claims);
   }
 
+  // Dispute arbitration routes — reserved seam for issue #186.
+  // The live enqueue/result handlers are scaffolded in
+  // apps/server/src/api/dispute-arbitration.ts but are intentionally not wired
+  // here yet so runtime behavior remains unchanged until the feature lands.
+
   // Producer Portal /me routes — issue #16
   // See docs/architecture/phase-producer-portal.md for integration seam decisions.
   if (req.method === 'GET' && pathname === '/me') {

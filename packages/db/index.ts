@@ -207,6 +207,12 @@ export {
 } from './src/disputes.js';
 export type { DisputeRow, DisputeState, CreateDisputeInput } from './src/disputes.js';
 
+export type {
+  ArbitrationRecommendation,
+  ArbitrationResultRow,
+  CreateArbitrationResultInput,
+} from './src/arbitration-results.js';
+
 export {
   createGuaranteePeriod,
   getGuaranteePeriodForPlacement,

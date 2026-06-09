@@ -872,6 +872,33 @@ CREATE INDEX IF NOT EXISTS idx_disputes_state ON disputes (org_id, state);
 CREATE INDEX IF NOT EXISTS idx_disputes_commission_record ON disputes (commission_record_id);
 
 -- =============================================================================
+-- Arbitration Results: AI-driven recommendation records linked to disputes.
+-- This table is a dormant-by-design seam for issue #186. The worker result
+-- write-path remains stubbed, but the schema reserves the one-to-one mapping
+-- between a dispute and its arbitration recommendation.
+-- Canonical: docs/arbitration-simulation.md, docs/architecture.md
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS arbitration_results (
+  id               UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id           UUID          NOT NULL,
+  dispute_id       UUID          NOT NULL REFERENCES disputes(id) ON DELETE CASCADE,
+  correlation_id   TEXT          NOT NULL UNIQUE,
+  recommendation   TEXT          NOT NULL,
+  reasoning        TEXT          NOT NULL,
+  edge_cases       JSONB         NOT NULL DEFAULT '[]'::jsonb,
+  payout_adjustment NUMERIC(15,2) NOT NULL DEFAULT 0,
+  created_at       TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+  UNIQUE (dispute_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_arbitration_results_org ON arbitration_results (org_id);
+CREATE INDEX IF NOT EXISTS idx_arbitration_results_dispute ON arbitration_results (dispute_id);
+
+ALTER TABLE disputes
+  ADD COLUMN IF NOT EXISTS arbitration_result_id UUID REFERENCES arbitration_results(id);
+
+-- =============================================================================
 -- Confidential placement flag — field masking for Producer and External Partner.
 -- Finance Admins set is_confidential=true on a placement to suppress position
 -- title and client-identifying details in producer-facing and partner-facing views.
