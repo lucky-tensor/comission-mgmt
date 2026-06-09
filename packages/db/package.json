@@ -31,6 +31,7 @@
     "./reconciliation": "./src/reconciliation.ts",
     "./guarantee-periods": "./src/guarantee-periods.ts",
     "./disputes": "./src/disputes.ts",
+    "./arbitration-results": "./src/arbitration-results.ts",
     "./adjustments": "./src/adjustments.ts",
     "./draw-balance": "./src/draw-balance.ts"
   },
