@@ -43,7 +43,10 @@ function makeRequest(path: string, body?: unknown): Request {
 describe('producer simulation API stubs', () => {
   test('POST /producer/simulations/actual returns 501 Not Implemented', async () => {
     const body: ActualDealSimulationRequest = { deal_id: crypto.randomUUID() };
-    const res = await handleCreateActualSimulation(makeRequest('/producer/simulations/actual', body), producerClaims);
+    const res = await handleCreateActualSimulation(
+      makeRequest('/producer/simulations/actual', body),
+      producerClaims,
+    );
     expect(res.status).toBe(501);
     expect(await res.json()).toEqual({ error: 'Not Implemented' });
   });
@@ -64,10 +67,7 @@ describe('producer simulation API stubs', () => {
   });
 
   test('GET /producer/simulations returns 501 Not Implemented', async () => {
-    const res = await handleListMySimulations(
-      makeRequest('/producer/simulations'),
-      producerClaims,
-    );
+    const res = await handleListMySimulations(makeRequest('/producer/simulations'), producerClaims);
     expect(res.status).toBe(501);
     expect(await res.json()).toEqual({ error: 'Not Implemented' });
   });
