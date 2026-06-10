@@ -87,6 +87,15 @@ import {
   handlePatchCommissionRecord,
 } from './api/calculate';
 import {
+  handleCreateBillingPhase,
+  handleListBillingPhases,
+  handleUpdateBillingPhase,
+  handleCreatePhaseContributor,
+  handleListPhaseContributors,
+  handleListPhaseJournal,
+  handleCalculatePhaseCommissions,
+} from './api/billing-phases';
+import {
   handleCreateInvoice,
   handleUpdateInvoice,
   handleImportInvoices,
@@ -500,6 +509,54 @@ export async function fetchHandler(req: Request): Promise<Response> {
   const calculateMatch = pathname.match(/^\/placements\/([^/]+)\/calculate$/);
   if (req.method === 'POST' && calculateMatch) {
     return handleCalculateCommission(calculateMatch[1], req, authResult.claims);
+  }
+
+  // Retained-search per-phase calculation — POST /placements/:id/calculate-phases
+  const calculatePhasesMatch = pathname.match(/^\/placements\/([^/]+)\/calculate-phases$/);
+  if (req.method === 'POST' && calculatePhasesMatch) {
+    return handleCalculatePhaseCommissions(calculatePhasesMatch[1], req, authResult.claims);
+  }
+
+  // Billing-phase routes (retained search) — scoped to tenant.
+  const billingPhasesBaseMatch = pathname.match(/^\/placements\/([^/]+)\/billing-phases$/);
+  if (req.method === 'POST' && billingPhasesBaseMatch) {
+    return handleCreateBillingPhase(billingPhasesBaseMatch[1], req, authResult.claims);
+  }
+  if (req.method === 'GET' && billingPhasesBaseMatch) {
+    return handleListBillingPhases(billingPhasesBaseMatch[1], authResult.claims);
+  }
+  const phaseContributorsMatch = pathname.match(
+    /^\/placements\/([^/]+)\/billing-phases\/([^/]+)\/contributors$/,
+  );
+  if (req.method === 'POST' && phaseContributorsMatch) {
+    return handleCreatePhaseContributor(
+      phaseContributorsMatch[1],
+      phaseContributorsMatch[2],
+      req,
+      authResult.claims,
+    );
+  }
+  if (req.method === 'GET' && phaseContributorsMatch) {
+    return handleListPhaseContributors(
+      phaseContributorsMatch[1],
+      phaseContributorsMatch[2],
+      authResult.claims,
+    );
+  }
+  const phaseJournalMatch = pathname.match(
+    /^\/placements\/([^/]+)\/billing-phases\/([^/]+)\/journal$/,
+  );
+  if (req.method === 'GET' && phaseJournalMatch) {
+    return handleListPhaseJournal(phaseJournalMatch[1], phaseJournalMatch[2], authResult.claims);
+  }
+  const billingPhaseByIdMatch = pathname.match(/^\/placements\/([^/]+)\/billing-phases\/([^/]+)$/);
+  if (req.method === 'PATCH' && billingPhaseByIdMatch) {
+    return handleUpdateBillingPhase(
+      billingPhaseByIdMatch[1],
+      billingPhaseByIdMatch[2],
+      req,
+      authResult.claims,
+    );
   }
 
   // Commission records list — GET /placements/:id/commission-records

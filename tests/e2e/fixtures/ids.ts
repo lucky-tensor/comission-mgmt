@@ -38,6 +38,41 @@ export const SEEDED = {
 } as const;
 
 /**
+ * Heterogeneous producer demo placements (issue #196).
+ *
+ * The placement-create API generates its own placement UUID (it does not accept
+ * a caller-supplied id), and the Producer Portal E2E tests locate placements by
+ * their job title and calculated amount rather than by UUID. These stable job
+ * titles are therefore the fixtures that anchor the demo placements appended to
+ * the seed script — they are recognizable in the portal and grep-able in tests.
+ *
+ * The additions are append-only: existing E2E fixture placements are untouched.
+ *
+ * Each scenario demonstrates a distinct slice of the calculation engine:
+ *   - collectedTitle:      fully collected, 25% gross-fee payout, Payable (non-zero)
+ *   - heldCollectionTitle: Active + calculated, no paid invoice → Held for collection
+ *   - tieredTitle:         tiered plan where the effective tier rate ≠ base rate
+ *   - splitTitle:          manager-override split (split_pct < 1.0) → reduced net
+ *   - guaranteeTitle:      inside guarantee window → Held for guarantee ($0)
+ *   - retainedTitle:       retained-search with retainer (paid → Payable)
+ *                          and delivery (unpaid → Held) phases (PRD §5.5)
+ */
+export const DEMO_HETERO = {
+  /** Scenario (a): fully collected, 25% gross-fee, Payable. fee 30000 × 25% = $7,500. */
+  collectedTitle: 'Chief Technology Officer (Demo Collected)',
+  /** Scenario (b): Active, calculated, held for collection (no paid invoice). */
+  heldCollectionTitle: 'Head of Product (Demo Held)',
+  /** Scenario (c): tiered-rate placement (effective tier rate ≠ base rate). */
+  tieredTitle: 'VP Engineering (Demo Tiered)',
+  /** Scenario (d): manager-override split, split_pct < 1.0. */
+  splitTitle: 'Sales Director (Demo Split)',
+  /** Scenario (e): guarantee-held placement, $0 with explanation. */
+  guaranteeTitle: 'General Counsel (Demo Guarantee)',
+  /** Scenario (f): retained-search placement with retainer + delivery phases. */
+  retainedTitle: 'Chief Financial Officer (Demo Retained Search)',
+} as const;
+
+/**
  * External Partner fixture constants — pure data, no Node.js dependencies.
  *
  * The seeded External Partner holds a split on one placement (PARTNER.feeAmount
