@@ -19,12 +19,7 @@
 
 import { describe, test, expect } from 'vitest';
 import { APP_ROLES, type AppRole } from 'core/auth';
-import {
-  ROLE_ROUTES,
-  ROUTES,
-  isPathPermitted,
-  landingPathForRole,
-} from '../src/lib/roleRoutes';
+import { ROLE_ROUTES, ROUTES, isPathPermitted, landingPathForRole } from '../src/lib/roleRoutes';
 
 describe('roleRoutes seam — landingPathForRole', () => {
   test('every role has a landing path that is one of its permitted paths', () => {
