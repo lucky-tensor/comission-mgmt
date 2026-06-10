@@ -11,6 +11,7 @@
  *   /executive/trends        — Executive exception & dispute rate trends
  *   /hr        — HR home (commission plan acknowledgment + draw balance and recovery schedule)
  *   /partner   — External Partner home (scoped payout view)
+ *   /docs      — In-app documentation viewer (all roles; ExternalPartner sees partner guide + glossary only)
  *
  * Routing is intentionally tiny (no router dependency): the app reads
  * window.location.pathname and navigates with history.pushState.
@@ -53,6 +54,7 @@ import { ExecDisputeApproval } from './components/executive/ExecDisputeApproval'
 import { PlanAcknowledgment } from './components/hr/PlanAcknowledgment';
 import { DrawBalanceView } from './components/hr/DrawBalanceView';
 import { PartnerPayoutView } from './components/partner/PartnerPayoutView';
+import { DocsView } from './components/DocsView';
 import { useSession } from './lib/useSession';
 import { apiPost } from './lib/apiClient';
 import { isPathPermitted, landingPathForRole, ROUTES } from './lib/roleRoutes';
@@ -116,6 +118,8 @@ function AuthenticatedApp({ role, path, onLogout }: AuthenticatedAppProps) {
         );
       case ROUTES.PARTNER:
         return <PartnerPayoutView onUnauthenticated={() => navigate(ROUTES.LOGIN)} />;
+      case ROUTES.DOCS:
+        return <DocsView role={role} />;
       default:
         return <Forbidden role={role} onNavigate={navigate} />;
     }
