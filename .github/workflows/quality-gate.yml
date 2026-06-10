@@ -11,12 +11,6 @@ on:
       - 'AGENTS.md'
   pull_request:
     branches: [main]
-    paths-ignore:
-      - 'docs/**'
-      - '**/*.md'
-      - '.agents/**'
-      - 'CLAUDE.md'
-      - 'AGENTS.md'
   workflow_dispatch:
 
 concurrency:
