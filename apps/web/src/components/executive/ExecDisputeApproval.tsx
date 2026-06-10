@@ -30,9 +30,38 @@
  */
 
 import { useState } from 'react';
+import type { AppRole } from 'core/auth';
 import { ApiError, apiGet, apiPost } from '../../lib/apiClient';
 import { useAsync } from '../../lib/useAsync';
 import { LoadingState, ErrorState, EmptyState, PortalCard } from '../portal/states';
+
+/**
+ * Roles permitted to invoke AI arbitration. Per PRD §5.4 attribution disputes
+ * escalate Manager → Practice Lead → Executive, with the Executive as final
+ * approver; Finance Admin does not adjudicate attribution disputes. Producers
+ * never see arbitration. So the "Run Arbitration" button is gated to Manager
+ * and Executive only.
+ */
+const ARBITRATION_ROLES: ReadonlySet<AppRole> = new Set<AppRole>(['Manager', 'Executive']);
+
+export function canRunArbitration(role: AppRole | undefined): boolean {
+  return role !== undefined && ARBITRATION_ROLES.has(role);
+}
+
+/**
+ * Structured AI arbitration recommendation returned by POST /disputes/:id/arbitrate.
+ * Mirrors ArbitrationResultBody on the server (apps/server/src/api/dispute-arbitration.ts).
+ */
+export interface ArbitrationRecommendation {
+  /** Stable reference recorded in the audit trail on Accept (recommendation id). */
+  id?: string;
+  recommendation: string;
+  reasoning: string;
+  edge_cases: string[];
+  payout_adjustment: number;
+}
+
+type ArbitrationStatus = 'idle' | 'arbitrating' | 'done' | 'rejected';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -70,8 +99,20 @@ interface DisputeDetailViewProps {
   timeline: AttributionEvent[] | null;
   timelineLoading: boolean;
   timelineError: string | null;
+  /** Viewer role — gates the AI arbitration affordance (Manager/Executive). */
+  role?: AppRole;
   onBack: () => void;
-  onResolve: (disputeId: string, resolutionNote: string) => Promise<void>;
+  /**
+   * Resolve the dispute. `recommendationRef` carries the AI recommendation id
+   * into the audit trail when the resolution accepts an arbitration result.
+   */
+  onResolve: (
+    disputeId: string,
+    resolutionNote: string,
+    recommendationRef?: string,
+  ) => Promise<void>;
+  /** Invoke AI arbitration. Provided so tests can drive without the network. */
+  onArbitrate: (disputeId: string) => Promise<ArbitrationRecommendation>;
 }
 
 function DisputeDetailView({
@@ -79,8 +120,10 @@ function DisputeDetailView({
   timeline,
   timelineLoading,
   timelineError,
+  role,
   onBack,
   onResolve,
+  onArbitrate,
 }: DisputeDetailViewProps) {
   const [rationale, setRationale] = useState('');
   const [saving, setSaving] = useState(false);
@@ -88,7 +131,28 @@ function DisputeDetailView({
   const [rationaleError, setRationaleError] = useState<string | null>(null);
   const [resolved, setResolved] = useState(false);
 
-  async function handleResolve() {
+  // Arbitration state machine: idle → arbitrating → done | rejected.
+  const [arbStatus, setArbStatus] = useState<ArbitrationStatus>('idle');
+  const [arbError, setArbError] = useState<string | null>(null);
+  const [recommendation, setRecommendation] = useState<ArbitrationRecommendation | null>(null);
+
+  const showArbitration = canRunArbitration(role);
+
+  async function handleArbitrate() {
+    setArbStatus('arbitrating');
+    setArbError(null);
+    try {
+      const rec = await onArbitrate(dispute.id);
+      setRecommendation(rec);
+      setArbStatus('done');
+    } catch (err: unknown) {
+      const msg = err instanceof ApiError ? err.message : 'Failed to run arbitration';
+      setArbError(msg);
+      setArbStatus('idle');
+    }
+  }
+
+  async function handleResolve(recommendationRef?: string) {
     if (!rationale.trim()) {
       setRationaleError('Rationale is required before resolving a dispute.');
       return;
@@ -97,7 +161,7 @@ function DisputeDetailView({
     setSaving(true);
     setSaveError(null);
     try {
-      await onResolve(dispute.id, rationale.trim());
+      await onResolve(dispute.id, rationale.trim(), recommendationRef);
       setResolved(true);
     } catch (err: unknown) {
       const msg = err instanceof ApiError ? err.message : 'Failed to resolve dispute';
@@ -218,6 +282,166 @@ function DisputeDetailView({
         </div>
       </PortalCard>
 
+      {showArbitration && !resolved && (
+        <PortalCard title="AI Arbitration">
+          <div data-testid="arbitration-section">
+            {arbStatus === 'idle' && (
+              <>
+                <p style={{ fontSize: '0.8125rem', color: '#6b7280', margin: '0 0 0.75rem' }}>
+                  Request an AI recommendation for this escalated dispute. The output is advisory
+                  only — the final resolution is always a documented human decision recorded below.
+                </p>
+                <button
+                  data-testid="run-arbitration-btn"
+                  onClick={handleArbitrate}
+                  style={{
+                    padding: '0.5rem 1.25rem',
+                    background: '#7c3aed',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '0.5rem',
+                    cursor: 'pointer',
+                    fontSize: '0.875rem',
+                    fontWeight: 600,
+                  }}
+                >
+                  Run Arbitration
+                </button>
+                {arbError && (
+                  <div style={{ marginTop: '0.75rem' }}>
+                    <ErrorState message={arbError} />
+                  </div>
+                )}
+              </>
+            )}
+
+            {arbStatus === 'arbitrating' && <LoadingState label="AI arbitration recommendation" />}
+
+            {arbStatus === 'rejected' && (
+              <div
+                data-testid="arbitration-rejected"
+                role="status"
+                style={{ fontSize: '0.8125rem', color: '#6b7280' }}
+              >
+                Recommendation rejected. Resolve the dispute with your own rationale below.
+              </div>
+            )}
+
+            {arbStatus === 'done' && recommendation && (
+              <div
+                data-testid="arbitration-recommendation"
+                style={{
+                  padding: '1.25rem',
+                  background: '#faf5ff',
+                  border: '1px solid #d8b4fe',
+                  borderRadius: '0.5rem',
+                }}
+              >
+                <div style={{ marginBottom: '0.75rem' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 600 }}>
+                    Recommendation
+                  </div>
+                  <div
+                    data-testid="arbitration-summary"
+                    style={{ fontSize: '0.9375rem', fontWeight: 600, color: '#111827' }}
+                  >
+                    {recommendation.recommendation}
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: '0.75rem' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 600 }}>
+                    Reasoning
+                  </div>
+                  <p
+                    data-testid="arbitration-reasoning"
+                    style={{ fontSize: '0.875rem', color: '#374151', margin: '0.25rem 0 0' }}
+                  >
+                    {recommendation.reasoning}
+                  </p>
+                </div>
+
+                <div style={{ marginBottom: '0.75rem' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 600 }}>
+                    Payout adjustment
+                  </div>
+                  <div
+                    data-testid="arbitration-payout-adjustment"
+                    style={{ fontSize: '0.9375rem', color: '#111827' }}
+                  >
+                    {recommendation.payout_adjustment}
+                  </div>
+                </div>
+
+                {recommendation.edge_cases.length > 0 && (
+                  <div style={{ marginBottom: '0.75rem' }}>
+                    <div style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 600 }}>
+                      Edge cases
+                    </div>
+                    <ul
+                      data-testid="arbitration-edge-cases"
+                      style={{ margin: '0.25rem 0 0', paddingLeft: '1.25rem' }}
+                    >
+                      {recommendation.edge_cases.map((ec, i) => (
+                        <li key={i} style={{ fontSize: '0.8125rem', color: '#374151' }}>
+                          {ec}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: '0.75rem 0' }}>
+                  This is a recommendation only. Accepting requires a rationale and records the AI
+                  recommendation reference, you as the deciding actor, and your rationale in the
+                  audit trail. Enter your rationale below, then Accept or Reject.
+                </p>
+
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                  <button
+                    data-testid="arbitration-accept-btn"
+                    onClick={() => handleResolve(recommendation.id ?? 'ai-recommendation')}
+                    disabled={saving}
+                    style={{
+                      padding: '0.5rem 1.25rem',
+                      background: saving ? '#93c5fd' : '#16a34a',
+                      color: '#ffffff',
+                      border: 'none',
+                      borderRadius: '0.5rem',
+                      cursor: saving ? 'not-allowed' : 'pointer',
+                      fontSize: '0.875rem',
+                      fontWeight: 600,
+                    }}
+                  >
+                    {saving ? 'Resolving…' : 'Accept'}
+                  </button>
+                  <button
+                    data-testid="arbitration-reject-btn"
+                    onClick={() => {
+                      setArbStatus('rejected');
+                      setRecommendation(null);
+                    }}
+                    disabled={saving}
+                    style={{
+                      padding: '0.5rem 1.25rem',
+                      background: '#ffffff',
+                      color: '#b91c1c',
+                      border: '1px solid #fca5a5',
+                      borderRadius: '0.5rem',
+                      cursor: 'pointer',
+                      fontSize: '0.875rem',
+                      fontWeight: 600,
+                    }}
+                  >
+                    Reject
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </PortalCard>
+      )}
+
       {resolved ? (
         <PortalCard title="Final Decision">
           <div
@@ -292,7 +516,7 @@ function DisputeDetailView({
 
             <button
               data-testid="resolve-btn"
-              onClick={handleResolve}
+              onClick={() => handleResolve()}
               disabled={saving}
               style={{
                 padding: '0.5rem 1.25rem',
@@ -379,9 +603,16 @@ export interface ExecDisputeApprovalViewProps {
   timeline: AttributionEvent[] | null;
   timelineLoading: boolean;
   timelineError: string | null;
+  /** Viewer role — gates AI arbitration to Manager/Executive. */
+  role?: AppRole;
   onSelect: (dispute: Dispute) => void;
   onBack: () => void;
-  onResolve: (disputeId: string, resolutionNote: string) => Promise<void>;
+  onResolve: (
+    disputeId: string,
+    resolutionNote: string,
+    recommendationRef?: string,
+  ) => Promise<void>;
+  onArbitrate: (disputeId: string) => Promise<ArbitrationRecommendation>;
 }
 
 export function ExecDisputeApprovalView({
@@ -392,9 +623,11 @@ export function ExecDisputeApprovalView({
   timeline,
   timelineLoading,
   timelineError,
+  role,
   onSelect,
   onBack,
   onResolve,
+  onArbitrate,
 }: ExecDisputeApprovalViewProps) {
   const escalated = (disputes ?? []).filter((d) => d.state === 'UnderReview');
 
@@ -428,8 +661,10 @@ export function ExecDisputeApprovalView({
             timeline={timeline}
             timelineLoading={timelineLoading}
             timelineError={timelineError}
+            role={role}
             onBack={onBack}
             onResolve={onResolve}
+            onArbitrate={onArbitrate}
           />
         ) : (
           <>
@@ -461,7 +696,7 @@ export function ExecDisputeApprovalView({
 // ExecDisputeApproval — container wiring real API calls
 // ---------------------------------------------------------------------------
 
-export function ExecDisputeApproval() {
+export function ExecDisputeApproval({ role }: { role?: AppRole } = {}) {
   const [selectedDispute, setSelectedDispute] = useState<Dispute | null>(null);
   const [timelineCache, setTimelineCache] = useState<Record<string, AttributionEvent[]>>({});
   const [timelineLoading, setTimelineLoading] = useState(false);
@@ -500,8 +735,23 @@ export function ExecDisputeApproval() {
     setTimelineError(null);
   }
 
-  async function handleResolve(disputeId: string, resolutionNote: string): Promise<void> {
-    await apiPost<Dispute>(`/disputes/${disputeId}/resolve`, { resolution_note: resolutionNote });
+  async function handleResolve(
+    disputeId: string,
+    resolutionNote: string,
+    recommendationRef?: string,
+  ): Promise<void> {
+    // When the resolution accepts an AI recommendation, record its reference so
+    // the server persists it (alongside the deciding actor and rationale) in the
+    // audit trail (PRD §5.4, §9). The deciding actor is the authenticated
+    // session on the server side — never trusted from the client.
+    await apiPost<Dispute>(`/disputes/${disputeId}/resolve`, {
+      resolution_note: resolutionNote,
+      ...(recommendationRef ? { arbitration_recommendation_id: recommendationRef } : {}),
+    });
+  }
+
+  async function handleArbitrate(disputeId: string): Promise<ArbitrationRecommendation> {
+    return apiPost<ArbitrationRecommendation>(`/disputes/${disputeId}/arbitrate`, {});
   }
 
   const currentTimeline = selectedDispute
@@ -517,9 +767,11 @@ export function ExecDisputeApproval() {
       timeline={currentTimeline}
       timelineLoading={timelineLoading}
       timelineError={timelineError}
+      role={role}
       onSelect={handleSelect}
       onBack={handleBack}
       onResolve={handleResolve}
+      onArbitrate={handleArbitrate}
     />
   );
 }

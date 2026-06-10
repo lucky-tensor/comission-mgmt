@@ -23,6 +23,7 @@ import { PayoutStatement } from './PayoutStatement';
 import { CreditedPlacementsView } from './CreditedPlacements';
 import { TierProgress } from './TierProgress';
 import { DisputeForm } from './DisputeForm';
+import { DealSimulator } from './DealSimulator';
 import { ProducerPlanAcknowledgment } from '../hr/PlanAcknowledgment';
 import { LoadingState, ErrorState } from './states';
 
@@ -75,6 +76,8 @@ export function ProducerPortal({ onUnauthenticated }: { onUnauthenticated?: () =
         ) : (
           <DisputeForm records={records.data ?? []} />
         )}
+
+        <DealSimulator />
       </div>
     </div>
   );
