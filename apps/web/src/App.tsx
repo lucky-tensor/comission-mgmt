@@ -100,7 +100,7 @@ function AuthenticatedApp({ role, path, onLogout }: AuthenticatedAppProps) {
         return (
           <>
             <ExecFinancialPosition />
-            <ExecDisputeApproval />
+            <ExecDisputeApproval role={role} />
           </>
         );
       case ROUTES.EXEC_PROFITABILITY:
