@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import postgres from 'postgres';
-import { SEEDED, CLOSE, PARTNER } from '../../tests/e2e/fixtures/ids.js';
+import { SEEDED, CLOSE, PARTNER, DEMO_HETERO } from '../../tests/e2e/fixtures/ids.js';
 import { upsertArIngestedRecord } from 'db/reconciliation';
 
 class ApiSession {
@@ -28,6 +28,17 @@ class ApiSession {
     });
     const text = await res.text();
     if (!res.ok) throw new Error(`POST /api${path} → ${res.status}: ${text}`);
+    return (text ? JSON.parse(text) : null) as T;
+  }
+
+  async patch<T>(path: string, body?: unknown): Promise<T> {
+    const res = await fetch(`${this.base}/api${path}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', cookie: this.cookie },
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    });
+    const text = await res.text();
+    if (!res.ok) throw new Error(`PATCH /api${path} → ${res.status}: ${text}`);
     return (text ? JSON.parse(text) : null) as T;
   }
 
@@ -604,6 +615,328 @@ export async function seedEncrypted(
       execDispute.id,
       SEEDED.orgId,
     ]);
+
+    // ── 13. Demo: heterogeneous producer commission examples (issue #196) ──
+    //
+    // The existing E2E producer placement leaves the producer portal showing a
+    // calculated amount with a $0 net (held for collection). These appended
+    // placements demonstrate the calculation engine across realistic lifecycle
+    // states: a fully Payable collected payout, a held-for-collection $0, a
+    // tiered effective rate, a manager-override split reduction, a
+    // guarantee-held $0, and a retained-search placement with phase-level
+    // collection gating (PRD §5.1, §5.5). All belong to SEEDED.producerId so
+    // they surface in the Producer Payout Portal.
+    //
+    // resolveActivePlanVersion picks the producer's MOST RECENTLY assigned
+    // active plan (ORDER BY assigned_at DESC). Because the producer already
+    // holds several plan assignments, each scenario (re)assigns the plan it
+    // needs immediately before calling /calculate so the intended rules apply.
+
+    /** Assign `planVersionId` to the producer so it becomes the most-recent active plan. */
+    const assignProducerPlan = async (planId: string, planVersionId: string): Promise<void> => {
+      await admin.post(`/plans/${planId}/assignments`, {
+        producer_id: SEEDED.producerId,
+        plan_version_id: planVersionId,
+      });
+    };
+
+    // (a) Fully collected — 25% gross-fee payout, Payable.
+    //     fee 30000 × 25% = $7,500 gross; split 1.0; invoice Paid releases the
+    //     collection gate so the record transitions Held → Payable.
+    const { plan: collectedPlan, version: collectedVersion } = await admin.post<{
+      plan: { id: string };
+      version: { id: string };
+    }>('/plans', {
+      name: 'Demo Collected Plan',
+      effective_from: '2025-01-01',
+      rules: { rate_type: 'gross_fee', base_rate: 0.25 },
+    });
+    await admin.post(`/plans/${collectedPlan.id}/versions/${collectedVersion.id}/activate`);
+    await assignProducerPlan(collectedPlan.id, collectedVersion.id);
+
+    const { id: collectedPlacementId } = await admin.post<{ id: string }>('/placements', {
+      candidate_id: crypto.randomUUID(),
+      client_entity_id: crypto.randomUUID(),
+      job_title: DEMO_HETERO.collectedTitle,
+      compensation_base: '240000',
+      fee_amount: '30000',
+      start_date: '2025-06-01',
+      guarantee_days: null,
+    });
+    await sql.unsafe(`UPDATE placements SET status = 'Active' WHERE id = $1`, [
+      collectedPlacementId,
+    ]);
+    await admin.post(`/placements/${collectedPlacementId}/contributors`, {
+      producer_id: SEEDED.producerId,
+      role: 'CandidateOwner',
+      split_pct: 1.0,
+    });
+    await admin.post(`/placements/${collectedPlacementId}/calculate`);
+    const collectedInvoice = await admin.post<{ id: string }>('/invoices', {
+      placement_id: collectedPlacementId,
+      invoice_number: 'INV-DEMO-COLLECTED-196',
+      amount_billed: '30000',
+      issued_at: '2025-06-01T00:00:00.000Z',
+    });
+    // Mark the invoice Paid → releases the collection gate (Held → Payable).
+    await admin.patch(`/invoices/${collectedInvoice.id}`, {
+      status: 'Paid',
+      amount_collected: '30000',
+    });
+
+    // (b) Held for collection — Active + calculated, no paid invoice → $0 net,
+    //     "held for collection" explanation. fee 20000 × 25% = $5,000 gross held.
+    const { id: heldCollPlacementId } = await admin.post<{ id: string }>('/placements', {
+      candidate_id: crypto.randomUUID(),
+      client_entity_id: crypto.randomUUID(),
+      job_title: DEMO_HETERO.heldCollectionTitle,
+      compensation_base: '160000',
+      fee_amount: '20000',
+      start_date: '2026-01-01',
+      guarantee_days: null,
+    });
+    await sql.unsafe(`UPDATE placements SET status = 'Active' WHERE id = $1`, [
+      heldCollPlacementId,
+    ]);
+    await admin.post(`/placements/${heldCollPlacementId}/contributors`, {
+      producer_id: SEEDED.producerId,
+      role: 'CandidateOwner',
+      split_pct: 1.0,
+    });
+    // No invoice → collection gate holds the full amount (conservative gate).
+    await admin.post(`/placements/${heldCollPlacementId}/calculate`);
+
+    // (c) Tiered rate — a tiered plan whose effective tier rate differs from the
+    //     base rate. fee 120000 × split 1.0 = 120000 commissionable; the
+    //     100000-threshold tier (0.18) applies instead of base_rate 0.12.
+    //     Invoice Paid so the non-zero tiered amount is Payable and visible.
+    const { plan: demoTieredPlan, version: demoTieredVersion } = await admin.post<{
+      plan: { id: string };
+      version: { id: string };
+    }>('/plans', {
+      name: 'Demo Tiered Plan',
+      effective_from: '2025-01-01',
+      rules: {
+        rate_type: 'gross_fee',
+        base_rate: 0.12,
+        tiers: [
+          { threshold: 0, rate: 0.12 },
+          { threshold: 50000, rate: 0.15 },
+          { threshold: 100000, rate: 0.18 },
+        ],
+      },
+    });
+    await admin.post(`/plans/${demoTieredPlan.id}/versions/${demoTieredVersion.id}/activate`);
+    await assignProducerPlan(demoTieredPlan.id, demoTieredVersion.id);
+
+    const { id: tieredPlacementId } = await admin.post<{ id: string }>('/placements', {
+      candidate_id: crypto.randomUUID(),
+      client_entity_id: crypto.randomUUID(),
+      job_title: DEMO_HETERO.tieredTitle,
+      compensation_base: '300000',
+      fee_amount: '120000',
+      start_date: '2025-07-01',
+      guarantee_days: null,
+    });
+    await sql.unsafe(`UPDATE placements SET status = 'Active' WHERE id = $1`, [tieredPlacementId]);
+    await admin.post(`/placements/${tieredPlacementId}/contributors`, {
+      producer_id: SEEDED.producerId,
+      role: 'CandidateOwner',
+      split_pct: 1.0,
+    });
+    await admin.post(`/placements/${tieredPlacementId}/calculate`);
+    const tieredInvoice = await admin.post<{ id: string }>('/invoices', {
+      placement_id: tieredPlacementId,
+      invoice_number: 'INV-DEMO-TIERED-196',
+      amount_billed: '120000',
+      issued_at: '2025-07-01T00:00:00.000Z',
+    });
+    await admin.patch(`/invoices/${tieredInvoice.id}`, {
+      status: 'Paid',
+      amount_collected: '120000',
+    });
+
+    // (d) Manager-override split — split_pct < 1.0 demonstrates a split-based
+    //     reduction. The producer takes 0.6 of the credit; a manager override
+    //     takes the remaining 0.4. Flat 0.2 plan, invoice Paid → Payable.
+    //     fee 50000 × 0.6 × 0.2 = $6,000 net for the producer (vs $10,000 at full credit).
+    const { plan: demoSplitPlan, version: demoSplitVersion } = await admin.post<{
+      plan: { id: string };
+      version: { id: string };
+    }>('/plans', {
+      name: 'Demo Split Plan',
+      effective_from: '2025-01-01',
+      rules: { rate_type: 'gross_fee', base_rate: 0.2 },
+    });
+    await admin.post(`/plans/${demoSplitPlan.id}/versions/${demoSplitVersion.id}/activate`);
+    await assignProducerPlan(demoSplitPlan.id, demoSplitVersion.id);
+    await admin.post(`/plans/${demoSplitPlan.id}/assignments`, {
+      producer_id: SEEDED.managerId,
+      plan_version_id: demoSplitVersion.id,
+    });
+
+    const { id: splitPlacementId } = await admin.post<{ id: string }>('/placements', {
+      candidate_id: crypto.randomUUID(),
+      client_entity_id: crypto.randomUUID(),
+      job_title: DEMO_HETERO.splitTitle,
+      compensation_base: '250000',
+      fee_amount: '50000',
+      start_date: '2025-08-01',
+      guarantee_days: null,
+    });
+    await sql.unsafe(`UPDATE placements SET status = 'Active' WHERE id = $1`, [splitPlacementId]);
+    await admin.post(`/placements/${splitPlacementId}/contributors`, {
+      producer_id: SEEDED.producerId,
+      role: 'CandidateOwner',
+      split_pct: 0.6,
+    });
+    await admin.post(`/placements/${splitPlacementId}/contributors`, {
+      producer_id: SEEDED.managerId,
+      role: 'ManagerOverride',
+      split_pct: 0.4,
+    });
+    await admin.post(`/placements/${splitPlacementId}/calculate`);
+    const splitInvoice = await admin.post<{ id: string }>('/invoices', {
+      placement_id: splitPlacementId,
+      invoice_number: 'INV-DEMO-SPLIT-196',
+      amount_billed: '50000',
+      issued_at: '2025-08-01T00:00:00.000Z',
+    });
+    await admin.patch(`/invoices/${splitInvoice.id}`, {
+      status: 'Paid',
+      amount_collected: '50000',
+    });
+
+    // (e) Guarantee-held — placement inside an active guarantee window shows $0
+    //     net with a guarantee-hold explanation. We insert an Active
+    //     guarantee_periods row with a future end date so resolveInsideGuaranteeWindow
+    //     gates the amount. risk_amount is BYTEA NOT NULL — an empty buffer sentinel
+    //     is acceptable (the demo never decrypts it). Invoice is Paid so the
+    //     guarantee hold (not the collection gate) is unambiguously the reason.
+    const { plan: demoGuarPlan, version: demoGuarVersion } = await admin.post<{
+      plan: { id: string };
+      version: { id: string };
+    }>('/plans', {
+      name: 'Demo Guarantee Plan',
+      effective_from: '2025-01-01',
+      rules: { rate_type: 'gross_fee', base_rate: 0.2 },
+    });
+    await admin.post(`/plans/${demoGuarPlan.id}/versions/${demoGuarVersion.id}/activate`);
+    await assignProducerPlan(demoGuarPlan.id, demoGuarVersion.id);
+
+    const { id: guaranteePlacementId } = await admin.post<{ id: string }>('/placements', {
+      candidate_id: crypto.randomUUID(),
+      client_entity_id: crypto.randomUUID(),
+      job_title: DEMO_HETERO.guaranteeTitle,
+      compensation_base: '300000',
+      fee_amount: '45000',
+      start_date: '2026-04-01',
+      guarantee_days: 90,
+    });
+    await sql.unsafe(`UPDATE placements SET status = 'Active' WHERE id = $1`, [
+      guaranteePlacementId,
+    ]);
+    await admin.post(`/placements/${guaranteePlacementId}/contributors`, {
+      producer_id: SEEDED.producerId,
+      role: 'CandidateOwner',
+      split_pct: 1.0,
+    });
+    // Active guarantee window ending well in the future relative to the demo clock.
+    await sql.unsafe(
+      `INSERT INTO guarantee_periods (org_id, placement_id, guarantee_ends, status, risk_amount)
+       VALUES ($1, $2, $3, 'Active', $4)`,
+      [SEEDED.orgId, guaranteePlacementId, '2026-12-31', Buffer.alloc(0)],
+    );
+    // Pay the invoice so the only remaining hold is the guarantee hold.
+    const guarInvoice = await admin.post<{ id: string }>('/invoices', {
+      placement_id: guaranteePlacementId,
+      invoice_number: 'INV-DEMO-GUARANTEE-196',
+      amount_billed: '45000',
+      issued_at: '2026-04-01T00:00:00.000Z',
+    });
+    await admin.patch(`/invoices/${guarInvoice.id}`, { status: 'Paid', amount_collected: '45000' });
+    await admin.post(`/placements/${guaranteePlacementId}/calculate`);
+
+    // (f) Retained search — phase-level collection gating (PRD §5.5).
+    //     Two billing phases: retainer (invoice Paid → Payable) and delivery
+    //     (invoice unpaid → Held). A paid retainer does NOT release held delivery
+    //     commission. Calculated via /calculate-phases (one record per phase).
+    const { plan: demoRetainedPlan, version: demoRetainedVersion } = await admin.post<{
+      plan: { id: string };
+      version: { id: string };
+    }>('/plans', {
+      name: 'Demo Retained Plan',
+      effective_from: '2025-01-01',
+      rules: { rate_type: 'gross_fee', base_rate: 0.2 },
+    });
+    await admin.post(`/plans/${demoRetainedPlan.id}/versions/${demoRetainedVersion.id}/activate`);
+    await assignProducerPlan(demoRetainedPlan.id, demoRetainedVersion.id);
+
+    const { id: retainedPlacementId } = await admin.post<{ id: string }>('/placements', {
+      candidate_id: crypto.randomUUID(),
+      client_entity_id: crypto.randomUUID(),
+      job_title: DEMO_HETERO.retainedTitle,
+      compensation_base: '350000',
+      fee_amount: '70000',
+      start_date: '2025-09-01',
+      guarantee_days: null,
+    });
+    await sql.unsafe(`UPDATE placements SET status = 'Active' WHERE id = $1`, [
+      retainedPlacementId,
+    ]);
+    // The producer must be a placement-level contributor before being assigned
+    // to a billing phase (phase-contributor create verifies placement membership).
+    const retainedContributor = await admin.post<{ id: string }>(
+      `/placements/${retainedPlacementId}/contributors`,
+      { producer_id: SEEDED.producerId, role: 'CandidateOwner', split_pct: 1.0 },
+    );
+
+    // Retainer phase — invoice issued then Paid (commission releases to Payable).
+    const retainerInvoice = await admin.post<{ id: string }>('/invoices', {
+      placement_id: retainedPlacementId,
+      invoice_number: 'INV-DEMO-RETAINER-196',
+      amount_billed: '20000',
+      issued_at: '2025-09-01T00:00:00.000Z',
+    });
+    const { billing_phase: retainerPhase } = await admin.post<{ billing_phase: { id: string } }>(
+      `/placements/${retainedPlacementId}/billing-phases`,
+      { phase_name: 'retainer', projected_amount: '20000', invoice_id: retainerInvoice.id },
+    );
+    await admin.post(
+      `/placements/${retainedPlacementId}/billing-phases/${retainerPhase.id}/contributors`,
+      {
+        contributor_id: retainedContributor.id,
+        split_pct: 1.0,
+      },
+    );
+
+    // Delivery phase — invoice issued but left UNPAID (commission stays Held).
+    const deliveryInvoice = await admin.post<{ id: string }>('/invoices', {
+      placement_id: retainedPlacementId,
+      invoice_number: 'INV-DEMO-DELIVERY-196',
+      amount_billed: '50000',
+      issued_at: '2025-10-01T00:00:00.000Z',
+    });
+    const { billing_phase: deliveryPhase } = await admin.post<{ billing_phase: { id: string } }>(
+      `/placements/${retainedPlacementId}/billing-phases`,
+      { phase_name: 'delivery', projected_amount: '50000', invoice_id: deliveryInvoice.id },
+    );
+    await admin.post(
+      `/placements/${retainedPlacementId}/billing-phases/${deliveryPhase.id}/contributors`,
+      {
+        contributor_id: retainedContributor.id,
+        split_pct: 1.0,
+      },
+    );
+
+    // Calculate per-phase: delivery is Held (unpaid), retainer is Held pending its
+    // invoice. Marking the retainer invoice Paid releases ONLY the retainer-phase
+    // record (Held → Payable) and leaves delivery Held — phase-level gating.
+    await admin.post(`/placements/${retainedPlacementId}/calculate-phases`);
+    await admin.patch(`/invoices/${retainerInvoice.id}`, {
+      status: 'Paid',
+      amount_collected: '20000',
+    });
 
     return {
       closeRunId,
