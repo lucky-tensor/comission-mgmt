@@ -70,18 +70,31 @@ function errorResponse(message: string, status: number): Response {
  * (issue #100) — every role can call this endpoint to learn their role
  * immediately post-login without a DB round-trip.
  *
- * The full producer identity + active plan summary (plan version metadata,
- * tier thresholds, display name from the users table) is tracked as a
- * separate planned enhancement.
+ * The response also carries the persona `display_name` (from the users table)
+ * so the app shell header can read "Jordan Lee · Finance Admin" instead of a
+ * bare role enum (docs/ux-review.md §5). A display-name lookup failure must
+ * never break the session probe — it falls back to a null name.
  *
  * Issue: feat: web app shell — role-based routing, navigation, and per-role
- *        landing (#100)
+ *        landing (#100); feat: webapp — UX overhaul: header persona name (#203)
  */
-export function handleGetMe(claims: SessionClaims): Response {
+export async function handleGetMe(claims: SessionClaims, sqlClient?: SqlClient): Promise<Response> {
+  let displayName: string | null = null;
+  try {
+    const db = sqlClient ?? defaultSql;
+    const rows = (await db.unsafe(`SELECT display_name FROM users WHERE id = $1 LIMIT 1`, [
+      claims.user_id,
+    ])) as unknown as { display_name: string | null }[];
+    displayName = rows[0]?.display_name ?? null;
+  } catch {
+    displayName = null;
+  }
+
   return jsonResponse({
     user_id: claims.user_id,
     org_id: claims.org_id,
     role: claims.role,
+    display_name: displayName,
   });
 }
 
@@ -148,6 +161,20 @@ export async function handleGetMyCommissionRecords(
           }
         }
 
+        // Lead each credited placement with its role title rather than burying
+        // the placement identity in the explanation (docs/ux-review.md §5, #203).
+        // Masked for confidential placements unless the role is unmasked.
+        let positionTitle: string | null = null;
+        try {
+          const p = await getPlacement(db, r.placementId);
+          if (p) {
+            positionTitle =
+              !UNMASKED_ROLES.has(claims.role) && p.isConfidential ? 'Confidential' : p.jobTitle;
+          }
+        } catch {
+          // Non-fatal — position_title stays null
+        }
+
         return {
           id: r.id,
           org_id: r.orgId,
@@ -165,6 +192,7 @@ export async function handleGetMyCommissionRecords(
           approval_actor: r.approvalActor,
           approval_at: r.approvalAt,
           created_at: r.createdAt,
+          position_title: positionTitle,
         };
       }),
     );

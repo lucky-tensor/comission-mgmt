@@ -15,11 +15,18 @@ import { apiGet } from '../../lib/apiClient';
 import { useAsync, type AsyncState } from '../../lib/useAsync';
 import { formatCurrency } from '../../lib/format';
 import { PortalCard, LoadingState, ErrorState, EmptyState } from './states';
+import { StatusChip } from 'ui';
 
 const rowStyle: React.CSSProperties = {
   padding: '0.875rem 0',
   borderBottom: '1px solid #f3f4f6',
 };
+
+/** A human-readable lead label: role title, else a short placement reference. */
+function placementLead(r: CommissionRecord): string {
+  if (r.position_title) return r.position_title;
+  return `Placement ${r.placement_id.slice(0, 8)}`;
+}
 
 /** Pure presentational view — renders one of loading/error/empty/data. */
 export function CreditedPlacementsView({ state }: { state: AsyncState<CommissionRecord[]> }) {
@@ -34,25 +41,44 @@ export function CreditedPlacementsView({ state }: { state: AsyncState<Commission
       ) : (
         <ul data-testid="placements-list" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
           {state.data.map((r) => (
-            <li key={r.id} style={rowStyle}>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontWeight: 500, color: '#111827' }}>
-                  {formatCurrency(r.net_payable)} net
-                </span>
+            <li key={r.id} style={rowStyle} data-testid={`placement-row-${r.id}`}>
+              {/* Lead with the role title + amount + a semantic status chip;
+                  the placement identity is no longer buried in the explanation. */}
+              <div
+                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+              >
                 <span
-                  style={{
-                    fontSize: '0.75rem',
-                    fontWeight: 600,
-                    color: r.status === 'Held' ? '#b45309' : '#047857',
-                  }}
+                  data-testid={`placement-lead-${r.id}`}
+                  style={{ fontWeight: 600, color: '#111827' }}
                 >
-                  {r.status}
+                  {placementLead(r)}
                 </span>
+                <StatusChip status={r.status} data-testid={`placement-status-${r.id}`} />
               </div>
+              <div style={{ fontSize: '0.875rem', color: '#374151', marginTop: '0.25rem' }}>
+                {formatCurrency(r.net_payable)} net
+              </div>
+
+              {/* Plain-language explanation as an expandable detail. */}
               {r.explanation && (
-                <p style={{ fontSize: '0.8125rem', color: '#6b7280', margin: '0.375rem 0 0' }}>
-                  {r.explanation}
-                </p>
+                <details
+                  data-testid={`placement-explanation-${r.id}`}
+                  style={{ marginTop: '0.5rem' }}
+                >
+                  <summary
+                    style={{
+                      fontSize: '0.8125rem',
+                      color: '#2563eb',
+                      cursor: 'pointer',
+                      userSelect: 'none',
+                    }}
+                  >
+                    How was this calculated?
+                  </summary>
+                  <p style={{ fontSize: '0.8125rem', color: '#6b7280', margin: '0.375rem 0 0' }}>
+                    {r.explanation}
+                  </p>
+                </details>
               )}
               {r.blocked_phase && (
                 <p style={{ fontSize: '0.75rem', color: '#b45309', margin: '0.25rem 0 0' }}>

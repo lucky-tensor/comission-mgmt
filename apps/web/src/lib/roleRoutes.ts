@@ -135,16 +135,72 @@ export const ROLE_ROUTES: Record<AppRole, RoleRouteConfig> = {
 };
 
 // ---------------------------------------------------------------------------
-// Helpers
+// Path matching helpers (prefix / child-route semantics — #203)
 // ---------------------------------------------------------------------------
 
 /**
+ * Normalize a path for matching: strip the query string and hash, then drop a
+ * trailing slash (except for the root '/'). This makes matching tolerant of
+ * `/executive/`, `/executive?tab=x`, and `/disputes/abc123#note` alike.
+ */
+export function normalizePath(path: string): string {
+  let p = path.split('?')[0].split('#')[0];
+  if (p.length > 1 && p.endsWith('/')) p = p.replace(/\/+$/, '');
+  return p === '' ? '/' : p;
+}
+
+/**
+ * Returns true when `path` is `base` or a child route of `base`
+ * (e.g. `/disputes` matches `/disputes/abc123`). The root '/' only ever
+ * matches itself — it is never treated as a prefix of every path.
+ *
+ * Both arguments are normalized first, so trailing slashes and query strings
+ * do not affect the result.
+ */
+export function pathMatchesPrefix(path: string, base: string): boolean {
+  const p = normalizePath(path);
+  const b = normalizePath(base);
+  if (b === ROUTES.LOGIN) return p === ROUTES.LOGIN;
+  if (p === b) return true;
+  return p.startsWith(b + '/');
+}
+
+/**
  * Returns true if the given role is permitted to view `path` in the SPA.
- * Always returns true for the login path ('/').
+ *
+ * Matching is prefix-based: a permitted parent path also permits its detail
+ * routes (e.g. a role permitted on `/disputes` may visit `/disputes/abc123`).
+ * Trailing slashes and query strings never change the result. The login path
+ * ('/') is always permitted.
  */
 export function isPathPermitted(role: AppRole, path: string): boolean {
-  if (path === ROUTES.LOGIN) return true;
-  return ROLE_ROUTES[role]?.permitted.has(path) ?? false;
+  const normalized = normalizePath(path);
+  if (normalized === ROUTES.LOGIN) return true;
+  const config = ROLE_ROUTES[role];
+  if (!config) return false;
+  for (const permitted of config.permitted) {
+    if (pathMatchesPrefix(normalized, permitted)) return true;
+  }
+  return false;
+}
+
+/**
+ * Returns the nav item path that should be highlighted as active for the
+ * current location, or null when none match. Uses prefix matching so a detail
+ * route highlights its parent nav item; when several nav items match (e.g.
+ * `/executive` and `/executive/profitability`) the most specific (longest)
+ * base wins.
+ */
+export function activeNavPath(role: AppRole, currentPath: string): string | null {
+  const config = ROLE_ROUTES[role];
+  if (!config) return null;
+  let best: string | null = null;
+  for (const item of config.navItems) {
+    if (pathMatchesPrefix(currentPath, item.path)) {
+      if (best === null || item.path.length > best.length) best = item.path;
+    }
+  }
+  return best;
 }
 
 /**
@@ -152,4 +208,26 @@ export function isPathPermitted(role: AppRole, path: string): boolean {
  */
 export function landingPathForRole(role: AppRole): string {
   return ROLE_ROUTES[role]?.landing ?? ROUTES.LOGIN;
+}
+
+// ---------------------------------------------------------------------------
+// Human-readable role labels (#203)
+// ---------------------------------------------------------------------------
+
+/**
+ * Human-readable labels for the raw role enum. The header showed the bare enum
+ * (`FinanceAdmin`, `ExternalPartner`); these are the labels a person reads.
+ */
+const ROLE_LABELS: Record<AppRole, string> = {
+  Producer: 'Producer',
+  FinanceAdmin: 'Finance Admin',
+  Manager: 'Manager',
+  Executive: 'Executive',
+  HR: 'People Ops',
+  ExternalPartner: 'External Partner',
+};
+
+/** Returns the human role label, falling back to the raw enum if unknown. */
+export function roleLabel(role: AppRole): string {
+  return ROLE_LABELS[role] ?? role;
 }

@@ -126,6 +126,46 @@ export async function getCommissionRun(
 }
 
 // ---------------------------------------------------------------------------
+// listCommissionRuns — SELECT all runs for an org, newest first, with counts
+// ---------------------------------------------------------------------------
+
+/** A commission run row plus the number of records linked to it. */
+export interface CommissionRunListItem extends CommissionRunRow {
+  /** Count of commission_run_records linked to this run. */
+  recordCount: number;
+}
+
+/**
+ * Lists every commission run for the org, newest first, each annotated with the
+ * number of linked commission records. Backs the Finance run picker (#203) so a
+ * user clicks a recent run instead of pasting a UUID.
+ */
+export async function listCommissionRuns(
+  sql: Sql,
+  orgId: string,
+): Promise<CommissionRunListItem[]> {
+  const rows = await sql.unsafe(
+    `
+    SELECT r.id, r.org_id, r.period_start, r.period_end, r.status,
+           r.created_by, r.approved_by, r.approved_at, r.created_at,
+           COUNT(rr.id)::int AS record_count
+    FROM commission_runs r
+    LEFT JOIN commission_run_records rr ON rr.run_id = r.id
+    WHERE r.org_id = $1
+    GROUP BY r.id
+    ORDER BY r.created_at DESC
+    `,
+    [orgId],
+  );
+
+  if (!rows || rows.length === 0) return [];
+  return (rows as unknown as (CommissionRunRawRow & { record_count: number })[]).map((row) => ({
+    ...mapRunRow(row),
+    recordCount: Number(row.record_count) || 0,
+  }));
+}
+
+// ---------------------------------------------------------------------------
 // getCommissionRunRecords — SELECT all linked records for a run
 // ---------------------------------------------------------------------------
 

@@ -122,6 +122,7 @@ export type {
 export {
   createCommissionRun,
   getCommissionRun,
+  listCommissionRuns,
   getCommissionRunRecords,
   approveRunRecord,
   approveCommissionRun,
@@ -129,6 +130,7 @@ export {
 } from './src/commission-runs.js';
 export type {
   CommissionRunRow,
+  CommissionRunListItem,
   CommissionRunRecordRow,
   CommissionRunStatus,
   CreateCommissionRunInput,
@@ -287,6 +289,7 @@ export type {
 export {
   getDrawBalanceForProducer,
   listRecoverySchedulesForProducer,
+  listProducers,
   createDrawBalance,
   _setEncryptorForTest as _setDrawBalanceEncryptorForTest,
   _resetEncryptorForTest as _resetDrawBalanceEncryptorForTest,
@@ -294,6 +297,7 @@ export {
 export type {
   DrawBalanceResult,
   ProducerRecoveryScheduleRow,
+  ProducerListItem,
   CreateDrawBalanceInput,
 } from './src/draw-balance.js';
 

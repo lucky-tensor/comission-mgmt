@@ -25,9 +25,28 @@
 
 import { useState } from 'react';
 import { apiGet } from '../../lib/apiClient';
-import { useAsync } from '../../lib/useAsync';
+import { useAsync, type AsyncState } from '../../lib/useAsync';
 import { LoadingState, ErrorState, EmptyState } from '../portal/states';
+import { EntityPicker } from '../EntityPicker';
 import { formatDate } from '../../lib/format';
+
+/** Minimal placement row used to populate the picker. */
+export interface PlacementOption {
+  id: string;
+  job_title?: string | null;
+  position_title?: string | null;
+  candidate_name?: string | null;
+  client_name?: string | null;
+}
+
+function placementOptionLabel(p: PlacementOption): string {
+  const title = p.position_title ?? p.job_title ?? null;
+  const parts: string[] = [];
+  if (title) parts.push(title);
+  if (p.candidate_name) parts.push(p.candidate_name);
+  if (p.client_name) parts.push(`@ ${p.client_name}`);
+  return parts.length > 0 ? parts.join(' — ') : p.id;
+}
 
 // ---------------------------------------------------------------------------
 // Types
@@ -94,15 +113,18 @@ const EVENT_TYPE_COLORS: Record<string, React.CSSProperties> = {
 // ---------------------------------------------------------------------------
 
 export interface AttributionTimelineViewProps {
+  /** Currently selected placement id (or null/empty). */
   placementId: string;
-  onPlacementIdChange: (id: string) => void;
+  /** Async list of placements to populate the picker. */
+  placements: AsyncState<PlacementOption[]>;
   phase: AttributionTimelinePhase;
+  /** Called with the selected placement id when a placement is picked. */
   onSearch: (placementId: string) => void;
 }
 
 export function AttributionTimelineView({
   placementId,
-  onPlacementIdChange,
+  placements,
   phase,
   onSearch,
 }: AttributionTimelineViewProps) {
@@ -110,44 +132,18 @@ export function AttributionTimelineView({
     <div data-testid="attribution-timeline" style={cardStyle}>
       <h2 style={headingStyle}>Attribution Timeline</h2>
 
-      {/* Search form */}
-      <div
-        data-testid="timeline-search-form"
-        style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem' }}
-      >
-        <input
-          data-testid="placement-id-input"
-          type="text"
-          value={placementId}
-          onChange={(e) => onPlacementIdChange(e.target.value)}
-          placeholder="Placement ID"
-          style={{
-            flex: 1,
-            fontSize: '0.875rem',
-            padding: '0.375rem 0.625rem',
-            borderRadius: '0.375rem',
-            border: '1px solid #d1d5db',
-            outline: 'none',
-          }}
+      {/* Placement picker — select a deal by client/candidate/role, not a UUID. */}
+      <div data-testid="timeline-search-form" style={{ marginBottom: '1.25rem' }}>
+        <EntityPicker
+          name="placement"
+          label="Placement"
+          state={placements}
+          value={placementId || null}
+          onChange={(id) => onSearch(id)}
+          toOption={(p) => ({ id: p.id, label: placementOptionLabel(p) })}
+          placeholder="Select a placement…"
+          emptyMessage="No placements available to inspect."
         />
-        <button
-          data-testid="search-timeline-btn"
-          disabled={!placementId.trim()}
-          onClick={() => onSearch(placementId.trim())}
-          style={{
-            fontSize: '0.875rem',
-            fontWeight: 500,
-            padding: '0.375rem 0.875rem',
-            borderRadius: '0.375rem',
-            border: 'none',
-            background: '#2563eb',
-            color: '#fff',
-            cursor: placementId.trim() ? 'pointer' : 'not-allowed',
-            opacity: placementId.trim() ? 1 : 0.5,
-          }}
-        >
-          View timeline
-        </button>
       </div>
 
       {phase.kind === 'idle' && (
@@ -267,9 +263,16 @@ export function AttributionTimelineView({
 // ---------------------------------------------------------------------------
 
 export function AttributionTimeline() {
-  const [inputId, setInputId] = useState('');
   const [searchId, setSearchId] = useState<string | null>(null);
   const [events, setEvents] = useState<AttributionEvent[] | null>(null);
+
+  // Source the picker from the manager's team placements (the deals a manager
+  // can actually inspect), not the org-wide /placements list.
+  const placements = useAsync<PlacementOption[]>(
+    () =>
+      apiGet<{ placements: PlacementOption[] }>('/me/team/placements').then((r) => r.placements),
+    [],
+  );
 
   const { loading, error } = useAsync(async () => {
     if (!searchId) return;
@@ -292,8 +295,8 @@ export function AttributionTimeline() {
 
   return (
     <AttributionTimelineView
-      placementId={inputId}
-      onPlacementIdChange={setInputId}
+      placementId={searchId ?? ''}
+      placements={placements}
       phase={phase()}
       onSearch={handleSearch}
     />

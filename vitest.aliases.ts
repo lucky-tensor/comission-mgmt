@@ -48,6 +48,12 @@ export function vitestAliases(root: string): AliasEntry[] {
     { find: /^core$/, replacement: resolve(root, 'packages/core/index.ts') },
     { find: /^core\/(.+)$/, replacement: resolve(root, 'packages/core') + '/$1.ts' },
 
+    // ui — shared component library (browser bundle only). Bare package
+    // resolves to its index; subpaths resolve to the directory so Vite picks
+    // the right .ts/.tsx file (tokens.ts, Button.tsx, StatusChip.tsx).
+    { find: /^ui$/, replacement: resolve(root, 'packages/ui/index.ts') },
+    { find: /^ui\/(.+)$/, replacement: resolve(root, 'packages/ui') + '/$1' },
+
     // db root-level entry points (packages/db/*.ts) — must precede the src catch-all.
     ...DB_ROOT_MODULES.map((name) => ({
       find: `db/${name}`,

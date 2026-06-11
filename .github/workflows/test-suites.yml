@@ -92,6 +92,8 @@ jobs:
         config:
           # Web App UX routing seam (#201) — role routing helpers + invariants.
           - vitest.webapp-ux.config.ts
+          # Design-system layer (#203) — StatusChip semantic mapping unit tests.
+          - vitest.ui.config.ts
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2

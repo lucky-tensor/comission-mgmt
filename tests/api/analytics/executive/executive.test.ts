@@ -39,6 +39,7 @@ import {
 } from '../../../../packages/db/src/commission-records';
 import { _setEncryptorForTest as _setAnalyticsEncryptorForTest } from '../../../../packages/db/src/analytics-executive';
 import { _resetEncryptorForTest as _resetAnalyticsEncryptorForTest } from '../../../../packages/db/src/analytics-executive';
+import { clientDisplayName } from '../../../../packages/db/src/analytics-executive';
 import { handleGetExecutiveAnalytics } from '../../../../apps/server/src/api/analytics';
 import type { SessionClaims } from 'core/auth';
 
@@ -635,5 +636,51 @@ describe('GET /analytics/executive — multi-tenant isolation', () => {
     expect(resB.status).toBe(200);
     const bodyB = (await resB.json()) as { gross_fees_booked: string };
     expect(bodyB.gross_fees_booked).toBe('0.00');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Client display name on profitability rows (#203)
+// ---------------------------------------------------------------------------
+
+describe('GET /analytics/executive — profitability client display name', () => {
+  const orgId = crypto.randomUUID();
+  const claims: SessionClaims = {
+    org_id: orgId,
+    user_id: crypto.randomUUID(),
+    role: 'FinanceAdmin',
+    jti: crypto.randomUUID(),
+    exp: Math.floor(Date.now() / 1000) + 3600,
+  };
+  const clientId = crypto.randomUUID();
+
+  test('each profitability_by_client row carries a non-empty clientName matching the deterministic helper', async () => {
+    await insertPlacement({
+      orgId,
+      clientEntityId: clientId,
+      feeAmount: '42000.00',
+      compensationBase: '180000',
+      startDate: '2024-05-01',
+    });
+
+    const res = await handleGetExecutiveAnalytics(
+      makeRequest(periodUrl('2024-01-01', '2024-12-31')),
+      claims,
+      testSql,
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      profitability_by_client: { clientId: string; clientName: string }[];
+    };
+
+    expect(body.profitability_by_client.length).toBeGreaterThan(0);
+    for (const row of body.profitability_by_client) {
+      expect(typeof row.clientName).toBe('string');
+      expect(row.clientName.length).toBeGreaterThan(0);
+      // The display name must not be the raw UUID.
+      expect(row.clientName).not.toBe(row.clientId);
+      // Deterministic: matches the helper for the same id.
+      expect(row.clientName).toBe(clientDisplayName(row.clientId));
+    }
   });
 });

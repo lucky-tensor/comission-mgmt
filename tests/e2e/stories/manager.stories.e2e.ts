@@ -127,15 +127,15 @@ describe('MG-2: Manager views attribution timeline', () => {
   test('searching by placement ID loads timeline events', async () => {
     mount.current = await loginAs('Manager');
     await expect.element(page.getByTestId('attribution-timeline')).toBeInTheDocument();
-    await userEvent.fill(page.getByTestId('placement-id-input'), pendingPlacementId);
-    await userEvent.click(page.getByTestId('search-timeline-btn'));
+    await expect.element(page.getByTestId('placement-picker-select')).toBeInTheDocument();
+    await page.getByTestId('placement-picker-select').selectOptions(pendingPlacementId);
     await expect.element(page.getByTestId('timeline-events')).toBeInTheDocument();
   });
 
   test('timeline events include at least one event with an actor', async () => {
     mount.current = await loginAs('Manager');
-    await userEvent.fill(page.getByTestId('placement-id-input'), pendingPlacementId);
-    await userEvent.click(page.getByTestId('search-timeline-btn'));
+    await expect.element(page.getByTestId('placement-picker-select')).toBeInTheDocument();
+    await page.getByTestId('placement-picker-select').selectOptions(pendingPlacementId);
     await expect.element(page.getByTestId('timeline-events')).toBeInTheDocument();
     const events = page.getByTestId('timeline-events').getByRole('listitem');
     expect((await events.elements()).length).toBeGreaterThan(0);
@@ -143,8 +143,8 @@ describe('MG-2: Manager views attribution timeline', () => {
 
   test('each event node shows a timestamp', async () => {
     mount.current = await loginAs('Manager');
-    await userEvent.fill(page.getByTestId('placement-id-input'), pendingPlacementId);
-    await userEvent.click(page.getByTestId('search-timeline-btn'));
+    await expect.element(page.getByTestId('placement-picker-select')).toBeInTheDocument();
+    await page.getByTestId('placement-picker-select').selectOptions(pendingPlacementId);
     await expect.element(page.getByTestId('timeline-events')).toBeInTheDocument();
     await expect.element(page.getByTestId('timeline-events')).toHaveTextContent(/\d{4}/); // year in a timestamp
   });

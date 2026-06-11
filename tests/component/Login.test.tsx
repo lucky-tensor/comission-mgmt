@@ -93,4 +93,29 @@ describe('Login', () => {
     await expect.element(page.getByTestId('login-error')).toBeInTheDocument();
     await expect.element(page.getByTestId('login-error')).toHaveTextContent('Username is required');
   });
+
+  // -------------------------------------------------------------------------
+  // Create-account moved behind the Register tab (#203)
+  // -------------------------------------------------------------------------
+
+  test('the demo create-account control is not rendered on the default sign-in view', async () => {
+    mounted = renderInBrowser(<Login />);
+
+    // The demo section (persona grid) loads from the real demo server.
+    await expect.element(page.getByTestId('demo-section')).toBeInTheDocument();
+
+    // The default tab is Sign In — the create-account control must be absent.
+    expect(page.getByTestId('demo-create-section').elements()).toHaveLength(0);
+    expect(page.getByTestId('demo-create-button').elements()).toHaveLength(0);
+  });
+
+  test('the demo create-account control is reachable under the Register tab', async () => {
+    mounted = renderInBrowser(<Login />);
+    await expect.element(page.getByTestId('demo-section')).toBeInTheDocument();
+
+    await userEvent.click(page.getByTestId('tab-register'));
+
+    await expect.element(page.getByTestId('demo-create-section')).toBeInTheDocument();
+    await expect.element(page.getByTestId('demo-create-button')).toBeInTheDocument();
+  });
 });

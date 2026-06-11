@@ -103,6 +103,7 @@ import {
 } from './api/invoices';
 import {
   handleCreateCommissionRun,
+  handleListCommissionRuns,
   handleGetCommissionRunQueue,
   handleApproveRunRecord,
   handleApproveCommissionRun,
@@ -146,7 +147,7 @@ import {
   handleGetTeamDisputes,
 } from './api/manager-team';
 // Per-producer draw balance and recovery schedule — issue #124
-import { handleGetProducerDrawBalance } from './api/draw-balance';
+import { handleGetProducerDrawBalance, handleListProducers } from './api/draw-balance';
 
 // Re-export foundation modules so they continue to be verified at compile time.
 export * from './auth/jwt';
@@ -347,6 +348,10 @@ export async function fetchHandler(req: Request): Promise<Response> {
   // Commission run routes — Finance Admin commission close workflow
   if (req.method === 'POST' && pathname === '/commission-runs') {
     return handleCreateCommissionRun(req, authResult.claims);
+  }
+  // GET /commission-runs — list runs for the Finance run picker (#203)
+  if (req.method === 'GET' && pathname === '/commission-runs') {
+    return handleListCommissionRuns(authResult.claims);
   }
   const commissionRunQueueMatch = pathname.match(/^\/commission-runs\/([^/]+)\/queue$/);
   if (req.method === 'GET' && commissionRunQueueMatch) {
@@ -674,6 +679,11 @@ export async function fetchHandler(req: Request): Promise<Response> {
   }
   if (req.method === 'GET' && pathname === '/producer/simulations') {
     return handleListMySimulations(req, authResult.claims);
+  }
+
+  // GET /producers — list producers for the HR draw-balance picker (#203)
+  if (req.method === 'GET' && pathname === '/producers') {
+    return handleListProducers(authResult.claims);
   }
 
   // Per-producer draw balance and recovery schedule — issue #124

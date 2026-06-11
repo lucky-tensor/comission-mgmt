@@ -81,26 +81,27 @@ describe('HR-2: HR views draw balance and recovery schedule', () => {
       .toHaveTextContent('Draw Balance & Recovery Schedule');
   });
 
-  test('producer-id-input and lookup-btn are present', async () => {
+  test('producer picker is present (no free-text UUID input)', async () => {
     mount.current = await loginAs('HR');
     await expect.element(page.getByTestId('draw-balance-view')).toBeInTheDocument();
-    await expect.element(page.getByTestId('producer-id-input')).toBeInTheDocument();
-    await expect.element(page.getByTestId('lookup-btn')).toBeInTheDocument();
+    await expect.element(page.getByTestId('producer-picker-select')).toBeInTheDocument();
+    expect(await page.getByTestId('producer-id-input').elements()).toHaveLength(0);
+    expect(await page.getByTestId('lookup-btn').elements()).toHaveLength(0);
   });
 
-  test('entering a valid producer UUID and clicking lookup renders the balance panel', async () => {
+  test('selecting a producer from the picker renders the balance panel', async () => {
     mount.current = await loginAs('HR');
     await expect.element(page.getByTestId('draw-balance-view')).toBeInTheDocument();
-    await userEvent.fill(page.getByTestId('producer-id-input'), SEEDED.producerId);
-    await userEvent.click(page.getByTestId('lookup-btn'));
+    await expect.element(page.getByTestId('producer-picker-select')).toBeInTheDocument();
+    await page.getByTestId('producer-picker-select').selectOptions(SEEDED.producerId);
     await expect.element(page.getByTestId('draw-balance-panel')).toBeInTheDocument();
     await expect.element(page.getByTestId('draw-balance-summary')).toBeInTheDocument();
   });
 
   test('outstanding-balance cell renders with a numeric value', async () => {
     mount.current = await loginAs('HR');
-    await userEvent.fill(page.getByTestId('producer-id-input'), SEEDED.producerId);
-    await userEvent.click(page.getByTestId('lookup-btn'));
+    await expect.element(page.getByTestId('producer-picker-select')).toBeInTheDocument();
+    await page.getByTestId('producer-picker-select').selectOptions(SEEDED.producerId);
     await expect.element(page.getByTestId('outstanding-balance')).toBeInTheDocument();
     const text = (await page.getByTestId('outstanding-balance').element())?.textContent ?? '';
     expect(text.length).toBeGreaterThan(0);
@@ -108,8 +109,8 @@ describe('HR-2: HR views draw balance and recovery schedule', () => {
 
   test('recovery schedule section renders (empty-state or schedule rows)', async () => {
     mount.current = await loginAs('HR');
-    await userEvent.fill(page.getByTestId('producer-id-input'), SEEDED.producerId);
-    await userEvent.click(page.getByTestId('lookup-btn'));
+    await expect.element(page.getByTestId('producer-picker-select')).toBeInTheDocument();
+    await page.getByTestId('producer-picker-select').selectOptions(SEEDED.producerId);
     // Wait for the data to finish loading before inspecting the schedule section.
     // draw-balance-summary only renders after the API response resolves.
     await expect.element(page.getByTestId('draw-balance-summary')).toBeInTheDocument();

@@ -25,6 +25,8 @@ import { describe, test, expect, afterEach } from 'vitest';
 import { page } from '@vitest/browser/context';
 import {
   ExecTrendsView,
+  RangeForm,
+  defaultTrendsRange,
   type ExecTrendsViewProps,
   type TrendBucket,
   type TrendsPhase,
@@ -34,6 +36,32 @@ import { renderInBrowser, type Mounted } from './render';
 
 let mounted: Mounted | undefined;
 afterEach(() => mounted?.unmount());
+
+// ---------------------------------------------------------------------------
+// Data-first defaults (#203) — the range form is pre-filled, not empty
+// ---------------------------------------------------------------------------
+
+describe('Exec Trends — data-first range defaults', () => {
+  test('defaultTrendsRange returns a valid YYYY-MM-DD range ending today', () => {
+    const { start, end } = defaultTrendsRange();
+    expect(start).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(end).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(start < end).toBe(true);
+    expect(end).toBe(new Date().toISOString().slice(0, 10));
+  });
+
+  test('RangeForm renders pre-filled date inputs (lands on data, not an empty form)', async () => {
+    mounted = renderInBrowser(
+      <RangeForm onFetch={async () => {}} loading={false} fetchError={null} />,
+    );
+    const start = (await page
+      .getByTestId('trends-range-start-input')
+      .element()) as HTMLInputElement;
+    const end = (await page.getByTestId('trends-range-end-input').element()) as HTMLInputElement;
+    expect(start.value).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(end.value).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+});
 
 // ---------------------------------------------------------------------------
 // Test data builders

@@ -47,6 +47,36 @@ export function _resetEncryptorForTest(): void {
 }
 
 // ---------------------------------------------------------------------------
+// listProducers — org producers for the HR draw-balance picker (#203)
+// ---------------------------------------------------------------------------
+
+/** A producer the HR draw-balance picker can select. */
+export interface ProducerListItem {
+  id: string;
+  /** Display name, falling back to email; never empty. */
+  name: string;
+}
+
+/**
+ * Lists the org's producers (org_memberships.role = 'Producer') joined to the
+ * users table for a display name. Backs the HR draw-balance producer picker
+ * (#203) so an operator selects a person by name instead of typing a UUID.
+ */
+export async function listProducers(sql: Sql, orgId: string): Promise<ProducerListItem[]> {
+  const rows = (await sql.unsafe(
+    `
+    SELECT u.id, COALESCE(NULLIF(u.display_name, ''), u.email) AS name
+    FROM org_memberships m
+    JOIN users u ON u.id = m.user_id
+    WHERE m.org_id = $1 AND m.role = 'Producer'
+    ORDER BY name ASC
+    `,
+    [orgId],
+  )) as unknown as { id: string; name: string }[];
+  return rows.map((r) => ({ id: r.id, name: r.name }));
+}
+
+// ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
