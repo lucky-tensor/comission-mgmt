@@ -28,7 +28,7 @@ describe('EP-1: External Partner sees only their own deals', () => {
   test('login lands on /partner with the partner payout surface', async () => {
     s.current = await loginAs('External Partner');
     await expect.element(page.getByTestId('nav-shell')).toBeInTheDocument();
-    await expect.element(page.getByTestId('nav-role-badge')).toHaveTextContent('ExternalPartner');
+    await expect.element(page.getByTestId('nav-role-badge')).toHaveTextContent('External Partner');
     expect(window.location.pathname).toBe('/partner');
     await expect.element(page.getByTestId('partner-payout-view')).toBeInTheDocument();
   });

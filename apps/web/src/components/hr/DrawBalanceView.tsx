@@ -33,6 +33,13 @@ import { apiGet } from '../../lib/apiClient';
 import { useAsync } from '../../lib/useAsync';
 import { formatCurrency, formatDate } from '../../lib/format';
 import { LoadingState, ErrorState, EmptyState, PortalCard } from '../portal/states';
+import { EntityPicker } from '../EntityPicker';
+
+/** Producer row used to populate the HR draw-balance picker. */
+export interface ProducerOption {
+  id: string;
+  name: string;
+}
 
 // ---------------------------------------------------------------------------
 // Types — mirror the draw-balance API response shape
@@ -298,18 +305,12 @@ function ProducerDrawBalancePanel({ producerId }: ProducerDrawBalancePanelProps)
 // ---------------------------------------------------------------------------
 
 export function DrawBalanceView() {
-  const [inputValue, setInputValue] = useState('');
   const [selectedProducerId, setSelectedProducerId] = useState<string | null>(null);
 
-  function handleLookup() {
-    const trimmed = inputValue.trim();
-    if (!trimmed) return;
-    setSelectedProducerId(trimmed);
-  }
-
-  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === 'Enter') handleLookup();
-  }
+  const producers = useAsync<ProducerOption[]>(
+    () => apiGet<{ producers: ProducerOption[] }>('/producers').then((r) => r.producers),
+    [],
+  );
 
   return (
     <div
@@ -335,7 +336,7 @@ export function DrawBalanceView() {
           </p>
         </header>
 
-        {/* Producer selector */}
+        {/* Producer selector — pick a producer by name, not a UUID (#203). */}
         <div
           data-testid="producer-selector"
           style={{
@@ -344,66 +345,23 @@ export function DrawBalanceView() {
             borderRadius: '0.75rem',
             padding: '1.25rem 1.5rem',
             marginBottom: '1.5rem',
-            display: 'flex',
-            gap: '0.75rem',
-            alignItems: 'flex-end',
-            flexWrap: 'wrap',
           }}
         >
-          <div style={{ flex: '1 1 280px' }}>
-            <label
-              htmlFor="producer-id-input"
-              style={{
-                display: 'block',
-                fontSize: '0.8125rem',
-                fontWeight: 600,
-                color: '#374151',
-                marginBottom: '0.375rem',
-              }}
-            >
-              Producer ID
-            </label>
-            <input
-              id="producer-id-input"
-              data-testid="producer-id-input"
-              type="text"
-              placeholder="Enter producer UUID…"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyDown={handleKeyDown}
-              style={{
-                width: '100%',
-                boxSizing: 'border-box',
-                padding: '0.5rem 0.75rem',
-                border: '1px solid #d1d5db',
-                borderRadius: '0.375rem',
-                fontSize: '0.875rem',
-                fontFamily: 'monospace',
-              }}
-            />
-          </div>
-          <button
-            data-testid="lookup-btn"
-            onClick={handleLookup}
-            disabled={!inputValue.trim()}
-            style={{
-              padding: '0.5625rem 1.25rem',
-              background: inputValue.trim() ? '#2563eb' : '#e5e7eb',
-              color: inputValue.trim() ? '#ffffff' : '#9ca3af',
-              border: 'none',
-              borderRadius: '0.375rem',
-              cursor: inputValue.trim() ? 'pointer' : 'not-allowed',
-              fontWeight: 600,
-              fontSize: '0.875rem',
-            }}
-          >
-            Look Up
-          </button>
+          <EntityPicker
+            name="producer"
+            label="Producer"
+            state={producers}
+            value={selectedProducerId}
+            onChange={setSelectedProducerId}
+            toOption={(p) => ({ id: p.id, label: p.name })}
+            placeholder="Select a producer…"
+            emptyMessage="No producers found for this organization."
+          />
         </div>
 
         {/* Draw balance panel — renders once a producer is selected */}
         {!selectedProducerId && (
-          <EmptyState message="Enter a producer ID above to view their draw balance and recovery schedule." />
+          <EmptyState message="Select a producer above to view their draw balance and recovery schedule." />
         )}
         {selectedProducerId && (
           <ProducerDrawBalancePanel key={selectedProducerId} producerId={selectedProducerId} />

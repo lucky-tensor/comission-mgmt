@@ -289,6 +289,7 @@ export type {
 export {
   getDrawBalanceForProducer,
   listRecoverySchedulesForProducer,
+  listProducers,
   createDrawBalance,
   _setEncryptorForTest as _setDrawBalanceEncryptorForTest,
   _resetEncryptorForTest as _resetDrawBalanceEncryptorForTest,
@@ -296,6 +297,7 @@ export {
 export type {
   DrawBalanceResult,
   ProducerRecoveryScheduleRow,
+  ProducerListItem,
   CreateDrawBalanceInput,
 } from './src/draw-balance.js';
 

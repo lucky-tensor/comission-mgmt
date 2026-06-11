@@ -32,7 +32,7 @@ describe('FA-1: Finance Admin sees and resolves data gaps', () => {
   test('login lands on /finance with the data-gap-queue rendered', async () => {
     s.current = await loginAs('Finance Admin');
     await expect.element(page.getByTestId('nav-shell')).toBeInTheDocument();
-    await expect.element(page.getByTestId('nav-role-badge')).toHaveTextContent('FinanceAdmin');
+    await expect.element(page.getByTestId('nav-role-badge')).toHaveTextContent('Finance Admin');
     expect(window.location.pathname).toBe('/finance');
     await expect.element(page.getByTestId('data-gap-queue')).toBeInTheDocument();
   });
@@ -209,25 +209,17 @@ describe('FA-3: Finance Admin generates a payroll-ready export', () => {
   test('loading a run reveals export-generate-section', async () => {
     s.current = await loginAs('Finance Admin');
     await expect.element(page.getByTestId('finance-home')).toBeInTheDocument();
-    // Fill run ID and select Approved status, then load via FinanceAdminSurface form.
-    await userEvent.fill(page.getByTestId('run-id-input'), s.fixture.closeRunId);
-    const statusSelect = (await page
-      .getByTestId('run-status-select')
-      .element()) as HTMLSelectElement;
-    await userEvent.selectOptions(statusSelect, 'Approved');
-    await userEvent.click(page.getByTestId('load-run-button'));
+    // Select the close run from the run picker (by id) in FinanceAdminSurface.
+    await expect.element(page.getByTestId('run-picker-select')).toBeInTheDocument();
+    await page.getByTestId('run-picker-select').selectOptions(s.fixture.closeRunId);
     await expect.element(page.getByTestId('export-generate-section')).toBeInTheDocument();
   });
 
   test('generate-export-button is present when run status is Approved', async () => {
     s.current = await loginAs('Finance Admin');
     await expect.element(page.getByTestId('finance-home')).toBeInTheDocument();
-    await userEvent.fill(page.getByTestId('run-id-input'), s.fixture.closeRunId);
-    const statusSelect = (await page
-      .getByTestId('run-status-select')
-      .element()) as HTMLSelectElement;
-    await userEvent.selectOptions(statusSelect, 'Approved');
-    await userEvent.click(page.getByTestId('load-run-button'));
+    await expect.element(page.getByTestId('run-picker-select')).toBeInTheDocument();
+    await page.getByTestId('run-picker-select').selectOptions(s.fixture.closeRunId);
     await expect.element(page.getByTestId('generate-export-button')).toBeInTheDocument();
     await expect.element(page.getByTestId('generate-export-button')).not.toBeDisabled();
   });
@@ -235,12 +227,8 @@ describe('FA-3: Finance Admin generates a payroll-ready export', () => {
   test('clicking generate produces an export row or shows a generate error', async () => {
     s.current = await loginAs('Finance Admin');
     await expect.element(page.getByTestId('finance-home')).toBeInTheDocument();
-    await userEvent.fill(page.getByTestId('run-id-input'), s.fixture.closeRunId);
-    const statusSelect = (await page
-      .getByTestId('run-status-select')
-      .element()) as HTMLSelectElement;
-    await userEvent.selectOptions(statusSelect, 'Approved');
-    await userEvent.click(page.getByTestId('load-run-button'));
+    await expect.element(page.getByTestId('run-picker-select')).toBeInTheDocument();
+    await page.getByTestId('run-picker-select').selectOptions(s.fixture.closeRunId);
     await userEvent.click(page.getByTestId('generate-export-button'));
     // Wait for either exports-list (success) or generate-error (API rejection).
     try {
@@ -265,13 +253,15 @@ describe('FA-4: Finance Admin tracks invoice and collection status', () => {
     s.current = await loginAs('Finance Admin');
     await expect.element(page.getByTestId('finance-admin')).toBeInTheDocument();
     // The placement picker may be in error, empty, or data state.
-    const hasError = (await page.getByTestId('placements-error').elements()).length > 0;
-    const hasEmpty = (await page.getByTestId('no-placements').elements()).length > 0;
-    const hasSelect = (await page.getByTestId('placement-select').elements()).length > 0;
+    const hasError = (await page.getByTestId('placement-picker-error').elements()).length > 0;
+    const hasEmpty = (await page.getByTestId('placement-picker-empty').elements()).length > 0;
+    const hasSelect = (await page.getByTestId('placement-picker-select').elements()).length > 0;
     expect(hasError || hasEmpty || hasSelect).toBe(true);
     if (!hasSelect) return;
 
-    const selectEl = (await page.getByTestId('placement-select').element()) as HTMLSelectElement;
+    const selectEl = (await page
+      .getByTestId('placement-picker-select')
+      .element()) as HTMLSelectElement;
     const firstRealOption = selectEl?.querySelectorAll('option')[1];
     if (firstRealOption) {
       await userEvent.selectOptions(selectEl, firstRealOption.getAttribute('value') ?? '');
@@ -282,11 +272,12 @@ describe('FA-4: Finance Admin tracks invoice and collection status', () => {
   test('billing phase rows are visible or empty state renders', async () => {
     s.current = await loginAs('Finance Admin');
     await expect.element(page.getByTestId('finance-admin')).toBeInTheDocument();
-    const hasError = (await page.getByTestId('placements-error').elements()).length > 0;
-    const hasEmptyPlacements = (await page.getByTestId('no-placements').elements()).length > 0;
+    const hasError = (await page.getByTestId('placement-picker-error').elements()).length > 0;
+    const hasEmptyPlacements =
+      (await page.getByTestId('placement-picker-empty').elements()).length > 0;
     if (hasError || hasEmptyPlacements) return;
 
-    const select = page.getByTestId('placement-select');
+    const select = page.getByTestId('placement-picker-select');
     await expect.element(select).toBeInTheDocument();
     const selectEl = (await select.element()) as HTMLSelectElement;
     const firstRealOption = selectEl?.querySelectorAll('option')[1];
@@ -303,11 +294,12 @@ describe('FA-4: Finance Admin tracks invoice and collection status', () => {
   test('invoice status can be updated when a phase with invoice exists', async () => {
     s.current = await loginAs('Finance Admin');
     await expect.element(page.getByTestId('finance-admin')).toBeInTheDocument();
-    const hasError = (await page.getByTestId('placements-error').elements()).length > 0;
-    const hasEmptyPlacements = (await page.getByTestId('no-placements').elements()).length > 0;
+    const hasError = (await page.getByTestId('placement-picker-error').elements()).length > 0;
+    const hasEmptyPlacements =
+      (await page.getByTestId('placement-picker-empty').elements()).length > 0;
     if (hasError || hasEmptyPlacements) return;
 
-    const select = page.getByTestId('placement-select');
+    const select = page.getByTestId('placement-picker-select');
     await expect.element(select).toBeInTheDocument();
     const selectEl = (await select.element()) as HTMLSelectElement;
     const firstRealOption = selectEl?.querySelectorAll('option')[1];
@@ -346,22 +338,24 @@ describe('FA-5: Finance Admin applies adjustments via the append-only ledger', (
     s.current = await loginAs('Finance Admin');
     await expect.element(page.getByTestId('finance-home')).toBeInTheDocument();
     // Use the placement-id-input form in FinanceAdminSurface.
-    await userEvent.fill(
-      page.getByTestId('placement-id-input'),
-      s.fixture.closeCompletePlacementId,
-    );
-    await userEvent.click(page.getByTestId('placement-id-submit'));
+    await expect
+      .element(page.getByTestId('adjustment-placement-picker-select'))
+      .toBeInTheDocument();
+    await page
+      .getByTestId('adjustment-placement-picker-select')
+      .selectOptions(s.fixture.closeCompletePlacementId);
     await expect.element(page.getByTestId('adjustment-ledger')).toBeInTheDocument();
   });
 
   test('trigger form is visible after loading placement ledger', async () => {
     s.current = await loginAs('Finance Admin');
     await expect.element(page.getByTestId('finance-home')).toBeInTheDocument();
-    await userEvent.fill(
-      page.getByTestId('placement-id-input'),
-      s.fixture.closeCompletePlacementId,
-    );
-    await userEvent.click(page.getByTestId('placement-id-submit'));
+    await expect
+      .element(page.getByTestId('adjustment-placement-picker-select'))
+      .toBeInTheDocument();
+    await page
+      .getByTestId('adjustment-placement-picker-select')
+      .selectOptions(s.fixture.closeCompletePlacementId);
     await expect.element(page.getByTestId('adjustment-ledger')).toBeInTheDocument();
     await expect.element(page.getByTestId('trigger-form')).toBeInTheDocument();
     await expect.element(page.getByTestId('trigger-event-type')).toBeInTheDocument();
@@ -372,11 +366,12 @@ describe('FA-5: Finance Admin applies adjustments via the append-only ledger', (
   test('submitting the trigger form shows a result (adjustment row or trigger error)', async () => {
     s.current = await loginAs('Finance Admin');
     await expect.element(page.getByTestId('finance-home')).toBeInTheDocument();
-    await userEvent.fill(
-      page.getByTestId('placement-id-input'),
-      s.fixture.closeCompletePlacementId,
-    );
-    await userEvent.click(page.getByTestId('placement-id-submit'));
+    await expect
+      .element(page.getByTestId('adjustment-placement-picker-select'))
+      .toBeInTheDocument();
+    await page
+      .getByTestId('adjustment-placement-picker-select')
+      .selectOptions(s.fixture.closeCompletePlacementId);
     await expect.element(page.getByTestId('trigger-form')).toBeInTheDocument();
     // Submit with defaults (first available event_type and rule).
     await userEvent.click(page.getByTestId('trigger-submit'));

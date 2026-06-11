@@ -119,7 +119,7 @@ describe('External Partner — payout visibility and scope enforcement', () => {
     current = mountApp();
 
     await expect.element(page.getByTestId('nav-shell')).toBeInTheDocument();
-    await expect.element(page.getByTestId('nav-role-badge')).toHaveTextContent('ExternalPartner');
+    await expect.element(page.getByTestId('nav-role-badge')).toHaveTextContent('External Partner');
     expect(window.location.pathname).toBe('/partner');
 
     await expect.element(page.getByTestId('partner-payout-view')).toBeInTheDocument();

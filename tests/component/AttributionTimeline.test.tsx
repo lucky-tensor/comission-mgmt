@@ -44,58 +44,68 @@ function makeEvent(overrides: Partial<AttributionEvent> = {}): AttributionEvent 
   };
 }
 
+const SAMPLE_PLACEMENTS = [
+  { id: 'pl-0000-0001', job_title: 'Staff Engineer', candidate_name: 'Riley Chen' },
+  { id: 'pl-0000-0002', job_title: 'VP Sales', candidate_name: 'Sam Ortiz' },
+];
+
 function defaultProps(): AttributionTimelineViewProps {
   return {
     placementId: '',
-    onPlacementIdChange: () => {},
+    // Populated by default so the picker is not in its own empty-state (which
+    // would collide with the timeline's empty-state in the phase tests below).
+    placements: { data: SAMPLE_PLACEMENTS, loading: false, error: null },
     phase: { kind: 'idle' },
     onSearch: () => {},
   };
 }
 
 // ---------------------------------------------------------------------------
-// Idle state
+// Idle state — placement picker, no free-text UUID input
 // ---------------------------------------------------------------------------
 
 describe('AttributionTimelineView — idle state', () => {
-  test('renders the search form in idle state', async () => {
-    mounted = renderInBrowser(<AttributionTimelineView {...defaultProps()} />);
-
-    await expect.element(page.getByTestId('attribution-timeline')).toBeInTheDocument();
-    await expect.element(page.getByTestId('timeline-search-form')).toBeInTheDocument();
-    await expect.element(page.getByTestId('placement-id-input')).toBeInTheDocument();
-    await expect.element(page.getByTestId('search-timeline-btn')).toBeInTheDocument();
-    await expect.element(page.getByTestId('timeline-idle')).toBeInTheDocument();
-  });
-
-  test('search button is disabled when placement id is empty', async () => {
-    mounted = renderInBrowser(<AttributionTimelineView {...defaultProps()} />);
-
-    await expect.element(page.getByTestId('search-timeline-btn')).toBeDisabled();
-  });
-
-  test('search button is enabled when placement id is non-empty', async () => {
-    mounted = renderInBrowser(
-      <AttributionTimelineView {...defaultProps()} placementId="pl-0000-0001" />,
-    );
-
-    await expect.element(page.getByTestId('search-timeline-btn')).not.toBeDisabled();
-  });
-
-  test('calls onSearch with the trimmed placement id on button click', async () => {
-    const calls: string[] = [];
-
+  test('renders a placement picker select (not a free-text UUID input)', async () => {
     mounted = renderInBrowser(
       <AttributionTimelineView
         {...defaultProps()}
-        placementId="pl-0000-0001"
-        onSearch={(id) => calls.push(id)}
+        placements={{ data: SAMPLE_PLACEMENTS, loading: false, error: null }}
       />,
     );
 
-    await page.getByTestId('search-timeline-btn').click();
+    await expect.element(page.getByTestId('attribution-timeline')).toBeInTheDocument();
+    await expect.element(page.getByTestId('timeline-search-form')).toBeInTheDocument();
+    await expect.element(page.getByTestId('placement-picker-select')).toBeInTheDocument();
+    await expect.element(page.getByTestId('timeline-idle')).toBeInTheDocument();
 
-    expect(calls).toEqual(['pl-0000-0001']);
+    // No raw UUID text input remains.
+    expect(page.getByTestId('placement-id-input').elements()).toHaveLength(0);
+    expect(page.getByTestId('search-timeline-btn').elements()).toHaveLength(0);
+  });
+
+  test('the picker is populated from the placements list, labelled by role/candidate', async () => {
+    mounted = renderInBrowser(
+      <AttributionTimelineView
+        {...defaultProps()}
+        placements={{ data: SAMPLE_PLACEMENTS, loading: false, error: null }}
+      />,
+    );
+    await expect
+      .element(page.getByRole('option', { name: 'Staff Engineer — Riley Chen' }))
+      .toBeInTheDocument();
+  });
+
+  test('selecting a placement calls onSearch with its id', async () => {
+    const calls: string[] = [];
+    mounted = renderInBrowser(
+      <AttributionTimelineView
+        {...defaultProps()}
+        placements={{ data: SAMPLE_PLACEMENTS, loading: false, error: null }}
+        onSearch={(id) => calls.push(id)}
+      />,
+    );
+    await page.getByTestId('placement-picker-select').selectOptions('pl-0000-0002');
+    expect(calls).toEqual(['pl-0000-0002']);
   });
 });
 

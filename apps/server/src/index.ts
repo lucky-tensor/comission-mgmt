@@ -147,7 +147,7 @@ import {
   handleGetTeamDisputes,
 } from './api/manager-team';
 // Per-producer draw balance and recovery schedule — issue #124
-import { handleGetProducerDrawBalance } from './api/draw-balance';
+import { handleGetProducerDrawBalance, handleListProducers } from './api/draw-balance';
 
 // Re-export foundation modules so they continue to be verified at compile time.
 export * from './auth/jwt';
@@ -679,6 +679,11 @@ export async function fetchHandler(req: Request): Promise<Response> {
   }
   if (req.method === 'GET' && pathname === '/producer/simulations') {
     return handleListMySimulations(req, authResult.claims);
+  }
+
+  // GET /producers — list producers for the HR draw-balance picker (#203)
+  if (req.method === 'GET' && pathname === '/producers') {
+    return handleListProducers(authResult.claims);
   }
 
   // Per-producer draw balance and recovery schedule — issue #124

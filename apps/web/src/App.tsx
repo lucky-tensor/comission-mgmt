@@ -39,14 +39,11 @@
 import { useState, useEffect, useRef } from 'react';
 import Login from './components/Login';
 import { ProducerPortal } from './components/portal/ProducerPortal';
-import { DataGapQueue } from './components/finance/DataGapQueue';
-import { CommissionRunReview } from './components/finance/CommissionRunReview';
 import { ReconciliationReport } from './components/finance/ReconciliationReport';
 import { NavShell } from './components/NavShell';
 import { Forbidden } from './components/Forbidden';
 import { ExecTrends } from './components/executive/ExecTrends';
-import { FinanceAdmin } from './components/finance/FinanceAdmin';
-import { FinanceAdminSurface } from './components/finance/FinanceAdminSurface';
+import { FinancePage } from './components/finance/FinancePage';
 import { ManagerHome } from './components/manager/ManagerHome';
 import { ExecFinancialPosition } from './components/executive/ExecFinancialPosition';
 import { ExecProfitability } from './components/ExecProfitability';
@@ -88,14 +85,7 @@ function AuthenticatedApp({ role, path, personaName, onLogout }: AuthenticatedAp
       case ROUTES.PORTAL:
         return <ProducerPortal onUnauthenticated={() => navigate(ROUTES.LOGIN)} />;
       case ROUTES.FINANCE:
-        return (
-          <>
-            <DataGapQueue />
-            <CommissionRunReview />
-            <FinanceAdmin />
-            <FinanceAdminSurface />
-          </>
-        );
+        return <FinancePage />;
       case ROUTES.RECONCILIATION:
         return <ReconciliationReport />;
       case ROUTES.MANAGER:

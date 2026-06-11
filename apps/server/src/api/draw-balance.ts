@@ -23,7 +23,11 @@
 
 import type { Sql } from 'postgres';
 import { sql as defaultSql, auditSql as defaultAuditSql } from 'db/index';
-import { getDrawBalanceForProducer, listRecoverySchedulesForProducer } from 'db/draw-balance';
+import {
+  getDrawBalanceForProducer,
+  listRecoverySchedulesForProducer,
+  listProducers,
+} from 'db/draw-balance';
 import type { SessionClaims } from 'core/auth';
 import { sensitiveRead } from '../audit/sensitive-read';
 
@@ -42,6 +46,35 @@ function jsonResponse(body: unknown, status = 200): Response {
 
 function errorResponse(message: string, status: number): Response {
   return jsonResponse({ error: message }, status);
+}
+
+// ---------------------------------------------------------------------------
+// GET /producers — list producers for the HR draw-balance picker (#203)
+// ---------------------------------------------------------------------------
+
+/**
+ * GET /producers — lists the org's producers (id + display name) so the HR
+ * draw-balance surface can offer a name-based picker instead of a UUID input.
+ *
+ * RBAC: HR only (the role that operates the draw-balance lookup). All other
+ * roles receive 403. Results are scoped to the session org.
+ */
+export async function handleListProducers(
+  claims: SessionClaims,
+  sqlClient?: SqlClient,
+): Promise<Response> {
+  if (claims.role !== 'HR') {
+    return errorResponse('Forbidden: HR role required', 403);
+  }
+
+  const db = sqlClient ?? defaultSql;
+  try {
+    const producers = await listProducers(db, claims.org_id);
+    return jsonResponse({ producers });
+  } catch (err) {
+    console.error('[draw-balance] list producers error:', err);
+    return errorResponse('Failed to list producers', 500);
+  }
 }
 
 // ---------------------------------------------------------------------------

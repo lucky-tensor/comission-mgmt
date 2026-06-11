@@ -74,8 +74,8 @@ describe('App shell E2E — role-based routing', () => {
     await expect.element(page.getByTestId('commission-run-review')).toBeInTheDocument();
     await expect.element(page.getByTestId('finance-admin')).toBeInTheDocument();
 
-    // The nav badge shows the role.
-    await expect.element(page.getByTestId('nav-role-badge')).toHaveTextContent('FinanceAdmin');
+    // The nav badge shows the human role label (persona · role).
+    await expect.element(page.getByTestId('nav-role-badge')).toHaveTextContent('Finance Admin');
 
     // The current path in the browser should be /finance.
     expect(window.location.pathname).toBe('/finance');
