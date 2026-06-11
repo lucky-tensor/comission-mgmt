@@ -223,11 +223,9 @@ export default function Login({ onSuccess }: LoginProps) {
 
   // Fetch demo users once on mount — if endpoint returns 404 demo section stays hidden
   useEffect(() => {
-    console.log('[Login] fetching demo users');
     fetch('/api/demo/users')
       .then((res) => (res.ok ? (res.json() as Promise<DemoUser[]>) : []))
       .then((users) => {
-        console.log(`[Login] demo users loaded: ${Array.isArray(users) ? users.length : 0}`);
         setDemoUsers(Array.isArray(users) ? users : []);
       })
       .catch(() => {
@@ -236,7 +234,6 @@ export default function Login({ onSuccess }: LoginProps) {
   }, []);
 
   function handleSuccess() {
-    console.log('[Login] handleSuccess — calling onSuccess()');
     if (onSuccess) {
       onSuccess();
     } else {
@@ -249,7 +246,6 @@ export default function Login({ onSuccess }: LoginProps) {
   }
 
   async function handleDemoSignIn(userId: string) {
-    console.log(`[Login] handleDemoSignIn userId=${userId}`);
     setError('');
     setDemoLoading(true);
     try {
@@ -262,7 +258,6 @@ export default function Login({ onSuccess }: LoginProps) {
         const data = (await res.json()) as { error?: string };
         throw new Error(data.error ?? 'Demo sign-in failed');
       }
-      console.log('[Login] demo session created — calling handleSuccess');
       handleSuccess();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Demo sign-in failed');
@@ -273,7 +268,6 @@ export default function Login({ onSuccess }: LoginProps) {
 
   async function handleDemoCreate() {
     if (!createUsername.trim()) return;
-    console.log(`[Login] handleDemoCreate username=${createUsername.trim()}`);
     setError('');
     setDemoLoading(true);
     try {
@@ -286,7 +280,6 @@ export default function Login({ onSuccess }: LoginProps) {
         const data = (await res.json()) as { error?: string };
         throw new Error(data.error ?? 'Demo create failed');
       }
-      console.log('[Login] demo session created — calling handleSuccess');
       handleSuccess();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Demo create failed');
@@ -356,6 +349,40 @@ export default function Login({ onSuccess }: LoginProps) {
               onSuccess={handleSuccess}
               onError={handleError}
             />
+
+            {/* Demo create-account — dev tooling, kept off the first-impression
+                sign-in view (docs/ux-review.md §5). Only available in demo mode. */}
+            {demoUsers.length > 0 && (
+              <div data-testid="demo-create-section">
+                <div style={dividerStyle}>
+                  <div style={dividerLineStyle} />
+                  <span style={dividerTextStyle}>or create a demo account</span>
+                  <div style={dividerLineStyle} />
+                </div>
+                <div style={createRowStyle}>
+                  <input
+                    type="text"
+                    data-testid="demo-create-input"
+                    style={createInputStyle}
+                    placeholder="username or email"
+                    value={createUsername}
+                    onChange={(e) => setCreateUsername(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleDemoCreate();
+                    }}
+                  />
+                  <button
+                    type="button"
+                    data-testid="demo-create-button"
+                    style={demoLoading ? createBtnDisabledStyle : createBtnStyle}
+                    disabled={demoLoading || !createUsername.trim()}
+                    onClick={handleDemoCreate}
+                  >
+                    Create
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -369,7 +396,8 @@ export default function Login({ onSuccess }: LoginProps) {
           </div>
         )}
 
-        {/* Demo section — visible only when demo users are available */}
+        {/* Demo section — one-click persona grid, visible when demo users are
+            available. The create-account control lives behind the Register tab. */}
         {demoUsers.length > 0 && (
           <div style={demoSectionStyle} data-testid="demo-section">
             <p style={demoHeadingStyle}>Demo — one-click sign in</p>
@@ -386,33 +414,6 @@ export default function Login({ onSuccess }: LoginProps) {
                   {user.label}
                 </button>
               ))}
-            </div>
-
-            <div style={dividerStyle}>
-              <div style={dividerLineStyle} />
-              <span style={dividerTextStyle}>or create</span>
-              <div style={dividerLineStyle} />
-            </div>
-
-            <div style={createRowStyle}>
-              <input
-                type="text"
-                style={createInputStyle}
-                placeholder="username or email"
-                value={createUsername}
-                onChange={(e) => setCreateUsername(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleDemoCreate();
-                }}
-              />
-              <button
-                type="button"
-                style={demoLoading ? createBtnDisabledStyle : createBtnStyle}
-                disabled={demoLoading || !createUsername.trim()}
-                onClick={handleDemoCreate}
-              >
-                Create
-              </button>
             </div>
           </div>
         )}

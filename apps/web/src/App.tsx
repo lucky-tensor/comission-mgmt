@@ -58,6 +58,7 @@ import { DocsView } from './components/DocsView';
 import { useSession } from './lib/useSession';
 import { apiPost } from './lib/apiClient';
 import { isPathPermitted, landingPathForRole, ROUTES } from './lib/roleRoutes';
+import { colors, font } from 'ui';
 
 /** Navigate to a path and notify listeners (pushState doesn't emit popstate). */
 export function navigate(path: string) {
@@ -72,10 +73,11 @@ export function navigate(path: string) {
 interface AuthenticatedAppProps {
   role: import('core/auth').AppRole;
   path: string;
+  personaName?: string | null;
   onLogout: () => void;
 }
 
-function AuthenticatedApp({ role, path, onLogout }: AuthenticatedAppProps) {
+function AuthenticatedApp({ role, path, personaName, onLogout }: AuthenticatedAppProps) {
   const permitted = isPathPermitted(role, path);
 
   function renderSurface() {
@@ -126,9 +128,40 @@ function AuthenticatedApp({ role, path, onLogout }: AuthenticatedAppProps) {
   }
 
   return (
-    <NavShell role={role} currentPath={path} onNavigate={navigate} onLogout={onLogout}>
+    <NavShell
+      role={role}
+      currentPath={path}
+      personaName={personaName}
+      onNavigate={navigate}
+      onLogout={onLogout}
+    >
       {renderSurface()}
     </NavShell>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Session skeleton — shown while the /me probe is in flight, instead of a
+// blank frame (docs/ux-review.md §6: blank-screen flashes during session load).
+// ---------------------------------------------------------------------------
+
+function SessionSkeleton() {
+  return (
+    <div
+      data-testid="session-skeleton"
+      aria-busy="true"
+      style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontFamily: font.family,
+        color: colors.inkSubtle,
+        fontSize: '0.875rem',
+      }}
+    >
+      Loading your workspace…
+    </div>
   );
 }
 
@@ -153,21 +186,17 @@ export default function App() {
   // changes (e.g. after a demo account switch). Manual navigation to an
   // unauthorized route intentionally shows the Forbidden surface instead.
   useEffect(() => {
-    console.log(
-      `[App] redirect effect: loading=${loading} unauth=${unauthenticated} session=${session?.role ?? 'null'} path=${path}`,
-    );
     if (loading || unauthenticated || !session) return;
     const roleChanged = prevRoleRef.current !== null && prevRoleRef.current !== session.role;
     prevRoleRef.current = session.role;
     if (path === ROUTES.LOGIN || roleChanged) {
-      console.log(`[App] redirecting to ${landingPathForRole(session.role)}`);
       navigate(landingPathForRole(session.role));
     }
   }, [loading, unauthenticated, session, path]);
 
-  // Not yet resolved — render nothing (brief flash prevention).
+  // Session not yet resolved — show a skeleton instead of a blank frame.
   if (loading) {
-    return null;
+    return <SessionSkeleton />;
   }
 
   // No session — show login.
@@ -183,9 +212,16 @@ export default function App() {
     });
   };
 
-  // Still on the login path — the redirect effect hasn't fired yet; avoid
-  // rendering AuthenticatedApp (which would hit the switch default → Forbidden).
-  if (path === ROUTES.LOGIN) return null;
+  // Still on the login path — the redirect effect hasn't fired yet; show the
+  // skeleton (not a blank frame) until it redirects to the role landing.
+  if (path === ROUTES.LOGIN) return <SessionSkeleton />;
 
-  return <AuthenticatedApp role={session.role} path={path} onLogout={handleLogout} />;
+  return (
+    <AuthenticatedApp
+      role={session.role}
+      path={path}
+      personaName={session.display_name}
+      onLogout={handleLogout}
+    />
+  );
 }

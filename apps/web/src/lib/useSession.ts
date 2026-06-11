@@ -25,6 +25,8 @@ export interface SessionInfo {
   user_id: string;
   org_id: string;
   role: AppRole;
+  /** Human-readable persona name for the header; null when unknown. */
+  display_name?: string | null;
 }
 
 export interface UseSessionResult {
@@ -48,11 +50,12 @@ export function useSession(): UseSessionResult {
     setError(null);
     setUnauthenticated(false);
 
-    console.log(`[useSession] fetching /me (tick=${refreshTick})`);
+    // A signed-out probe (401) is a normal state, not an error — it must stay
+    // silent so it never trips the E2E console-error gate (#175). No console
+    // output is emitted on any path here.
     apiGet<SessionInfo>('/me')
       .then((data) => {
         if (active) {
-          console.log(`[useSession] session loaded role=${data.role}`);
           setSession(data);
           setLoading(false);
         }
@@ -60,10 +63,8 @@ export function useSession(): UseSessionResult {
       .catch((err: unknown) => {
         if (!active) return;
         if (err instanceof ApiError && err.status === 401) {
-          console.log('[useSession] unauthenticated (401)');
           setUnauthenticated(true);
         } else {
-          console.log(`[useSession] error: ${err instanceof Error ? err.message : err}`);
           setError(err instanceof Error ? err.message : 'Failed to load session');
         }
         setLoading(false);
