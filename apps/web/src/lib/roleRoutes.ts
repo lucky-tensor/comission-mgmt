@@ -73,24 +73,19 @@ export const ROLE_ROUTES: Record<AppRole, RoleRouteConfig> = {
       ROUTES.FINANCE,
       ROUTES.RECONCILIATION,
       ROUTES.PORTAL,
-      ROUTES.EXECUTIVE,
       ROUTES.HR,
       ROUTES.PARTNER,
     ]),
     navItems: [
       { path: ROUTES.FINANCE, label: 'Finance Home' },
       { path: ROUTES.RECONCILIATION, label: 'Reconciliation' },
-      { path: ROUTES.EXECUTIVE, label: 'Executive View' },
     ],
   },
 
   Manager: {
     landing: ROUTES.MANAGER,
-    permitted: new Set([ROUTES.MANAGER, ROUTES.PORTAL]),
-    navItems: [
-      { path: ROUTES.MANAGER, label: 'Team View' },
-      { path: ROUTES.PORTAL, label: 'Producer Portal' },
-    ],
+    permitted: new Set([ROUTES.MANAGER]),
+    navItems: [{ path: ROUTES.MANAGER, label: 'Team View' }],
   },
 
   Executive: {
