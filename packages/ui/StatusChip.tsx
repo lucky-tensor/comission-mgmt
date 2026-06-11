@@ -34,6 +34,7 @@ export function statusVariant(status: string): StatusVariant {
   if (
     [
       'paid',
+      'payable',
       'complete',
       'completed',
       'collected',

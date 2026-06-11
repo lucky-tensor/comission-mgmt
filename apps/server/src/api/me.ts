@@ -161,6 +161,20 @@ export async function handleGetMyCommissionRecords(
           }
         }
 
+        // Lead each credited placement with its role title rather than burying
+        // the placement identity in the explanation (docs/ux-review.md §5, #203).
+        // Masked for confidential placements unless the role is unmasked.
+        let positionTitle: string | null = null;
+        try {
+          const p = await getPlacement(db, r.placementId);
+          if (p) {
+            positionTitle =
+              !UNMASKED_ROLES.has(claims.role) && p.isConfidential ? 'Confidential' : p.jobTitle;
+          }
+        } catch {
+          // Non-fatal — position_title stays null
+        }
+
         return {
           id: r.id,
           org_id: r.orgId,
@@ -178,6 +192,7 @@ export async function handleGetMyCommissionRecords(
           approval_actor: r.approvalActor,
           approval_at: r.approvalAt,
           created_at: r.createdAt,
+          position_title: positionTitle,
         };
       }),
     );

@@ -63,4 +63,40 @@ describe('CreditedPlacementsView', () => {
     await expect.element(page.getByText('$15,750.00 net')).toBeInTheDocument();
     await expect.element(page.getByText('Gross fee 20000 × 25% tier rate')).toBeInTheDocument();
   });
+
+  // -------------------------------------------------------------------------
+  // #203 — lead with role title + status chip; explanation is expandable
+  // -------------------------------------------------------------------------
+
+  test('leads with the role title and a semantic status chip', async () => {
+    const withTitle = { ...record, position_title: 'Staff Engineer' };
+    mounted = renderInBrowser(
+      <CreditedPlacementsView state={{ data: [withTitle], loading: false, error: null }} />,
+    );
+    await expect
+      .element(page.getByTestId(`placement-lead-${record.id}`))
+      .toHaveTextContent('Staff Engineer');
+    // Payable maps to the green (paid/complete) semantic variant.
+    const chip = page.getByTestId(`placement-status-${record.id}`);
+    await expect.element(chip).toBeInTheDocument();
+    expect((await chip.element())?.getAttribute('data-variant')).toBe('green');
+  });
+
+  test('falls back to a short placement reference when no title is provided', async () => {
+    mounted = renderInBrowser(
+      <CreditedPlacementsView state={{ data: [record], loading: false, error: null }} />,
+    );
+    await expect
+      .element(page.getByTestId(`placement-lead-${record.id}`))
+      .toHaveTextContent('Placement');
+  });
+
+  test('renders the explanation inside an expandable details element', async () => {
+    mounted = renderInBrowser(
+      <CreditedPlacementsView state={{ data: [record], loading: false, error: null }} />,
+    );
+    const details = page.getByTestId(`placement-explanation-${record.id}`);
+    await expect.element(details).toBeInTheDocument();
+    expect((await details.element())?.tagName).toBe('DETAILS');
+  });
 });

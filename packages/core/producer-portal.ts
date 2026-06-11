@@ -39,6 +39,11 @@ export interface CommissionRecord {
   approval_actor: string | null;
   approval_at: string | null;
   created_at: string;
+  /**
+   * Role/position title for the placement, or 'Confidential' when masked.
+   * Optional: the portal leads each row with this instead of a UUID (#203).
+   */
+  position_title?: string | null;
 }
 
 /** GET /me/commission-records response envelope. */
