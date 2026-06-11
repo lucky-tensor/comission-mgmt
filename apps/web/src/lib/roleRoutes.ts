@@ -10,8 +10,11 @@
  * No component re-implements role gating; all import from this module.
  *
  * Canonical docs: docs/prd.md §3 (User Roles)
+ * Routing seam contract: docs/web-app-ux.md — how to safely add a route (#197)
+ *   or edit nav items (#198) without breaking the nav/permitted invariant.
+ *   The invariant is pinned by apps/web/tests/roleRoutes.test.ts.
  * Issue: feat: web app shell — role-based routing, navigation, and per-role
- *        landing (#100)
+ *        landing (#100); dev-scout: Web App UX phase seam (#201)
  */
 
 import type { AppRole } from 'core/auth';
