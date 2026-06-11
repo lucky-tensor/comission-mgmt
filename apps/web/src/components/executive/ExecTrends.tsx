@@ -26,8 +26,23 @@
  * Issue: feat: Executive UI — exception and dispute-rate trends (#112)
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { apiGet } from '../../lib/apiClient';
+
+/**
+ * Default trends range — the last six months through today. The UX review
+ * (docs/ux-review.md §3) wants the user to land on a populated trend, not an
+ * empty date form, so this range loads on mount and the form filters it.
+ */
+export function defaultTrendsRange(): { start: string; end: string } {
+  const today = new Date();
+  const end = today.toISOString().slice(0, 10);
+  const startDate = new Date(today);
+  startDate.setMonth(startDate.getMonth() - 5);
+  startDate.setDate(1);
+  const start = startDate.toISOString().slice(0, 10);
+  return { start, end };
+}
 
 // ---------------------------------------------------------------------------
 // Types
@@ -151,8 +166,9 @@ export interface RangeFormProps {
 }
 
 export function RangeForm({ onFetch, loading, fetchError }: RangeFormProps) {
-  const [rangeStart, setRangeStart] = useState('');
-  const [rangeEnd, setRangeEnd] = useState('');
+  const defaults = defaultTrendsRange();
+  const [rangeStart, setRangeStart] = useState(defaults.start);
+  const [rangeEnd, setRangeEnd] = useState(defaults.end);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -565,6 +581,13 @@ export function ExecTrends() {
       setLoading(false);
     }
   }
+
+  // Data-first (#203): load the default range immediately on mount; the date
+  // form acts as a filter rather than a gate.
+  useEffect(() => {
+    const { start, end } = defaultTrendsRange();
+    void handleFetch(start, end);
+  }, []);
 
   return (
     <ExecTrendsView phase={phase} onFetch={handleFetch} loading={loading} fetchError={fetchError} />

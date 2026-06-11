@@ -28,9 +28,21 @@
  * Issue: feat: Finance Admin UI — financial reconciliation report (#106)
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ApiError, apiGet, apiPost } from '../../lib/apiClient';
 import { formatDate } from '../../lib/format';
+
+/**
+ * Current period default — last 30 days through today. The UX review
+ * (docs/ux-review.md §3) wants users to land on information, not an empty form,
+ * so Reconciliation loads this range on mount with the form acting as a filter.
+ */
+export function currentPeriodRange(): { start: string; end: string } {
+  const today = new Date();
+  const end = today.toISOString().slice(0, 10);
+  const start = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  return { start, end };
+}
 
 // ---------------------------------------------------------------------------
 // Types for API response shapes
@@ -131,8 +143,9 @@ export interface PeriodFormProps {
 }
 
 export function PeriodForm({ onFetch, fetching, error }: PeriodFormProps) {
-  const [periodStart, setPeriodStart] = useState('');
-  const [periodEnd, setPeriodEnd] = useState('');
+  const defaults = currentPeriodRange();
+  const [periodStart, setPeriodStart] = useState(defaults.start);
+  const [periodEnd, setPeriodEnd] = useState(defaults.end);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -785,6 +798,13 @@ export function ReconciliationReport() {
       setFetching(false);
     }
   }
+
+  // Data-first (#203): load the current period immediately on mount; the date
+  // form acts as a filter rather than a gate.
+  useEffect(() => {
+    const { start, end } = currentPeriodRange();
+    void handleFetch(start, end);
+  }, []);
 
   async function handleAcknowledge(id: string, note: string): Promise<void> {
     setAcknowledgingId(id);

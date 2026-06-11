@@ -30,6 +30,8 @@ import { describe, test, expect, afterEach } from 'vitest';
 import { page } from '@vitest/browser/context';
 import {
   ReconciliationReportView,
+  PeriodForm,
+  currentPeriodRange,
   type ReconciliationReportViewProps,
   type ReconciliationReportData,
   type ReconciliationDiscrepancy,
@@ -137,6 +139,32 @@ function defaultProps(): ReconciliationReportViewProps {
 // ---------------------------------------------------------------------------
 // idle state
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Data-first defaults (#203) — the period form is pre-filled, not empty
+// ---------------------------------------------------------------------------
+
+describe('Reconciliation — data-first period defaults', () => {
+  test('currentPeriodRange returns a valid 30-day-ish YYYY-MM-DD range ending today', () => {
+    const { start, end } = currentPeriodRange();
+    expect(start).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(end).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(start < end).toBe(true);
+    expect(end).toBe(new Date().toISOString().slice(0, 10));
+  });
+
+  test('PeriodForm renders pre-filled date inputs (no empty form to gate the data)', async () => {
+    mounted = renderInBrowser(
+      <PeriodForm onFetch={async () => {}} fetching={false} error={null} />,
+    );
+    const start = (await page
+      .getByTestId('recon-period-start-input')
+      .element()) as HTMLInputElement;
+    const end = (await page.getByTestId('recon-period-end-input').element()) as HTMLInputElement;
+    expect(start.value).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(end.value).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+});
 
 describe('ReconciliationReportView — idle state', () => {
   test('renders the period form and no report content', async () => {
