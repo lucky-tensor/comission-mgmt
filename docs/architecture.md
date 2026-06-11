@@ -129,8 +129,10 @@ Mandatory patterns and prohibitions, each traceable to a blueprint rule:
 - **Instrument every surface; annotate dormant-by-design code.** Target: every UI surface, page view, API route, and
   role-gated action emits a usage event to `commission_analytics`; cross-phase foundational code (clawback worker,
   external-partner guards, team-pool config) carries a `DORMANT_BY_DESIGN` annotation naming its dependent phase.
-  **_(planned/dormant)_** — usage-event instrumentation and the `DORMANT_BY_DESIGN` annotations are not yet present
-  in code. (PRUNE-P-006/P-002, PRUNE-C-001/C-003)
+  **_(planned/dormant)_** — usage-event instrumentation is not yet present in code; `DORMANT_BY_DESIGN` annotations
+  have only begun appearing on the arbitration scaffolds (`apps/server/src/api/dispute-arbitration.ts`,
+  `packages/db/src/arbitration-results.ts`) and are not yet applied across the named foundational code.
+  (PRUNE-P-006/P-002, PRUNE-C-001/C-003)
 - **Property-graph schema + relational journal.** Configurable plan structures, contributor roles, and split types
   live in the `entity_types` registry (JSON Schema + sensitive-field + `kms_key_id` metadata) and evolve as data,
   not DDL; consequential commission/clawback/refund transitions are appended to a dedicated relational journal with
@@ -263,7 +265,8 @@ removed in the same PR).
 - BIP-39 passkey recovery shard (`@scure/bip39` not yet a dependency).
 - Image signing + k3s admission verify; pre-migration DB snapshots.
 - Ledger replay/recovery test suite.
-- Usage-event instrumentation + `DORMANT_BY_DESIGN` annotations.
+- Usage-event instrumentation (`DORMANT_BY_DESIGN` annotations have begun on the
+  arbitration scaffolds; not yet applied across foundational code).
 - Merge queue, `Depends-on` ordering, `.gitattributes merge=binary`.
 - Differential privacy on analytics exports; M-of-N for catastrophic operations.
 - Worker NetworkPolicy selector/namespace binding (manifests present, not enforced).
