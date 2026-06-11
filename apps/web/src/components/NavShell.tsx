@@ -42,7 +42,24 @@ interface NavShellProps {
 }
 
 /** Items beyond this count collapse into an overflow ("More") menu. */
-const MAX_VISIBLE_ITEMS = 5;
+export const MAX_VISIBLE_ITEMS = 5;
+
+/**
+ * Split nav items into the inline row and the overflow ("More") menu. When the
+ * total is within the cap everything stays inline; past it, the trailing items
+ * (and one slot for the More toggle) fold into the overflow. Exported so the
+ * overflow contract can be unit-tested without a six-item role in the route map.
+ */
+export function splitNavItems<T>(
+  items: T[],
+  cap: number = MAX_VISIBLE_ITEMS,
+): {
+  visible: T[];
+  overflow: T[];
+} {
+  if (items.length <= cap) return { visible: items, overflow: [] };
+  return { visible: items.slice(0, cap - 1), overflow: items.slice(cap - 1) };
+}
 
 const navStyle: CSSProperties = {
   background: colors.navBg,
@@ -227,13 +244,8 @@ export function NavShell({
   const config = ROLE_ROUTES[role];
   const active = activeNavPath(role, currentPath);
 
-  // Split into a visible row and an overflow menu once past the cap. When the
-  // overflow would hold a single item, just show it inline (a one-item menu is
-  // pointless), so the cap only kicks in when it genuinely saves space.
-  const items = config.navItems;
-  const overflowing = items.length > MAX_VISIBLE_ITEMS;
-  const visible = overflowing ? items.slice(0, MAX_VISIBLE_ITEMS - 1) : items;
-  const overflow = overflowing ? items.slice(MAX_VISIBLE_ITEMS - 1) : [];
+  // Split into a visible row and an overflow menu once past the cap.
+  const { visible, overflow } = splitNavItems(config.navItems);
 
   const roleText = roleLabel(role);
   const badgeText = personaName ? `${personaName} · ${roleText}` : roleText;
