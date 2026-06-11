@@ -120,9 +120,12 @@ Mandatory patterns and prohibitions, each traceable to a blueprint rule:
   GitHub Issues mirrors `docs/plan.md`. (PROCESS-D-011/D-016/X-009, IMPL-PROCESS-001/003/016)
 - **Single design system, distinct per-actor surfaces, single path per action, progressive disclosure.** Target:
   one `packages/ui` design system across all six roles; no shared all-actor screen; no raw-DB admin; one canonical
-  route per approval/export/dispute; advanced plan-config behind disclosure. **_(planned)_** — the shipped frontend
-  is the producer portal plus the login surface; the remaining role surfaces (finance queue, manager view, exec
-  dashboard, admin, partner) are not yet built. (UX-D-002/D-004/D-005, UX-X-006/X-007)
+  route per approval/export/dispute; advanced plan-config behind disclosure. All six role surfaces are shipped in
+  `apps/web/src/components`: producer portal (`portal/`, incl. `DealSimulator.tsx`), finance queue (`finance/`,
+  e.g. `PayrollExport.tsx`), manager view (`manager/`, e.g. `SplitApproval.tsx`), executive dashboard
+  (`executive/`, e.g. `ExecFinancialPosition.tsx`, `ExecDisputeApproval.tsx`), HR (`hr/`, e.g.
+  `DrawBalanceView.tsx`), and partner (`partner/PartnerPayoutView.tsx`), plus the login surface.
+  (UX-D-002/D-004/D-005, UX-X-006/X-007)
 - **Instrument every surface; annotate dormant-by-design code.** Target: every UI surface, page view, API route, and
   role-gated action emits a usage event to `commission_analytics`; cross-phase foundational code (clawback worker,
   external-partner guards, team-pool config) carries a `DORMANT_BY_DESIGN` annotation naming its dependent phase.
@@ -233,7 +236,7 @@ changes a stated choice, §2–§4 and §6 already reflect it.
 | `implementations/ts/env-ts.yaml` | Bun/git/gh/Playwright/tmux host toolchain, port-31415 preview convention | Agent-CLI/agent-context rules partial (dev-environment governance) |
 | `implementations/ts/process-ts.yaml` | GitHub-Issues planning, gh surface, worktrees, scaffold-first, PRD state machines; **_(planned)_** `.gitattributes merge=binary` | Calypso workflow YAML / task-catalog partial; `rust-quality`→TS substitution; IMPL-PROCESS-015 deprecated |
 | `implementations/ts/test-ts.yaml` | Vitest single driver, Playwright provider, real-PG integration, per-suite CI, golden fixtures, dynamic ports | `release.yml`/schema-upgrade-compat workflows partial (not yet shipped) |
-| `implementations/ts/ux-ts.yaml` | Bun surface layout, `Capability`/`ActorType`, service-flow state machines, React/Tailwind, DIY tokens/forms, headless verify; **_(planned)_** the five non-producer role surfaces | Agent-presence/SDK interfaces (IMPL-UX-004/015-SDK) — no account-bound agent in scope |
+| `implementations/ts/ux-ts.yaml` | Bun surface layout, `Capability`/`ActorType`, service-flow state machines, React/Tailwind, DIY tokens/forms, headless verify, all six role surfaces shipped (`apps/web/src/components/{portal,finance,manager,executive,hr,partner}`) | Agent-presence/SDK interfaces (IMPL-UX-004/015-SDK) — no account-bound agent in scope |
 
 ## 10. Conformance Drift Ledger
 
@@ -260,8 +263,6 @@ removed in the same PR).
 - BIP-39 passkey recovery shard (`@scure/bip39` not yet a dependency).
 - Image signing + k3s admission verify; pre-migration DB snapshots.
 - Ledger replay/recovery test suite.
-- The five non-producer role surfaces (finance queue, manager view, exec
-  dashboard, admin, partner).
 - Usage-event instrumentation + `DORMANT_BY_DESIGN` annotations.
 - Merge queue, `Depends-on` ordering, `.gitattributes merge=binary`.
 - Differential privacy on analytics exports; M-of-N for catastrophic operations.
