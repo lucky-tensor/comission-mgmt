@@ -49,15 +49,21 @@ function Section({
   children,
 }: {
   id: string;
-  title: string;
+  /**
+   * Section heading. Omit when the composed child already renders its own
+   * matching task heading, so the page never shows the same heading twice.
+   */
+  title?: string;
   testId: string;
   children: ReactNode;
 }) {
   return (
-    <section style={sectionStyle} aria-labelledby={id} data-testid={testId}>
-      <h2 id={id} style={sectionHeadingStyle}>
-        {title}
-      </h2>
+    <section style={sectionStyle} aria-labelledby={title ? id : undefined} data-testid={testId}>
+      {title && (
+        <h2 id={id} style={sectionHeadingStyle}>
+          {title}
+        </h2>
+      )}
       {children}
     </section>
   );
@@ -76,7 +82,9 @@ export function FinancePage() {
         </p>
       </header>
 
-      <Section id="finance-data-gap" title="Data Gap Queue" testId="finance-section-data-gap">
+      {/* The Data Gap Queue child renders its own "Data Gap Queue" heading, so
+          this page omits a second one (avoids duplicate heading text). */}
+      <Section id="finance-data-gap" testId="finance-section-data-gap">
         <DataGapQueue />
       </Section>
 
