@@ -31,6 +31,8 @@ import { LoadingState, ErrorState, EmptyState } from './portal/states';
 
 interface ProfitabilityByClient {
   clientId: string;
+  /** Human-readable client name (server-derived); shown instead of the UUID. */
+  clientName: string;
   grossFees: string;
   commissionBurden: string;
 }
@@ -90,7 +92,13 @@ function toRows(
       const gross = parseFloat(c.grossFees) || 0;
       const burden = parseFloat(c.commissionBurden) || 0;
       const margin = gross > 0 ? (gross - burden) / gross : null;
-      return { label: c.clientId, grossFees: gross, commissionBurden: burden, margin };
+      // Show the human-readable client name, never the raw UUID (#203).
+      return {
+        label: c.clientName || c.clientId,
+        grossFees: gross,
+        commissionBurden: burden,
+        margin,
+      };
     });
   }
 
@@ -278,7 +286,15 @@ function ProfitabilityTable({ rows, sortDir, onSortToggle, dimension }: Profitab
                 background: i % 2 === 0 ? '#ffffff' : '#f9fafb',
               }}
             >
-              <td style={{ padding: '0.5rem 0.75rem', color: '#111827', fontFamily: 'monospace' }}>
+              <td
+                style={{
+                  padding: '0.5rem 0.75rem',
+                  color: '#111827',
+                  // Client rows show human-readable names; recruiter rows still
+                  // surface raw ids, which read better in monospace.
+                  fontFamily: dimension === 'client' ? 'inherit' : 'monospace',
+                }}
+              >
                 {row.label}
               </td>
               <td style={{ padding: '0.5rem 0.75rem', textAlign: 'right', color: '#111827' }}>

@@ -31,6 +31,7 @@ import { listCommissionRecords } from 'db/commission-records';
 import {
   createCommissionRun,
   getCommissionRun,
+  listCommissionRuns,
   getCommissionRunRecords,
   approveRunRecord,
   approveCommissionRun,
@@ -167,6 +168,50 @@ export async function handleCreateCommissionRun(
   } catch (err: unknown) {
     console.error('[commission-runs] create error:', err);
     return errorResponse('Failed to create commission run', 500);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// GET /commission-runs — list runs visible to the caller (for the run picker)
+// ---------------------------------------------------------------------------
+
+/**
+ * GET /commission-runs — returns the caller-visible commission runs, newest
+ * first, each with id, status, period, created_at and a placement (record)
+ * count. Backs the Finance run picker (#203) so users click a recent run
+ * instead of pasting a UUID.
+ *
+ * RBAC: FinanceAdmin or Executive only (the roles that operate / observe the
+ * close). All other roles receive 403. Results are scoped to the session org.
+ *
+ * @param claims    - Authenticated session claims.
+ * @param sqlClient - Optional injectable SQL client (for testing).
+ */
+export async function handleListCommissionRuns(
+  claims: SessionClaims,
+  sqlClient?: SqlClient,
+): Promise<Response> {
+  if (claims.role !== 'FinanceAdmin' && claims.role !== 'Executive') {
+    return errorResponse('Forbidden: FinanceAdmin or Executive role required', 403);
+  }
+
+  const db = sqlClient ?? defaultSql;
+
+  try {
+    const runs = await listCommissionRuns(db, claims.org_id);
+    return jsonResponse({
+      commission_runs: runs.map((r) => ({
+        id: r.id,
+        status: r.status,
+        period_start: r.periodStart,
+        period_end: r.periodEnd,
+        record_count: r.recordCount,
+        created_at: r.createdAt,
+      })),
+    });
+  } catch (err: unknown) {
+    console.error('[commission-runs] list error:', err);
+    return errorResponse('Failed to list commission runs', 500);
   }
 }
 

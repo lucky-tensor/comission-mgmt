@@ -122,6 +122,7 @@ export type {
 export {
   createCommissionRun,
   getCommissionRun,
+  listCommissionRuns,
   getCommissionRunRecords,
   approveRunRecord,
   approveCommissionRun,
@@ -129,6 +130,7 @@ export {
 } from './src/commission-runs.js';
 export type {
   CommissionRunRow,
+  CommissionRunListItem,
   CommissionRunRecordRow,
   CommissionRunStatus,
   CreateCommissionRunInput,

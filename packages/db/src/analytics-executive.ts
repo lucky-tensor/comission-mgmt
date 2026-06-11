@@ -51,6 +51,14 @@ export function _resetEncryptorForTest(): void {
 
 export interface ProfitabilityByClient {
   clientId: string;
+  /**
+   * Human-readable client display name. The data model has no clients table yet
+   * (client_entity_id is an opaque surrogate UUID — see the ATS-integration TODO
+   * in apps/server/src/api/placements.ts), so until that lands this is a stable
+   * label derived deterministically from the id via `clientDisplayName`. The
+   * executive profitability table shows this instead of the raw UUID (#203).
+   */
+  clientName: string;
   /** Sum of placement fee_amount for this client in the period */
   grossFees: string;
   /** Sum of net_payable on commission records for placements in this client in the period */
@@ -90,6 +98,69 @@ export interface ExecutiveAnalytics {
   total_placements: number;
   profitability_by_client: ProfitabilityByClient[];
   profitability_by_producer: ProfitabilityByProducer[];
+}
+
+// ---------------------------------------------------------------------------
+// Client display names
+// ---------------------------------------------------------------------------
+
+/**
+ * Stable, human-readable label for a client entity id.
+ *
+ * The data model has no clients table yet — `client_entity_id` is an opaque
+ * surrogate UUID minted at placement-create time (see the ATS-integration TODO
+ * in apps/server/src/api/placements.ts). Until a real client directory exists,
+ * the executive profitability surface still must not show raw UUIDs (#203), so
+ * we derive a deterministic readable name from the id: a fixed adjective+noun
+ * pair selected by hashing the id, plus a short id suffix to keep it unique.
+ *
+ * Deterministic: the same id always yields the same name. Never empty.
+ */
+const CLIENT_NAME_PREFIXES = [
+  'Summit',
+  'Atlas',
+  'Beacon',
+  'Cardinal',
+  'Pioneer',
+  'Meridian',
+  'Vertex',
+  'Harbor',
+  'Keystone',
+  'Northwind',
+  'Granite',
+  'Sterling',
+  'Evergreen',
+  'Lighthouse',
+  'Ironwood',
+  'Brightline',
+];
+const CLIENT_NAME_SUFFIXES = [
+  'Partners',
+  'Group',
+  'Holdings',
+  'Industries',
+  'Labs',
+  'Systems',
+  'Ventures',
+  'Solutions',
+];
+
+export function clientDisplayName(clientId: string): string {
+  if (!clientId) return 'Unknown Client';
+  // Simple deterministic hash over the id characters (FNV-1a style).
+  let h = 0x811c9dc5;
+  for (let i = 0; i < clientId.length; i++) {
+    h ^= clientId.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  const prefix = CLIENT_NAME_PREFIXES[h % CLIENT_NAME_PREFIXES.length];
+  const suffix = CLIENT_NAME_SUFFIXES[(h >>> 8) % CLIENT_NAME_SUFFIXES.length];
+  // A short slug from the id keeps two clients that hash alike distinguishable.
+  const slug = clientId
+    .replace(/[^a-z0-9]/gi, '')
+    .slice(0, 4)
+    .toUpperCase();
+  return `${prefix} ${suffix} (${slug})`;
 }
 
 // ---------------------------------------------------------------------------
@@ -398,6 +469,7 @@ export async function getExecutiveAnalytics(
     }
     profitabilityByClient.push({
       clientId,
+      clientName: clientDisplayName(clientId),
       grossFees: grossFees.toFixed(2),
       commissionBurden: burden.toFixed(2),
     });

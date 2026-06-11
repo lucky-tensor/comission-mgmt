@@ -103,6 +103,7 @@ import {
 } from './api/invoices';
 import {
   handleCreateCommissionRun,
+  handleListCommissionRuns,
   handleGetCommissionRunQueue,
   handleApproveRunRecord,
   handleApproveCommissionRun,
@@ -347,6 +348,10 @@ export async function fetchHandler(req: Request): Promise<Response> {
   // Commission run routes — Finance Admin commission close workflow
   if (req.method === 'POST' && pathname === '/commission-runs') {
     return handleCreateCommissionRun(req, authResult.claims);
+  }
+  // GET /commission-runs — list runs for the Finance run picker (#203)
+  if (req.method === 'GET' && pathname === '/commission-runs') {
+    return handleListCommissionRuns(authResult.claims);
   }
   const commissionRunQueueMatch = pathname.match(/^\/commission-runs\/([^/]+)\/queue$/);
   if (req.method === 'GET' && commissionRunQueueMatch) {
