@@ -35,7 +35,7 @@ policy, deterministic CI gates), never by convention. The stack mirrors the refe
 | Layer | Choice | Rationale | Blueprint rules |
 |-------|--------|-----------|-----------------|
 | Runtime / language | **TypeScript** (strict, no `any` in contracts) on **Bun** (runtime, bundler, test runner, package manager) | Single type system across web/server/worker/packages protects money-bearing contracts; single binary keeps the distroless build simple. No Node/npm/webpack/jest. | IMPL-ARCH-001/002, IMPL-ENV-004/010, ARCH-C-012 |
-| Repository | **Multi-app Bun workspace monorepo**, blueprint canonical layout — `apps/{web,server,worker}` + `packages/{core,ui,auth,data,services,integrations}`; strict physical runtime separation, single versioning | Each app independently deployable over shared typed packages; client builds fail on any server import. `apps/worker` is blueprint-justified by network isolation (ARCH-X-004), not premature decomposition. Supersedes the Plan's 3-package set (see §5.2). | ARCH-A-002, ARCH-D-001/D-003, IMPL-ARCH-009/017/018/020, IMPL-DATA-027, IMPL-AUTH-021 |
+| Repository | **Multi-app Bun workspace monorepo** — `apps/{web,server,worker}` + the shipped `packages/{core,db,ui}`; the blueprint's fuller canonical split `packages/{auth,data,services,integrations}` is **_(planned)_** (not yet carved out — `auth`/`data`/`services`/`integrations` do not exist on disk, and `db` was never renamed to `data`; see §5.2); strict physical runtime separation, single versioning | Each app independently deployable over shared typed packages; client builds fail on any server import. `apps/worker` is blueprint-justified by network isolation (ARCH-X-004), not premature decomposition. | ARCH-A-002, ARCH-D-001/D-003, IMPL-ARCH-009/017/018/020, IMPL-DATA-027, IMPL-AUTH-021 |
 | Web framework / UI | **React** (latest stable) + **vanilla Tailwind CSS**; React hooks + minimal context for state; native `useState` forms; thin (<50-line) typed `fetch` wrapper | Data-dense role-scoped surfaces (portal, review queue, dashboards); no CSS-in-JS, no Redux/MobX/Zustand, no form/HTTP-client libraries. | IMPL-ARCH-003/004/005, IMPL-UX-008/009/011/013 |
 | API style | **REST** with versioned, type-checked contracts defined once in `packages/core` | No sub-second/real-time requirement; "continuously updated" payouts are recalculation-on-event over REST, not WebSockets. No GraphQL/WS/Protobuf. | IMPL-ARCH-008/013/015/016, ARCH-D-004, UX-A-001 |
 | Database (primary) | **PostgreSQL 16** `commission_app` — transactional ledger with `org_id` tenancy; **property-graph schema** (`entities`/`relations`/`entity_types` registry) + a **dedicated relational append-only business journal**; `postgres` npm client with tagged-template parameterized queries, **no ORM** | Property graph absorbs variable per-customer plan structures, contributor roles, and split types without DDL; the relational journal carries integrity-critical commission/clawback transitions; recursive CTEs for attribution timelines; parameterization is the multi-tenant injection defense. | DATA-P-003/P-004, DATA-D-002/D-004, IMPL-DATA-001/002/009/033/035 |
@@ -85,8 +85,9 @@ email/SMS provider is later required it will be `[unanchored]` until a rule moti
 Mandatory patterns and prohibitions, each traceable to a blueprint rule:
 
 - **Physical runtime separation.** `apps/web` (browser bundle) must never resolve an import into
-  `apps/server`, `apps/worker`, `packages/data`, or `packages/auth`; separate Bun build configs, CI fails on
-  violation. Shared types only flow through `packages/core`; calculation logic stays server/worker-side.
+  `apps/server`, `apps/worker`, or `packages/db` (nor the **_(planned)_** `packages/data`/`packages/auth`); separate
+  Bun build configs, CI fails on violation. Shared types only flow through `packages/core`; calculation logic stays
+  server/worker-side.
   (ARCH-D-001, ARCH-P-001/P-004, IMPL-ARCH-010/011/026, IMPL-AUTH-032, IMPL-DATA-040)
 - **Single source of truth for domain types.** Placement, contribution, commission, plan-version, invoice,
   draw, exception, and payroll-export-row types are defined once in `packages/core`; no duplicated shapes.
@@ -165,18 +166,21 @@ changes a stated choice, §2–§4 and §6 already reflect it.
    itself prescribes. The Dev-scout (Plan issue #2) implements this split rather than choosing one or the other.
    (DATA-D-002/D-004/P-003, IMPL-DATA-002/006/007)
 
-2. **Package layout → blueprint canonical set.** Adopt `apps/{web,server,worker}` plus
-   `packages/{core, ui, auth, data, services, integrations}`:
+2. **Package layout → blueprint canonical set _(partially shipped; expansion planned)_.** Adopt
+   `apps/{web,server,worker}` plus the blueprint's canonical `packages/{core, ui, auth, data, services, integrations}`.
+   The shipped layout today is `packages/{core, db, ui}`; the `auth`/`data`/`services`/`integrations` carve-outs are
+   **_(planned)_** and not yet on disk:
    - `packages/core` — shared domain types + the commission rules engine / explainability (server/worker-side; never in the browser runtime). (IMPL-ARCH-014/018)
+   - `packages/db` — `db` / `crypto` / `kms` / `analytics` / `audit` and the Claude API client (`packages/db/src/claude-api-client.ts`) live here today. **_(planned)_** rename to `packages/data` per the blueprint is not yet done. (IMPL-DATA-027)
    - `packages/ui` — design system + shared React components. (IMPL-ARCH-019)
-   - `packages/auth` — passkey, JWT (ES256), agent-auth, auth middleware. (IMPL-AUTH-021)
-   - `packages/data` — `db` / `crypto` / `kms` / `analytics` / `audit` submodules; supersedes the Plan's `packages/db`. (IMPL-DATA-027)
-   - `packages/services` — capability/service layer + ATS/CRM and AR ingestion clients. (IMPL-ARCH-017)
-   - `packages/integrations` — third-party SDK wrappers + payroll-export adapters + document/object storage. (IMPL-ARCH-020)
+   - `packages/auth` **_(planned)_** — passkey, JWT (ES256), agent-auth, auth middleware (currently under `apps/server`, not yet a package). (IMPL-AUTH-021)
+   - `packages/services` **_(planned)_** — capability/service layer + ATS/CRM and AR ingestion clients. (IMPL-ARCH-017)
+   - `packages/integrations` **_(planned)_** — third-party SDK wrappers + payroll-export adapters + document/object storage. (IMPL-ARCH-020)
 
    `apps/worker` is retained — the blueprint blesses the worker split for network isolation (ARCH-X-004), not
    premature microservices. Each package has a documented, non-overlapping responsibility (ARCH-C-014/C-017). The
-   Plan's `docs/plan.md` package list (`packages/{core,db,ui}`) should be reconciled to this layout.
+   Plan's `docs/plan.md` package list (`packages/{core,db,ui}`) matches the shipped set; reconciling to the fuller
+   six-package layout is a separate, not-yet-scheduled refactor.
 
 3. **Passkey recovery → BIP-39 recovery shard _(planned)_.** Target recovery flow: a BIP-39 mnemonic encrypting a
    server-held recovery shard (AES-256-GCM via HKDF), gated by a second factor (Argon2id backup code or hardware-key
