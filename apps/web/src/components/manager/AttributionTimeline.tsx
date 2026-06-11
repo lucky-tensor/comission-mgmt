@@ -266,8 +266,11 @@ export function AttributionTimeline() {
   const [searchId, setSearchId] = useState<string | null>(null);
   const [events, setEvents] = useState<AttributionEvent[] | null>(null);
 
+  // Source the picker from the manager's team placements (the deals a manager
+  // can actually inspect), not the org-wide /placements list.
   const placements = useAsync<PlacementOption[]>(
-    () => apiGet<{ placements: PlacementOption[] }>('/placements').then((r) => r.placements),
+    () =>
+      apiGet<{ placements: PlacementOption[] }>('/me/team/placements').then((r) => r.placements),
     [],
   );
 

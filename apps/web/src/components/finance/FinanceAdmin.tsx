@@ -38,8 +38,9 @@ function placementLabel(p: PlacementListItem): string {
 export function InvoiceCollectionSection() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
+  // GET /placements returns a bare array of placements.
   const placements = useAsync<PlacementListItem[]>(
-    () => apiGet<{ placements: PlacementListItem[] }>('/placements').then((r) => r.placements),
+    () => apiGet<PlacementListItem[]>('/placements'),
     [],
   );
 

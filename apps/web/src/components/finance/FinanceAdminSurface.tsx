@@ -66,8 +66,9 @@ export function FinanceAdminSurface() {
   const [placementId, setPlacementId] = useState<string | null>(null);
   const [payrollRun, setPayrollRun] = useState<{ id: string; status: string } | null>(null);
 
+  // GET /placements returns a bare array of placements.
   const placements = useAsync<PlacementListItem[]>(
-    () => apiGet<{ placements: PlacementListItem[] }>('/placements').then((r) => r.placements),
+    () => apiGet<PlacementListItem[]>('/placements'),
     [],
   );
   const runs = useAsync<CommissionRunListItem[]>(

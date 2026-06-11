@@ -284,10 +284,20 @@ describe('FA-4: Finance Admin tracks invoice and collection status', () => {
     if (firstRealOption) {
       await userEvent.selectOptions(selectEl, firstRealOption.getAttribute('value') ?? '');
       await expect.element(page.getByTestId('invoice-collection')).toBeInTheDocument();
-      // Either phase-rows (data) or empty-state (no billing phases yet) renders.
-      const hasPhaseRows = (await page.getByTestId('phase-rows').elements()).length > 0;
-      const hasEmpty = (await page.getByTestId('empty-state').elements()).length > 0;
-      expect(hasPhaseRows || hasEmpty).toBe(true);
+      // Either phase-rows (data) or empty-state (no billing phases yet) renders —
+      // poll, since the invoice-collection data load settles asynchronously.
+      let settled = false;
+      const deadline = Date.now() + 15_000;
+      while (Date.now() < deadline) {
+        const hasPhaseRows = (await page.getByTestId('phase-rows').elements()).length > 0;
+        const hasEmpty = (await page.getByTestId('empty-state').elements()).length > 0;
+        if (hasPhaseRows || hasEmpty) {
+          settled = true;
+          break;
+        }
+        await new Promise((r) => setTimeout(r, 200));
+      }
+      expect(settled).toBe(true);
     }
   });
 
