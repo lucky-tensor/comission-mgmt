@@ -54,6 +54,7 @@ export const ROUTES = {
   EXEC_TRENDS: '/executive/trends',
   HR: '/hr',
   PARTNER: '/partner',
+  DOCS: '/docs',
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -63,8 +64,11 @@ export const ROUTES = {
 export const ROLE_ROUTES: Record<AppRole, RoleRouteConfig> = {
   Producer: {
     landing: ROUTES.PORTAL,
-    permitted: new Set([ROUTES.PORTAL]),
-    navItems: [{ path: ROUTES.PORTAL, label: 'My Portal' }],
+    permitted: new Set([ROUTES.PORTAL, ROUTES.DOCS]),
+    navItems: [
+      { path: ROUTES.PORTAL, label: 'My Portal' },
+      { path: ROUTES.DOCS, label: 'Docs' },
+    ],
   },
 
   FinanceAdmin: {
@@ -75,17 +79,22 @@ export const ROLE_ROUTES: Record<AppRole, RoleRouteConfig> = {
       ROUTES.PORTAL,
       ROUTES.HR,
       ROUTES.PARTNER,
+      ROUTES.DOCS,
     ]),
     navItems: [
       { path: ROUTES.FINANCE, label: 'Finance Home' },
       { path: ROUTES.RECONCILIATION, label: 'Reconciliation' },
+      { path: ROUTES.DOCS, label: 'Docs' },
     ],
   },
 
   Manager: {
     landing: ROUTES.MANAGER,
-    permitted: new Set([ROUTES.MANAGER]),
-    navItems: [{ path: ROUTES.MANAGER, label: 'Team View' }],
+    permitted: new Set([ROUTES.MANAGER, ROUTES.DOCS]),
+    navItems: [
+      { path: ROUTES.MANAGER, label: 'Team View' },
+      { path: ROUTES.DOCS, label: 'Docs' },
+    ],
   },
 
   Executive: {
@@ -95,25 +104,33 @@ export const ROLE_ROUTES: Record<AppRole, RoleRouteConfig> = {
       ROUTES.EXEC_PROFITABILITY,
       ROUTES.EXEC_TRENDS,
       ROUTES.FINANCE,
+      ROUTES.DOCS,
     ]),
     navItems: [
       { path: ROUTES.EXECUTIVE, label: 'Executive Dashboard' },
       { path: ROUTES.EXEC_PROFITABILITY, label: 'Profitability' },
       { path: ROUTES.EXEC_TRENDS, label: 'Exception & Dispute Trends' },
       { path: ROUTES.FINANCE, label: 'Finance View' },
+      { path: ROUTES.DOCS, label: 'Docs' },
     ],
   },
 
   HR: {
     landing: ROUTES.HR,
-    permitted: new Set([ROUTES.HR]),
-    navItems: [{ path: ROUTES.HR, label: 'HR Home' }],
+    permitted: new Set([ROUTES.HR, ROUTES.DOCS]),
+    navItems: [
+      { path: ROUTES.HR, label: 'HR Home' },
+      { path: ROUTES.DOCS, label: 'Docs' },
+    ],
   },
 
   ExternalPartner: {
     landing: ROUTES.PARTNER,
-    permitted: new Set([ROUTES.PARTNER]),
-    navItems: [{ path: ROUTES.PARTNER, label: 'My Placements' }],
+    permitted: new Set([ROUTES.PARTNER, ROUTES.DOCS]),
+    navItems: [
+      { path: ROUTES.PARTNER, label: 'My Placements' },
+      { path: ROUTES.DOCS, label: 'Docs' },
+    ],
   },
 };
 

@@ -205,10 +205,11 @@ describe('PartnerPayoutView — scope enforcement (roleRoutes structural)', () =
     }
   });
 
-  test('ExternalPartner nav exposes only My Placements', () => {
+  test('ExternalPartner nav exposes My Placements and Docs', () => {
     const config = ROLE_ROUTES['ExternalPartner'];
-    expect(config.navItems).toHaveLength(1);
+    expect(config.navItems).toHaveLength(2);
     expect(config.navItems[0].path).toBe(ROUTES.PARTNER);
+    expect(config.navItems[1].path).toBe(ROUTES.DOCS);
   });
 
   test('ExternalPartner landing is /partner', () => {
