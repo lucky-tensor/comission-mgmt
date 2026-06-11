@@ -83,5 +83,22 @@ jobs:
       - name: Run ${{ matrix.config }}
         run: bun --bun vitest run --config ${{ matrix.config }}
 
+  # Node-only suites — no Postgres, no browser. Pure data/helper unit tests.
+  node-suites:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          # Web App UX routing seam (#201) — role routing helpers + invariants.
+          - vitest.webapp-ux.config.ts
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - name: Install dependencies
+        run: bun install --frozen-lockfile --ignore-scripts
+      - name: Run ${{ matrix.config }}
+        run: bun --bun vitest run --config ${{ matrix.config }}
+
   # The browser-mode suite (vitest.browser.config.ts) is run by test-e2e.yml,
   # which installs Playwright Chromium and invokes `bun run test:browser`.
