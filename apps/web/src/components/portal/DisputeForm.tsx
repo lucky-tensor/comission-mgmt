@@ -7,7 +7,7 @@
  * state. Validation, submitting, error, and confirmation are all explicit
  * states so the flow is testable in a real browser.
  *
- * Canonical docs: docs/prd.md §5.8 — Producer dispute submission
+ * Canonical docs: docs/prd.md §5.9 — Producer dispute submission
  * Issue: feat: Producer Portal UI + headless-Chromium browser/E2E harness (#78)
  */
 

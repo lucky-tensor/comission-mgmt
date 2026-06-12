@@ -9,7 +9,7 @@
  * Columns: role/position, split % (tier rate), commissionable base (gross),
  * calculated amount (net payable), holdback status, payment trigger.
  *
- * Canonical docs: docs/prd.md §5.8 — Producer Payout Portal
+ * Canonical docs: docs/prd.md §5.9 — Producer Payout Portal
  * Issue: feat: Producer Portal UI + headless-Chromium browser/E2E harness (#78)
  */
 

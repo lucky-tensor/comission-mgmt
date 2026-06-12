@@ -7,7 +7,7 @@
  *
  * State lifecycle: Submitted → UnderReview → Resolved
  *
- * Canonical docs: docs/prd.md §5.8, §4
+ * Canonical docs: docs/prd.md §5.9, §4
  * Issue: feat: payout dispute and question submission (#18)
  */
 

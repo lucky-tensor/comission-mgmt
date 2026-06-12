@@ -7,7 +7,7 @@
  * though the feature issue body uses broader user-facing wording.
  *
  * Canonical docs:
- *   - docs/prd.md §5.8
+ *   - docs/prd.md §5.9
  *   - docs/arbitration-simulation.md
  * Issue: feat: Producer Deal Simulation — payout + dispute-risk forecasting (#187)
  */

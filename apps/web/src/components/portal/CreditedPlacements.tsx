@@ -6,7 +6,7 @@
  * Each row exposes the plain-language explanation and the hold/blocked-phase
  * status so producers understand why a payout is or isn't released.
  *
- * Canonical docs: docs/prd.md §5.8 — Producer Payout Portal
+ * Canonical docs: docs/prd.md §5.9 — Producer Payout Portal
  * Issue: feat: Producer Portal UI + headless-Chromium browser/E2E harness (#78)
  */
 

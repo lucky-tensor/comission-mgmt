@@ -9,7 +9,7 @@
  * Field names are snake_case to match the wire format the server emits verbatim.
  *
  * Canonical docs:
- *   - docs/prd.md §5.8, §7.6 — Producer Payout Portal
+ *   - docs/prd.md §5.9 — Producer Payout Portal
  *   - docs/architecture/phase-producer-portal.md
  * Issue: feat: Producer Portal UI + Vitest headless-Chromium browser/E2E harness (#78)
  */

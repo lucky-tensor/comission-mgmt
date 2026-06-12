@@ -10,7 +10,7 @@
  * readable `__Host-csrf-token` cookie on login. For mutating requests we echo
  * that value in the `X-CSRF-Token` header. GET requests need no token.
  *
- * Canonical docs: docs/prd.md §5.8 — Producer Payout Portal
+ * Canonical docs: docs/prd.md §5.9 — Producer Payout Portal
  * Issues: feat: Producer Portal UI + headless-Chromium browser/E2E harness (#78)
  *         feat: Finance Admin UI — data-gap / completeness review queue (#101)
  */

@@ -839,7 +839,7 @@ CREATE INDEX IF NOT EXISTS idx_reconciliation_discrepancies_ack ON reconciliatio
 -- Producers link a dispute to a specific CommissionRecord. Finance Admins review
 -- and resolve disputes, optionally linking to a resulting exception or adjustment.
 -- State lifecycle: Submitted → UnderReview → Resolved
--- Canonical: docs/prd.md §5.8, §4 — Producer user stories
+-- Canonical: docs/prd.md §5.9, §4 — Producer user stories
 -- Issue: feat: payout dispute and question submission (#18)
 -- =============================================================================
 
