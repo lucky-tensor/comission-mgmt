@@ -26,6 +26,8 @@ import { CommissionRunReview } from './CommissionRunReview';
 import { InvoiceCollectionSection } from './FinanceAdmin';
 import { FinanceAdminSurface } from './FinanceAdminSurface';
 import { ReconciliationReport } from './ReconciliationReport';
+import { PlacementLedger } from '../placements/PlacementLedger';
+import type { AppRole } from 'core/auth';
 
 function Section({
   id,
@@ -58,7 +60,7 @@ function Section({
   );
 }
 
-export function FinancePage() {
+export function FinancePage({ role = 'FinanceAdmin' }: { role?: AppRole }) {
   return (
     <div data-testid="finance-page">
       <header className="mb-6">
@@ -70,6 +72,10 @@ export function FinancePage() {
       </header>
 
       <Tabs defaultTab="processing">
+        <Tabs.Tab id="placements" label="Placements">
+          <PlacementLedger role={role} />
+        </Tabs.Tab>
+
         <Tabs.Tab id="processing" label="Processing">
           <div className="space-y-6">
             {/* The Data Gap Queue child renders its own "Data Gap Queue" heading, so

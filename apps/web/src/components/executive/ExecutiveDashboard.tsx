@@ -59,7 +59,7 @@ export function ExecutiveDashboard({ role }: ExecutiveDashboardProps) {
         </Tabs.Tab>
 
         <Tabs.Tab id="finance" label="Finance (read-only)">
-          <FinancePage />
+          <FinancePage role={role} />
         </Tabs.Tab>
       </Tabs>
     </div>

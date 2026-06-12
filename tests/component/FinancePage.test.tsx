@@ -27,11 +27,10 @@ afterEach(() => {
   mounted = undefined;
 });
 
-const TASK_HEADINGS = [
+const PROCESSING_HEADINGS = [
   'Data Gap Queue',
   'Commission Runs',
   'Invoice & Collection Tracking',
-  'Adjustments & Payroll Export',
 ];
 
 describe('FinancePage composition', () => {
@@ -43,23 +42,31 @@ describe('FinancePage composition', () => {
 
   test('renders the four task-named section headings', async () => {
     mounted = renderInBrowser(<FinancePage />);
-    for (const heading of TASK_HEADINGS) {
+    for (const heading of PROCESSING_HEADINGS) {
       await expect.element(page.getByRole('heading', { name: heading })).toBeInTheDocument();
     }
+    await page.getByRole('tab', { name: 'Adjustments & Payroll' }).click();
+    await expect
+      .element(page.getByRole('heading', { name: 'Adjustments & Payroll Export' }))
+      .toBeInTheDocument();
   });
 
   test('no heading is titled "Finance Admin"; each task heading appears once', async () => {
     mounted = renderInBrowser(<FinancePage />);
     await expect.element(page.getByTestId('finance-page')).toBeInTheDocument();
-    const headings = Array.from(mounted.container.querySelectorAll('h1, h2, h3')).map((h) =>
+    let headings = Array.from(mounted.container.querySelectorAll('h1, h2, h3')).map((h) =>
       (h.textContent ?? '').trim(),
     );
-    // The leaked "Finance Admin" (viewer, not task) heading must be gone.
     expect(headings.filter((t) => t === 'Finance Admin')).toEqual([]);
-    // Each of the four task headings appears exactly once (no duplicates like
-    // the old two "Finance Admin" / two "Data Gap Queue" headings).
-    for (const task of TASK_HEADINGS) {
+    for (const task of PROCESSING_HEADINGS) {
       expect(headings.filter((t) => t === task).length).toBe(1);
     }
+
+    await page.getByRole('tab', { name: 'Adjustments & Payroll' }).click();
+    headings = Array.from(mounted.container.querySelectorAll('h1, h2, h3')).map((h) =>
+      (h.textContent ?? '').trim(),
+    );
+    expect(headings.filter((t) => t === 'Finance Admin')).toEqual([]);
+    expect(headings.filter((t) => t === 'Adjustments & Payroll Export').length).toBe(1);
   });
 });

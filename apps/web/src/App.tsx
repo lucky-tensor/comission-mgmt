@@ -80,7 +80,7 @@ function AuthenticatedApp({ role, path, personaName, onLogout }: AuthenticatedAp
         return <ProducerPortal onUnauthenticated={() => navigate(ROUTES.LOGIN)} />;
       case ROUTES.FINANCE:
       case ROUTES.RECONCILIATION:
-        return <FinancePage />;
+        return <FinancePage role={role} />;
       case ROUTES.MANAGER:
         return <ManagerHome />;
       case ROUTES.EXECUTIVE:

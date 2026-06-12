@@ -56,15 +56,14 @@ function errorResponse(message: string, status: number): Response {
  * GET /producers — lists the org's producers (id + display name) so the HR
  * draw-balance surface can offer a name-based picker instead of a UUID input.
  *
- * RBAC: HR only (the role that operates the draw-balance lookup). All other
- * roles receive 403. Results are scoped to the session org.
+ * RBAC: HR and Finance Admin. Results are scoped to the session org.
  */
 export async function handleListProducers(
   claims: SessionClaims,
   sqlClient?: SqlClient,
 ): Promise<Response> {
-  if (claims.role !== 'HR') {
-    return errorResponse('Forbidden: HR role required', 403);
+  if (claims.role !== 'HR' && claims.role !== 'FinanceAdmin') {
+    return errorResponse('Forbidden: HR or Finance Admin role required', 403);
   }
 
   const db = sqlClient ?? defaultSql;

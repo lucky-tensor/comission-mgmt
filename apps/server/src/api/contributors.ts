@@ -55,6 +55,10 @@ function errorResponse(message: string, status: number, fields?: Record<string, 
   return jsonResponse({ error: message, ...(fields ? { fields } : {}) }, status);
 }
 
+function canManageContributors(claims: SessionClaims): boolean {
+  return claims.role === 'FinanceAdmin' || claims.role === 'Manager';
+}
+
 /**
  * Writes an AuditLogEntry row for a contributor assignment or removal.
  * Failures are logged but do not propagate — the main operation is already committed.
@@ -122,6 +126,8 @@ export async function handleAddContributor(
   sqlClient?: SqlClient,
   auditSqlClient?: SqlClient,
 ): Promise<Response> {
+  if (!canManageContributors(claims)) return errorResponse('Forbidden', 403);
+
   const db = sqlClient ?? defaultSql;
   const adb = auditSqlClient ?? defaultAuditSql;
 
@@ -305,6 +311,8 @@ export async function handleDeleteContributor(
   sqlClient?: SqlClient,
   auditSqlClient?: SqlClient,
 ): Promise<Response> {
+  if (!canManageContributors(claims)) return errorResponse('Forbidden', 403);
+
   const db = sqlClient ?? defaultSql;
   const adb = auditSqlClient ?? defaultAuditSql;
 
