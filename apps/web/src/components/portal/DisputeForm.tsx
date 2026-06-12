@@ -16,16 +16,10 @@ import type { CommissionRecord, Dispute } from 'core/producer-portal';
 import { apiPost } from '../../lib/apiClient';
 import { formatCurrency } from '../../lib/format';
 import { PortalCard, EmptyState } from './states';
+import { Button } from 'ui';
 
-const fieldStyle: React.CSSProperties = {
-  width: '100%',
-  padding: '0.625rem 0.75rem',
-  border: '1px solid #d1d5db',
-  borderRadius: '0.5rem',
-  fontSize: '0.875rem',
-  boxSizing: 'border-box',
-  marginBottom: '0.875rem',
-};
+const FIELD_CLASS =
+  'w-full px-3 py-2.5 border border-border-strong rounded-lg text-sm box-border mb-3.5';
 
 /**
  * Dispute form for the producer's commission records.
@@ -63,14 +57,7 @@ export function DisputeForm({
         <div
           data-testid="dispute-confirmation"
           role="status"
-          style={{
-            padding: '1.25rem',
-            background: '#ecfdf5',
-            border: '1px solid #6ee7b7',
-            borderRadius: '0.5rem',
-            color: '#065f46',
-            fontSize: '0.875rem',
-          }}
+          className="p-5 bg-ok-bg border border-ok-fg/30 rounded-lg text-ok-fg text-sm"
         >
           Dispute submitted — current state:{' '}
           <strong data-testid="dispute-state">{result.state}</strong>. Finance will review it
@@ -104,11 +91,11 @@ export function DisputeForm({
   return (
     <PortalCard title="Submit a dispute">
       <form data-testid="dispute-form" onSubmit={handleSubmit}>
-        <label style={{ display: 'block', fontSize: '0.8125rem', color: '#374151' }}>
+        <label className="block text-[0.8125rem] text-ink-muted">
           Commission record
           <select
             data-testid="dispute-record"
-            style={fieldStyle}
+            className={FIELD_CLASS}
             value={recordId}
             onChange={(e) => setRecordId(e.target.value)}
           >
@@ -119,11 +106,11 @@ export function DisputeForm({
             ))}
           </select>
         </label>
-        <label style={{ display: 'block', fontSize: '0.8125rem', color: '#374151' }}>
+        <label className="block text-[0.8125rem] text-ink-muted">
           What&apos;s the issue?
           <textarea
             data-testid="dispute-description"
-            style={{ ...fieldStyle, minHeight: '5rem', resize: 'vertical' }}
+            className={`${FIELD_CLASS} min-h-[5rem] resize-y`}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Describe the discrepancy you'd like reviewed…"
@@ -133,28 +120,14 @@ export function DisputeForm({
           <div
             data-testid="dispute-error"
             role="alert"
-            style={{ color: '#b91c1c', fontSize: '0.8125rem', marginBottom: '0.75rem' }}
+            className="text-bad-fg text-[0.8125rem] mb-3"
           >
             {error}
           </div>
         )}
-        <button
-          type="submit"
-          data-testid="dispute-submit"
-          disabled={submitting}
-          style={{
-            padding: '0.625rem 1.25rem',
-            background: submitting ? '#9ca3af' : '#111827',
-            color: '#fff',
-            border: 'none',
-            borderRadius: '0.5rem',
-            fontSize: '0.875rem',
-            fontWeight: 500,
-            cursor: submitting ? 'not-allowed' : 'pointer',
-          }}
-        >
+        <Button type="submit" data-testid="dispute-submit" disabled={submitting}>
           {submitting ? 'Submitting…' : 'Submit dispute'}
-        </button>
+        </Button>
       </form>
     </PortalCard>
   );

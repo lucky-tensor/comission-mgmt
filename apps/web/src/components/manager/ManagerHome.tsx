@@ -15,15 +15,7 @@ import { ManagerPortal as SplitEscalation } from './SplitEscalation';
 
 export function ManagerHome() {
   return (
-    <div
-      data-testid="manager-home"
-      style={{
-        maxWidth: '64rem',
-        margin: '0 auto',
-        padding: '1.5rem',
-        fontFamily: 'system-ui, sans-serif',
-      }}
-    >
+    <div data-testid="manager-home" className="max-w-[64rem] mx-auto p-6">
       <SplitApproval />
       <AttributionTimeline />
       <TeamCommissionView />

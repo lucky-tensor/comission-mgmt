@@ -19,6 +19,7 @@
  */
 
 import { useState } from 'react';
+import { Button, StatusChip } from 'ui';
 import { apiGet, apiPatch } from '../../lib/apiClient';
 import { useAsync, type AsyncState } from '../../lib/useAsync';
 import { formatCurrency, formatDate } from '../../lib/format';
@@ -77,103 +78,28 @@ export function isGateSatisfied(invoiceStatus: string | null): boolean {
 }
 
 // ---------------------------------------------------------------------------
-// Styles
+// Styles — Tailwind class strings (theme tokens, no raw hex)
 // ---------------------------------------------------------------------------
 
-const phaseCardStyle: React.CSSProperties = {
-  background: '#f9fafb',
-  border: '1px solid #e5e7eb',
-  borderRadius: '0.75rem',
-  padding: '1.25rem',
-  marginBottom: '1rem',
-};
+const PHASE_CARD_CLASS = 'bg-surface-muted border border-border rounded-xl p-5 mb-4';
 
-const phaseHeadStyle: React.CSSProperties = {
-  fontSize: '1rem',
-  fontWeight: 600,
-  color: '#111827',
-  marginTop: 0,
-  marginBottom: '0.75rem',
-  textTransform: 'capitalize',
-};
+const PHASE_HEAD_CLASS = 'text-base font-semibold text-ink mt-0 mb-3 capitalize';
 
-const metaGridStyle: React.CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(3, 1fr)',
-  gap: '1rem',
-  marginBottom: '1rem',
-};
+const META_GRID_CLASS = 'grid grid-cols-3 gap-4 mb-4';
 
-const metaItemStyle: React.CSSProperties = {
-  background: '#ffffff',
-  border: '1px solid #e5e7eb',
-  borderRadius: '0.5rem',
-  padding: '0.75rem',
-};
+const META_ITEM_CLASS = 'bg-surface border border-border rounded-lg p-3';
 
-const metaLabelStyle: React.CSSProperties = {
-  fontSize: '0.6875rem',
-  fontWeight: 600,
-  color: '#6b7280',
-  textTransform: 'uppercase',
-  letterSpacing: '0.03em',
-  marginBottom: '0.25rem',
-};
+const META_LABEL_CLASS =
+  'text-[0.6875rem] font-semibold text-ink-subtle uppercase tracking-wide mb-1';
 
-const metaValueStyle: React.CSSProperties = {
-  fontSize: '1rem',
-  fontWeight: 700,
-  color: '#111827',
-};
+const META_VALUE_CLASS = 'text-base font-bold text-ink';
 
-const gateBadgeStyle = (satisfied: boolean): React.CSSProperties => ({
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: '0.375rem',
-  padding: '0.25rem 0.625rem',
-  borderRadius: '9999px',
-  fontSize: '0.75rem',
-  fontWeight: 600,
-  background: satisfied ? '#dcfce7' : '#fef9c3',
-  color: satisfied ? '#166534' : '#854d0e',
-  border: `1px solid ${satisfied ? '#bbf7d0' : '#fde68a'}`,
-});
+const INVOICE_SECTION_CLASS = 'border-t border-border pt-4 mt-2';
 
-const invoiceSectionStyle: React.CSSProperties = {
-  borderTop: '1px solid #e5e7eb',
-  paddingTop: '1rem',
-  marginTop: '0.5rem',
-};
+const LABEL_CLASS = 'text-xs font-semibold text-ink-subtle uppercase tracking-wide mb-1';
 
-const labelStyle: React.CSSProperties = {
-  fontSize: '0.75rem',
-  fontWeight: 600,
-  color: '#6b7280',
-  textTransform: 'uppercase',
-  letterSpacing: '0.03em',
-  marginBottom: '0.25rem',
-};
-
-const selectStyle: React.CSSProperties = {
-  padding: '0.375rem 0.625rem',
-  border: '1px solid #d1d5db',
-  borderRadius: '0.375rem',
-  fontSize: '0.875rem',
-  background: '#ffffff',
-  cursor: 'pointer',
-  marginRight: '0.5rem',
-};
-
-const btnStyle: React.CSSProperties = {
-  padding: '0.375rem 0.875rem',
-  background: '#1d4ed8',
-  color: '#ffffff',
-  border: 'none',
-  borderRadius: '0.375rem',
-  fontSize: '0.875rem',
-  fontWeight: 600,
-  cursor: 'pointer',
-};
+const SELECT_CLASS =
+  'px-2.5 py-1.5 border border-border-strong rounded-md text-sm bg-surface cursor-pointer mr-2';
 
 // ---------------------------------------------------------------------------
 // PhaseCard — one billing phase with its Projected/Billed/Received and invoice
@@ -233,106 +159,85 @@ export function PhaseCard({
   }
 
   return (
-    <div data-testid={`phase-card-${phase.phase_name}`} style={phaseCardStyle}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <h3 style={phaseHeadStyle}>{phase.phase_name} phase</h3>
-        <span data-testid={`gate-badge-${phase.phase_name}`} style={gateBadgeStyle(gateSatisfied)}>
+    <div data-testid={`phase-card-${phase.phase_name}`} className={PHASE_CARD_CLASS}>
+      <div className="flex justify-between items-start">
+        <h3 className={PHASE_HEAD_CLASS}>{phase.phase_name} phase</h3>
+        <StatusChip
+          data-testid={`gate-badge-${phase.phase_name}`}
+          variant={gateSatisfied ? 'green' : 'amber'}
+        >
           {gateSatisfied ? 'Gate: Satisfied' : 'Gate: Held'}
-        </span>
+        </StatusChip>
       </div>
 
       {/* Projected / Billed / Received lifecycle */}
-      <div style={metaGridStyle}>
-        <div style={metaItemStyle}>
-          <div style={metaLabelStyle}>Projected</div>
-          <div data-testid={`projected-${phase.phase_name}`} style={metaValueStyle}>
+      <div className={META_GRID_CLASS}>
+        <div className={META_ITEM_CLASS}>
+          <div className={META_LABEL_CLASS}>Projected</div>
+          <div data-testid={`projected-${phase.phase_name}`} className={META_VALUE_CLASS}>
             {formatCurrency(phase.projected_amount)}
           </div>
         </div>
-        <div style={metaItemStyle}>
-          <div style={metaLabelStyle}>Billed</div>
-          <div style={metaValueStyle}>
+        <div className={META_ITEM_CLASS}>
+          <div className={META_LABEL_CLASS}>Billed</div>
+          <div className={META_VALUE_CLASS}>
             <input
               data-testid={`billed-input-${phase.phase_name}`}
               type="text"
               value={pendingBilled}
               onChange={(e) => setPendingBilled(e.target.value)}
               placeholder="—"
-              style={{
-                border: 'none',
-                background: 'transparent',
-                fontSize: '1rem',
-                fontWeight: 700,
-                color: '#111827',
-                width: '100%',
-                padding: 0,
-              }}
+              className="border-none bg-transparent text-base font-bold text-ink w-full p-0"
             />
           </div>
         </div>
-        <div style={metaItemStyle}>
-          <div style={metaLabelStyle}>Received</div>
-          <div style={metaValueStyle}>
+        <div className={META_ITEM_CLASS}>
+          <div className={META_LABEL_CLASS}>Received</div>
+          <div className={META_VALUE_CLASS}>
             <input
               data-testid={`received-input-${phase.phase_name}`}
               type="text"
               value={pendingReceived}
               onChange={(e) => setPendingReceived(e.target.value)}
               placeholder="—"
-              style={{
-                border: 'none',
-                background: 'transparent',
-                fontSize: '1rem',
-                fontWeight: 700,
-                color: '#111827',
-                width: '100%',
-                padding: 0,
-              }}
+              className="border-none bg-transparent text-base font-bold text-ink w-full p-0"
             />
           </div>
         </div>
       </div>
 
       {/* Invoice section */}
-      <div style={invoiceSectionStyle}>
+      <div className={INVOICE_SECTION_CLASS}>
         {invoice ? (
           <div data-testid={`invoice-section-${phase.phase_name}`}>
-            <div
-              style={{ display: 'flex', gap: '2rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}
-            >
+            <div className="flex gap-8 mb-3 flex-wrap">
               <div>
-                <div style={labelStyle}>Invoice #</div>
-                <div style={{ fontSize: '0.875rem', color: '#374151' }}>
-                  {invoice.invoice_number}
-                </div>
+                <div className={LABEL_CLASS}>Invoice #</div>
+                <div className="text-sm text-ink-muted">{invoice.invoice_number}</div>
               </div>
               <div>
-                <div style={labelStyle}>Amount Billed</div>
-                <div style={{ fontSize: '0.875rem', color: '#374151' }}>
+                <div className={LABEL_CLASS}>Amount Billed</div>
+                <div className="text-sm text-ink-muted">
                   {formatCurrency(invoice.amount_billed)}
                 </div>
               </div>
               <div>
-                <div style={labelStyle}>Amount Collected</div>
-                <div style={{ fontSize: '0.875rem', color: '#374151' }}>
+                <div className={LABEL_CLASS}>Amount Collected</div>
+                <div className="text-sm text-ink-muted">
                   {invoice.amount_collected ? formatCurrency(invoice.amount_collected) : '—'}
                 </div>
               </div>
               <div>
-                <div style={labelStyle}>Issued</div>
-                <div style={{ fontSize: '0.875rem', color: '#374151' }}>
-                  {formatDate(invoice.issued_at)}
-                </div>
+                <div className={LABEL_CLASS}>Issued</div>
+                <div className="text-sm text-ink-muted">{formatDate(invoice.issued_at)}</div>
               </div>
               <div>
-                <div style={labelStyle}>Due</div>
-                <div style={{ fontSize: '0.875rem', color: '#374151' }}>
-                  {formatDate(invoice.due_at)}
-                </div>
+                <div className={LABEL_CLASS}>Due</div>
+                <div className="text-sm text-ink-muted">{formatDate(invoice.due_at)}</div>
               </div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <label htmlFor={`invoice-status-${phase.phase_name}`} style={labelStyle}>
+            <div className="flex items-center gap-2">
+              <label htmlFor={`invoice-status-${phase.phase_name}`} className={LABEL_CLASS}>
                 Status:
               </label>
               <select
@@ -340,7 +245,7 @@ export function PhaseCard({
                 data-testid={`invoice-status-select-${phase.phase_name}`}
                 value={pendingStatus}
                 onChange={(e) => setPendingStatus(e.target.value)}
-                style={selectStyle}
+                className={SELECT_CLASS}
               >
                 {Object.entries(INVOICE_STATUS_LABELS).map(([value, label]) => (
                   <option key={value} value={value}>
@@ -353,7 +258,7 @@ export function PhaseCard({
         ) : (
           <div
             data-testid={`no-invoice-${phase.phase_name}`}
-            style={{ fontSize: '0.875rem', color: '#9ca3af', fontStyle: 'italic' }}
+            className="text-sm text-ink-faint italic"
           >
             No invoice linked to this phase.
           </div>
@@ -361,19 +266,18 @@ export function PhaseCard({
       </div>
 
       {/* Save controls */}
-      <div style={{ marginTop: '0.875rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-        <button
+      <div className="mt-3.5 flex gap-2 items-center">
+        <Button
           data-testid={`save-btn-${phase.phase_name}`}
           onClick={() => void handleSave()}
           disabled={saving}
-          style={saving ? { ...btnStyle, opacity: 0.6 } : btnStyle}
         >
           {saving ? 'Saving…' : 'Save'}
-        </button>
+        </Button>
         {saveError && (
           <span
             data-testid={`save-error-${phase.phase_name}`}
-            style={{ fontSize: '0.8125rem', color: '#b91c1c' }}
+            className="text-[0.8125rem] text-bad-fg"
           >
             {saveError}
           </span>
@@ -381,7 +285,7 @@ export function PhaseCard({
         {saveSuccess && !saveError && (
           <span
             data-testid={`save-success-${phase.phase_name}`}
-            style={{ fontSize: '0.8125rem', color: '#166534' }}
+            className="text-[0.8125rem] text-ok-fg"
           >
             Saved
           </span>

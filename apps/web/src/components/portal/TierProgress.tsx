@@ -44,35 +44,22 @@ function TierProgressBody({ data }: { data: TierProgress }) {
       );
   return (
     <div data-testid="tier-progress">
-      <p style={{ fontSize: '0.875rem', color: '#374151', margin: '0 0 0.75rem' }}>
+      <p className="text-sm text-ink-muted mt-0 mb-3">
         Current production:{' '}
         <strong data-testid="tier-production">
           {formatCurrency(data.current_period_production)}
         </strong>{' '}
         at <strong>{formatRate(data.current_tier_rate)}</strong>
       </p>
-      <div
-        style={{
-          height: '0.5rem',
-          background: '#e5e7eb',
-          borderRadius: '999px',
-          overflow: 'hidden',
-        }}
-      >
-        <div style={{ width: `${pct}%`, height: '100%', background: '#2563eb' }} />
+      <div className="h-2 bg-border rounded-full overflow-hidden">
+        <div className="h-full bg-accent" style={{ width: `${pct}%` }} />
       </div>
       {atTop ? (
-        <p
-          data-testid="tier-at-cap"
-          style={{ fontSize: '0.8125rem', color: '#047857', margin: '0.75rem 0 0' }}
-        >
+        <p data-testid="tier-at-cap" className="text-[0.8125rem] text-ok-fg mt-3 mb-0">
           You&apos;ve reached the top tier.
         </p>
       ) : (
-        <p
-          data-testid="tier-next-threshold"
-          style={{ fontSize: '0.8125rem', color: '#6b7280', margin: '0.75rem 0 0' }}
-        >
+        <p data-testid="tier-next-threshold" className="text-[0.8125rem] text-ink-subtle mt-3 mb-0">
           <strong data-testid="tier-remaining">
             {formatCurrency(data.remaining_to_next_tier ?? 0)}
           </strong>{' '}

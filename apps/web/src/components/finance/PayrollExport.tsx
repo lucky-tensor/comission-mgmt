@@ -20,6 +20,7 @@
  */
 
 import { useState } from 'react';
+import { Button } from 'ui';
 import { apiGet, apiPost, ApiError } from '../../lib/apiClient';
 import { useAsync, type AsyncState } from '../../lib/useAsync';
 import { PortalCard, LoadingState, ErrorState, EmptyState } from '../portal/states';
@@ -46,38 +47,10 @@ export interface ExportsListResponse {
 }
 
 // ---------------------------------------------------------------------------
-// Styles
+// Styles — Tailwind class strings (theme tokens, no raw hex)
 // ---------------------------------------------------------------------------
 
-const rowStyle: React.CSSProperties = {
-  padding: '0.75rem 0',
-  borderBottom: '1px solid #f3f4f6',
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-};
-
-const buttonStyle: React.CSSProperties = {
-  padding: '0.5rem 1.25rem',
-  borderRadius: '0.375rem',
-  border: 'none',
-  cursor: 'pointer',
-  fontWeight: 600,
-  fontSize: '0.875rem',
-};
-
-const primaryButton: React.CSSProperties = {
-  ...buttonStyle,
-  background: '#2563eb',
-  color: '#ffffff',
-};
-
-const disabledButton: React.CSSProperties = {
-  ...buttonStyle,
-  background: '#e5e7eb',
-  color: '#9ca3af',
-  cursor: 'not-allowed',
-};
+const ROW_CLASS = 'py-3 border-b border-surface-sunken flex justify-between items-center';
 
 // ---------------------------------------------------------------------------
 // PayrollExportView — pure presentational component
@@ -110,27 +83,15 @@ export function PayrollExportView({
   return (
     <PortalCard title="Payroll Export">
       {/* Generate export control */}
-      <div data-testid="export-generate-section" style={{ marginBottom: '1.25rem' }}>
+      <div data-testid="export-generate-section" className="mb-5">
         {runApproved ? (
-          <button
-            data-testid="generate-export-button"
-            style={generating ? disabledButton : primaryButton}
-            disabled={generating}
-            onClick={onGenerate}
-          >
+          <Button data-testid="generate-export-button" disabled={generating} onClick={onGenerate}>
             {generating ? 'Generating…' : 'Generate Payroll Export'}
-          </button>
+          </Button>
         ) : (
           <div
             data-testid="export-gated"
-            style={{
-              padding: '0.75rem 1rem',
-              background: '#fefce8',
-              border: '1px solid #fde68a',
-              borderRadius: '0.5rem',
-              fontSize: '0.875rem',
-              color: '#92400e',
-            }}
+            className="px-4 py-3 bg-warn-bg border border-warn-fg/30 rounded-lg text-sm text-warn-fg"
           >
             <strong>Export unavailable.</strong>{' '}
             {gatingReason ?? 'This run must be Approved before a payroll export can be generated.'}
@@ -142,15 +103,7 @@ export function PayrollExportView({
           <div
             data-testid="generate-error"
             role="alert"
-            style={{
-              marginTop: '0.75rem',
-              padding: '0.75rem 1rem',
-              background: '#fef2f2',
-              border: '1px solid #fca5a5',
-              borderRadius: '0.5rem',
-              fontSize: '0.875rem',
-              color: '#b91c1c',
-            }}
+            className="mt-3 px-4 py-3 bg-bad-bg border border-bad-fg/30 rounded-lg text-sm text-bad-fg"
           >
             {generateError}
           </div>
@@ -166,17 +119,17 @@ export function PayrollExportView({
         ) : !exportsState.data || exportsState.data.length === 0 ? (
           <EmptyState message="No exports generated yet." />
         ) : (
-          <ul data-testid="exports-list" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+          <ul data-testid="exports-list" className="list-none m-0 p-0">
             {exportsState.data.map((artifact) => (
-              <li key={artifact.artifact_id} style={rowStyle}>
+              <li key={artifact.artifact_id} className={ROW_CLASS}>
                 <div>
-                  <span style={{ fontWeight: 500, color: '#111827', fontSize: '0.875rem' }}>
+                  <span className="font-medium text-ink text-sm">
                     {artifact.format.toUpperCase()} export
                   </span>
-                  <span style={{ marginLeft: '0.75rem', fontSize: '0.75rem', color: '#6b7280' }}>
+                  <span className="ml-3 text-xs text-ink-subtle">
                     {artifact.row_count} row{artifact.row_count !== 1 ? 's' : ''}
                   </span>
-                  <span style={{ marginLeft: '0.75rem', fontSize: '0.75rem', color: '#9ca3af' }}>
+                  <span className="ml-3 text-xs text-ink-faint">
                     {new Date(artifact.created_at).toLocaleString()}
                   </span>
                 </div>
@@ -184,7 +137,7 @@ export function PayrollExportView({
                   data-testid={`download-link-${artifact.artifact_id}`}
                   href={`/api/commission-runs/${artifact.run_id}/exports/${artifact.artifact_id}/download`}
                   download={`payroll-export-${artifact.artifact_id}.csv`}
-                  style={{ fontSize: '0.875rem', color: '#2563eb', textDecoration: 'none' }}
+                  className="text-sm text-accent no-underline"
                 >
                   Download
                 </a>

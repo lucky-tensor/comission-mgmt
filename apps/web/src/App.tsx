@@ -55,7 +55,6 @@ import { DocsView } from './components/DocsView';
 import { useSession } from './lib/useSession';
 import { apiPost } from './lib/apiClient';
 import { isPathPermitted, landingPathForRole, ROUTES } from './lib/roleRoutes';
-import { colors, font } from 'ui';
 
 /** Navigate to a path and notify listeners (pushState doesn't emit popstate). */
 export function navigate(path: string) {
@@ -140,15 +139,7 @@ function SessionSkeleton() {
     <div
       data-testid="session-skeleton"
       aria-busy="true"
-      style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontFamily: font.family,
-        color: colors.inkSubtle,
-        fontSize: '0.875rem',
-      }}
+      className="flex min-h-screen items-center justify-center text-sm text-ink-subtle"
     >
       Loading your workspace…
     </div>

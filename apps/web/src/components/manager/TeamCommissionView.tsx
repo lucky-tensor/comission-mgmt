@@ -21,6 +21,7 @@
  */
 
 import { useEffect } from 'react';
+import { StatusChip } from 'ui';
 import { apiGet } from '../../lib/apiClient';
 import { useAsync } from '../../lib/useAsync';
 import { LoadingState, ErrorState, EmptyState, PortalCard } from '../portal/states';
@@ -73,37 +74,16 @@ export interface TeamCommissionViewViewProps {
 // Shared style tokens
 // ---------------------------------------------------------------------------
 
-const tableStyle: React.CSSProperties = {
-  width: '100%',
-  borderCollapse: 'collapse',
-  fontSize: '0.875rem',
-};
+const TABLE_CLASS = 'w-full border-collapse text-sm';
 
-const thStyle: React.CSSProperties = {
-  textAlign: 'left',
-  padding: '0.5rem 0.75rem',
-  borderBottom: '2px solid #e5e7eb',
-  color: '#374151',
-  fontWeight: 600,
-  whiteSpace: 'nowrap',
-};
+const TH_CLASS =
+  'text-left px-3 py-2 border-b-2 border-border text-ink-muted font-semibold whitespace-nowrap';
 
-const tdStyle: React.CSSProperties = {
-  padding: '0.5rem 0.75rem',
-  borderBottom: '1px solid #f3f4f6',
-  color: '#111827',
-  verticalAlign: 'top',
-};
+const TH_RIGHT_CLASS = `${TH_CLASS} text-right`;
 
-const badgeStyle: React.CSSProperties = {
-  display: 'inline-block',
-  padding: '0.125rem 0.5rem',
-  borderRadius: '9999px',
-  fontSize: '0.75rem',
-  fontWeight: 500,
-  background: '#f3f4f6',
-  color: '#374151',
-};
+const TD_CLASS = 'px-3 py-2 border-b border-surface-sunken text-ink align-top';
+
+const TD_RIGHT_CLASS = `${TD_CLASS} text-right`;
 
 // ---------------------------------------------------------------------------
 // Commission Summary panel
@@ -120,34 +100,26 @@ function CommissionSummaryPanel({ state }: { state: AsyncState<ProducerSummaryRo
         <EmptyState message="No commission records found for your team." />
       ) : (
         <div data-testid="summary-table-wrapper">
-          <table style={tableStyle} data-testid="summary-table">
+          <table className={TABLE_CLASS} data-testid="summary-table">
             <thead>
               <tr>
-                <th style={thStyle}>Producer</th>
-                <th style={{ ...thStyle, textAlign: 'right' }}>Accrued</th>
-                <th style={{ ...thStyle, textAlign: 'right' }}>Payable</th>
-                <th style={{ ...thStyle, textAlign: 'right' }}>Held</th>
-                <th style={{ ...thStyle, textAlign: 'right' }}>Records</th>
+                <th className={TH_CLASS}>Producer</th>
+                <th className={TH_RIGHT_CLASS}>Accrued</th>
+                <th className={TH_RIGHT_CLASS}>Payable</th>
+                <th className={TH_RIGHT_CLASS}>Held</th>
+                <th className={TH_RIGHT_CLASS}>Records</th>
               </tr>
             </thead>
             <tbody>
               {state.data.map((row) => (
                 <tr key={row.producer_id} data-testid={`summary-row-${row.producer_id}`}>
-                  <td style={tdStyle}>
-                    <span style={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>
-                      {row.producer_id}
-                    </span>
+                  <td className={TD_CLASS}>
+                    <span className="font-mono text-xs">{row.producer_id}</span>
                   </td>
-                  <td style={{ ...tdStyle, textAlign: 'right' }}>
-                    {formatCurrency(row.total_accrued)}
-                  </td>
-                  <td style={{ ...tdStyle, textAlign: 'right' }}>
-                    {formatCurrency(row.total_payable)}
-                  </td>
-                  <td style={{ ...tdStyle, textAlign: 'right' }}>
-                    {formatCurrency(row.total_held)}
-                  </td>
-                  <td style={{ ...tdStyle, textAlign: 'right' }}>{row.record_count}</td>
+                  <td className={TD_RIGHT_CLASS}>{formatCurrency(row.total_accrued)}</td>
+                  <td className={TD_RIGHT_CLASS}>{formatCurrency(row.total_payable)}</td>
+                  <td className={TD_RIGHT_CLASS}>{formatCurrency(row.total_held)}</td>
+                  <td className={TD_RIGHT_CLASS}>{row.record_count}</td>
                 </tr>
               ))}
             </tbody>
@@ -173,24 +145,24 @@ function TeamPlacementsPanel({ state }: { state: AsyncState<TeamPlacementRow[]> 
         <EmptyState message="No team placements found." />
       ) : (
         <div data-testid="placements-table-wrapper">
-          <table style={tableStyle} data-testid="placements-table">
+          <table className={TABLE_CLASS} data-testid="placements-table">
             <thead>
               <tr>
-                <th style={thStyle}>Job Title</th>
-                <th style={thStyle}>Status</th>
-                <th style={thStyle}>Start Date</th>
-                <th style={thStyle}>Created</th>
+                <th className={TH_CLASS}>Job Title</th>
+                <th className={TH_CLASS}>Status</th>
+                <th className={TH_CLASS}>Start Date</th>
+                <th className={TH_CLASS}>Created</th>
               </tr>
             </thead>
             <tbody>
               {state.data.map((p) => (
                 <tr key={p.id} data-testid={`placement-row-${p.id}`}>
-                  <td style={tdStyle}>{p.job_title}</td>
-                  <td style={tdStyle}>
-                    <span style={badgeStyle}>{p.status}</span>
+                  <td className={TD_CLASS}>{p.job_title}</td>
+                  <td className={TD_CLASS}>
+                    <StatusChip status={p.status} />
                   </td>
-                  <td style={tdStyle}>{formatDate(p.start_date)}</td>
-                  <td style={tdStyle}>{formatDate(p.created_at)}</td>
+                  <td className={TD_CLASS}>{formatDate(p.start_date)}</td>
+                  <td className={TD_CLASS}>{formatDate(p.created_at)}</td>
                 </tr>
               ))}
             </tbody>
@@ -222,32 +194,30 @@ function OpenDisputesPanel({ state }: { state: AsyncState<TeamDisputeRow[]> }) {
         ) : (
           <div data-testid="open-disputes-loaded">
             <div data-testid="disputes-table-wrapper">
-              <table style={tableStyle} data-testid="disputes-table">
+              <table className={TABLE_CLASS} data-testid="disputes-table">
                 <thead>
                   <tr>
-                    <th style={thStyle}>Dispute ID</th>
-                    <th style={thStyle}>Placement</th>
-                    <th style={thStyle}>Description</th>
-                    <th style={thStyle}>State</th>
-                    <th style={thStyle}>Submitted</th>
+                    <th className={TH_CLASS}>Dispute ID</th>
+                    <th className={TH_CLASS}>Placement</th>
+                    <th className={TH_CLASS}>Description</th>
+                    <th className={TH_CLASS}>State</th>
+                    <th className={TH_CLASS}>Submitted</th>
                   </tr>
                 </thead>
                 <tbody>
                   {state.data.map((d) => (
                     <tr key={d.id} data-testid={`dispute-row-${d.id}`}>
-                      <td style={tdStyle}>
-                        <span style={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>{d.id}</span>
+                      <td className={TD_CLASS}>
+                        <span className="font-mono text-xs">{d.id}</span>
                       </td>
-                      <td style={tdStyle}>
-                        <span style={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>
-                          {d.placement_id}
-                        </span>
+                      <td className={TD_CLASS}>
+                        <span className="font-mono text-xs">{d.placement_id}</span>
                       </td>
-                      <td style={tdStyle}>{d.description}</td>
-                      <td style={tdStyle}>
-                        <span style={badgeStyle}>{d.state}</span>
+                      <td className={TD_CLASS}>{d.description}</td>
+                      <td className={TD_CLASS}>
+                        <StatusChip status={d.state} />
                       </td>
-                      <td style={tdStyle}>{formatDate(d.created_at)}</td>
+                      <td className={TD_CLASS}>{formatDate(d.created_at)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -270,24 +240,16 @@ export function TeamCommissionViewView({
   disputes,
 }: TeamCommissionViewViewProps) {
   return (
-    <div
-      data-testid="team-commission-view"
-      style={{
-        minHeight: '100vh',
-        background: '#f9fafb',
-        fontFamily: 'system-ui, sans-serif',
-        padding: '2rem 1rem',
-      }}
-    >
-      <div style={{ maxWidth: '960px', margin: '0 auto' }}>
-        <header style={{ marginBottom: '2rem' }}>
+    <div data-testid="team-commission-view" className="min-h-screen bg-surface-muted px-4 py-8">
+      <div className="max-w-[960px] mx-auto">
+        <header className="mb-8">
           <h1
             data-testid="team-commission-view-heading"
-            style={{ fontSize: '1.5rem', fontWeight: 700, color: '#111827', margin: 0 }}
+            className="text-2xl font-bold text-ink m-0"
           >
             Team Commission View
           </h1>
-          <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: '0.25rem 0 0' }}>
+          <p className="text-sm text-ink-subtle mt-1 mb-0">
             Commission accruals, placements, and open disputes for your team.
           </p>
         </header>

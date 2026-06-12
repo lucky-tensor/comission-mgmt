@@ -19,21 +19,11 @@ import { useAsync, type AsyncState } from '../../lib/useAsync';
 import { formatCurrency, formatRate } from '../../lib/format';
 import { PortalCard, LoadingState, ErrorState, EmptyState } from './states';
 
-const cellStyle: React.CSSProperties = {
-  padding: '0.5rem 0.75rem',
-  fontSize: '0.8125rem',
-  borderBottom: '1px solid #f3f4f6',
-  textAlign: 'left',
-};
+const CELL_CLASS = 'px-3 py-2 text-[0.8125rem] border-b border-surface-sunken text-left';
 
-const headStyle: React.CSSProperties = {
-  ...cellStyle,
-  fontWeight: 600,
-  color: '#6b7280',
-  textTransform: 'uppercase',
-  fontSize: '0.6875rem',
-  letterSpacing: '0.03em',
-};
+const HEAD_CLASS =
+  'px-3 py-2 border-b border-surface-sunken text-left font-semibold text-ink-subtle uppercase ' +
+  'text-[0.6875rem] tracking-wide';
 
 /** Pure presentational view — renders one of loading/error/empty/data. */
 export function PayoutStatementView({ state }: { state: AsyncState<Payout[]> }) {
@@ -46,26 +36,26 @@ export function PayoutStatementView({ state }: { state: AsyncState<Payout[]> }) 
       ) : !state.data || state.data.length === 0 ? (
         <EmptyState message="No payouts yet. Approved commission runs will appear here." />
       ) : (
-        <table data-testid="payout-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <table data-testid="payout-table" className="w-full border-collapse">
           <thead>
             <tr>
-              <th style={headStyle}>Position</th>
-              <th style={headStyle}>Split %</th>
-              <th style={headStyle}>Commissionable base</th>
-              <th style={headStyle}>Calculated amount</th>
-              <th style={headStyle}>Holdback</th>
-              <th style={headStyle}>Payment trigger</th>
+              <th className={HEAD_CLASS}>Position</th>
+              <th className={HEAD_CLASS}>Split %</th>
+              <th className={HEAD_CLASS}>Commissionable base</th>
+              <th className={HEAD_CLASS}>Calculated amount</th>
+              <th className={HEAD_CLASS}>Holdback</th>
+              <th className={HEAD_CLASS}>Payment trigger</th>
             </tr>
           </thead>
           <tbody>
             {state.data.map((p) => (
               <tr key={p.id}>
-                <td style={cellStyle}>{p.position_title ?? '—'}</td>
-                <td style={cellStyle}>{formatRate(p.tier_rate)}</td>
-                <td style={cellStyle}>{formatCurrency(p.gross_commission)}</td>
-                <td style={cellStyle}>{formatCurrency(p.net_payable)}</td>
-                <td style={cellStyle}>{p.hold_reason ? p.hold_reason : 'Released'}</td>
-                <td style={cellStyle}>{p.status}</td>
+                <td className={CELL_CLASS}>{p.position_title ?? '—'}</td>
+                <td className={CELL_CLASS}>{formatRate(p.tier_rate)}</td>
+                <td className={CELL_CLASS}>{formatCurrency(p.gross_commission)}</td>
+                <td className={CELL_CLASS}>{formatCurrency(p.net_payable)}</td>
+                <td className={CELL_CLASS}>{p.hold_reason ? p.hold_reason : 'Released'}</td>
+                <td className={CELL_CLASS}>{p.status}</td>
               </tr>
             ))}
           </tbody>

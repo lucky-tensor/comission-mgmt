@@ -50,39 +50,46 @@ function e2eFixturePlugin(): Plugin {
   };
 }
 
-export default defineConfig({
-  plugins: [react(), e2eFixturePlugin()],
-  resolve: {
-    alias: vitestAliases(__dirname),
-  },
-  server: {
-    proxy: {
-      '/api': {
-        target: apiTarget,
-        changeOrigin: true,
-        rewrite: (p) => p.replace(/^\/api/, ''),
+// `@tailwindcss/vite` is ESM-only; importing it statically breaks Vitest's
+// CJS config loader (esbuild externalize-deps → require of an ESM module). An
+// async config factory pulls it in via dynamic import() so the browser-mode
+// tests still render with the real Tailwind theme.
+export default defineConfig(async () => {
+  const tailwindcss = (await import('@tailwindcss/vite')).default;
+  return {
+    plugins: [react(), tailwindcss(), e2eFixturePlugin()],
+    resolve: {
+      alias: vitestAliases(__dirname),
+    },
+    server: {
+      proxy: {
+        '/api': {
+          target: apiTarget,
+          changeOrigin: true,
+          rewrite: (p: string) => p.replace(/^\/api/, ''),
+        },
       },
     },
-  },
-  test: {
-    globalSetup: ['./tests/e2e/global-setup.ts'],
-    setupFiles: ['./tests/component/setup.ts'],
-    include: ['tests/component/**/*.test.tsx', 'tests/e2e/**/*.e2e.ts'],
-    fileParallelism: false,
-    testTimeout: 60_000,
-    hookTimeout: 300_000,
-    // Raise the poll timeout for expect.element() calls from the default 1 s
-    // to 15 s so that API-driven UI updates (browser → proxy → real server →
-    // DB round trips) have enough time to settle in CI.
-    expect: {
-      poll: { timeout: 15_000 },
+    test: {
+      globalSetup: ['./tests/e2e/global-setup.ts'],
+      setupFiles: ['./tests/component/setup.ts'],
+      include: ['tests/component/**/*.test.tsx', 'tests/e2e/**/*.e2e.ts'],
+      fileParallelism: false,
+      testTimeout: 60_000,
+      hookTimeout: 300_000,
+      // Raise the poll timeout for expect.element() calls from the default 1 s
+      // to 15 s so that API-driven UI updates (browser → proxy → real server →
+      // DB round trips) have enough time to settle in CI.
+      expect: {
+        poll: { timeout: 15_000 },
+      },
+      browser: {
+        enabled: true,
+        provider: 'playwright',
+        name: 'chromium',
+        headless: true,
+        screenshotFailures: false,
+      },
     },
-    browser: {
-      enabled: true,
-      provider: 'playwright',
-      name: 'chromium',
-      headless: true,
-      screenshotFailures: false,
-    },
-  },
+  };
 });

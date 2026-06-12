@@ -77,7 +77,7 @@ This blueprint governs how the project's user-facing surfaces are structured in 
 
 - **Type:** implementation
 - **Applicable:** yes
-- **Technology implication:** Implement design tokens as a DIY JSON file consumed by the build; do not add an external token-generation package. Tokens feed the Tailwind configuration in `packages/ui`.
+- **Technology implication:** Implement design tokens as a DIY Tailwind v4 CSS `@theme` (in `apps/web/src/index.css`) consumed by the build; do not add an external token-generation package. The `@theme` is the single source of truth that feeds the utility classes used by the shared design system in `packages/ui` and every web surface.
 - **Risk:** Adding an external token toolchain is unnecessary complexity for a single-product design system and adds dependency/maintenance burden with no benefit at this scale.
 
 ### IMPL-UX-011: agent-sdk-http-client-diy

@@ -15,9 +15,7 @@
  * Issue: feat: webapp — UX overhaul: entity pickers (#203)
  */
 
-import type { CSSProperties } from 'react';
 import type { AsyncState } from '../lib/useAsync';
-import { colors, radius } from 'ui';
 import { LoadingState, ErrorState, EmptyState } from './portal/states';
 
 export interface PickerOption {
@@ -46,23 +44,10 @@ export interface EntityPickerProps<T> {
   emptyMessage?: string;
 }
 
-const labelStyle: CSSProperties = {
-  display: 'block',
-  fontSize: '0.8125rem',
-  fontWeight: 600,
-  color: colors.inkMuted,
-  marginBottom: '0.375rem',
-};
+const LABEL_CLASS = 'block text-[0.8125rem] font-semibold text-ink-muted mb-1.5';
 
-const selectStyle: CSSProperties = {
-  width: '100%',
-  padding: '0.5rem 0.75rem',
-  border: `1px solid ${colors.borderStrong}`,
-  borderRadius: radius.md,
-  fontSize: '0.875rem',
-  background: colors.surface,
-  color: colors.ink,
-};
+const SELECT_CLASS =
+  'w-full px-3 py-2 border border-border-strong rounded-md text-sm bg-surface text-ink';
 
 export function EntityPicker<T>({
   name,
@@ -101,13 +86,13 @@ export function EntityPicker<T>({
 
   return (
     <div data-testid={`${name}-picker`}>
-      <label style={labelStyle} htmlFor={selectId}>
+      <label className={LABEL_CLASS} htmlFor={selectId}>
         {label}
       </label>
       <select
         id={selectId}
         data-testid={`${name}-picker-select`}
-        style={selectStyle}
+        className={SELECT_CLASS}
         value={value ?? ''}
         onChange={(e) => onChange(e.target.value)}
       >
