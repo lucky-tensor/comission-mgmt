@@ -184,3 +184,17 @@ export function useFixture(): FixtureRef {
   afterEach(() => teardown(ref));
   return ref;
 }
+
+/**
+ * Click a tab by its label (case-insensitive, partial regex match).
+ * Used for accessing tabbed content like Profitability, Trends, Reconciliation, etc.
+ *
+ * Example:
+ *   await clickTab('Profitability');
+ *   await clickTab('Reconciliation');
+ */
+export async function clickTab(tabLabel: string) {
+  await userEvent.click(page.getByRole('tab', { name: new RegExp(tabLabel, 'i') }));
+  // Small wait for tab content to render
+  await new Promise((r) => setTimeout(r, 100));
+}
