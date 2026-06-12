@@ -19,6 +19,7 @@
 import type { CommissionRecord } from 'core/producer-portal';
 import { ApiError, apiGet } from '../../lib/apiClient';
 import { useAsync } from '../../lib/useAsync';
+import { Tabs } from '../Tabs';
 import { PayoutStatement } from './PayoutStatement';
 import { CreditedPlacementsView } from './CreditedPlacements';
 import { TierProgress } from './TierProgress';
@@ -52,23 +53,32 @@ export function ProducerPortal({ onUnauthenticated }: { onUnauthenticated?: () =
           </p>
         </header>
 
-        <PayoutStatement />
+        <Tabs defaultTab="dashboard">
+          <Tabs.Tab id="dashboard" label="Dashboard">
+            <div className="space-y-6">
+              <PayoutStatement />
+              <TierProgress />
+              <ProducerPlanAcknowledgment />
+            </div>
+          </Tabs.Tab>
 
-        <TierProgress />
+          <Tabs.Tab id="placements" label="Placements">
+            <div className="space-y-6">
+              <CreditedPlacementsView state={records} />
+              {records.loading ? (
+                <LoadingState label="dispute form" />
+              ) : records.error ? (
+                <ErrorState message={records.error} />
+              ) : (
+                <DisputeForm records={records.data ?? []} />
+              )}
+            </div>
+          </Tabs.Tab>
 
-        <ProducerPlanAcknowledgment />
-
-        <CreditedPlacementsView state={records} />
-
-        {records.loading ? (
-          <LoadingState label="dispute form" />
-        ) : records.error ? (
-          <ErrorState message={records.error} />
-        ) : (
-          <DisputeForm records={records.data ?? []} />
-        )}
-
-        <DealSimulator />
+          <Tabs.Tab id="tools" label="Tools">
+            <DealSimulator />
+          </Tabs.Tab>
+        </Tabs>
       </div>
     </div>
   );
