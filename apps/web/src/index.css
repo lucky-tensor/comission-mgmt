@@ -60,7 +60,7 @@
 
   body {
     margin: 0;
-    background-color: var(--color-surface);
+    background-color: var(--color-surface-muted);
     color: var(--color-ink);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;

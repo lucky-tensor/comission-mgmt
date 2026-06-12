@@ -39,17 +39,12 @@
 import { useState, useEffect, useRef } from 'react';
 import Login from './components/Login';
 import { ProducerPortal } from './components/portal/ProducerPortal';
-import { ReconciliationReport } from './components/finance/ReconciliationReport';
 import { NavShell } from './components/NavShell';
 import { Forbidden } from './components/Forbidden';
-import { ExecTrends } from './components/executive/ExecTrends';
 import { FinancePage } from './components/finance/FinancePage';
 import { ManagerHome } from './components/manager/ManagerHome';
-import { ExecFinancialPosition } from './components/executive/ExecFinancialPosition';
-import { ExecProfitability } from './components/ExecProfitability';
-import { ExecDisputeApproval } from './components/executive/ExecDisputeApproval';
-import { PlanAcknowledgment } from './components/hr/PlanAcknowledgment';
-import { DrawBalanceView } from './components/hr/DrawBalanceView';
+import { ExecutiveDashboard } from './components/executive/ExecutiveDashboard';
+import { HRHome } from './components/hr/HRHome';
 import { PartnerPayoutView } from './components/partner/PartnerPayoutView';
 import { DocsView } from './components/DocsView';
 import { useSession } from './lib/useSession';
@@ -84,29 +79,16 @@ function AuthenticatedApp({ role, path, personaName, onLogout }: AuthenticatedAp
       case ROUTES.PORTAL:
         return <ProducerPortal onUnauthenticated={() => navigate(ROUTES.LOGIN)} />;
       case ROUTES.FINANCE:
-        return <FinancePage />;
       case ROUTES.RECONCILIATION:
-        return <ReconciliationReport />;
+        return <FinancePage />;
       case ROUTES.MANAGER:
         return <ManagerHome />;
       case ROUTES.EXECUTIVE:
-        return (
-          <>
-            <ExecFinancialPosition />
-            <ExecDisputeApproval role={role} />
-          </>
-        );
       case ROUTES.EXEC_PROFITABILITY:
-        return <ExecProfitability />;
       case ROUTES.EXEC_TRENDS:
-        return <ExecTrends />;
+        return <ExecutiveDashboard role={role} />;
       case ROUTES.HR:
-        return (
-          <>
-            <PlanAcknowledgment />
-            <DrawBalanceView />
-          </>
-        );
+        return <HRHome />;
       case ROUTES.PARTNER:
         return <PartnerPayoutView onUnauthenticated={() => navigate(ROUTES.LOGIN)} />;
       case ROUTES.DOCS:
