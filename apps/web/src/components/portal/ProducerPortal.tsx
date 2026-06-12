@@ -12,7 +12,7 @@
  * the portal derives its data from the records/payouts/tier-progress reads and
  * does not depend on GET /me.
  *
- * Canonical docs: docs/prd.md §5.8 — Producer Payout Portal
+ * Canonical docs: docs/prd.md §5.9 — Producer Payout Portal
  * Issue: feat: Producer Portal UI + headless-Chromium browser/E2E harness (#78)
  */
 

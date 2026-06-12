@@ -18,7 +18,7 @@
  *     contributor_id = claims.user_id, so isolation is enforced at the DB layer.
  *
  * Canonical docs:
- *   - docs/prd.md §5.8, §7.6 — Producer Payout Portal
+ *   - docs/prd.md §5.9 — Producer Payout Portal
  *   - docs/architecture/phase-producer-portal.md — scout decision record
  *
  * Issue: feat: producer payout statement and deal visibility (#16)
