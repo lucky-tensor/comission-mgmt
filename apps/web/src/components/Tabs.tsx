@@ -15,7 +15,7 @@
  *   </Tabs>
  */
 
-import { useState, ReactNode, createContext, useContext, isValidElement, ReactElement } from 'react';
+import { useState, ReactNode, createContext, isValidElement, ReactElement } from 'react';
 
 interface TabsContextType {
   activeTab: string;
