@@ -204,11 +204,15 @@ describe('FA-2: Finance Admin reviews and approves a commission run', () => {
 describe('FA-3: Finance Admin generates a payroll-ready export', () => {
   test('finance-home surface renders on /finance (FinanceAdminSurface)', async () => {
     s.current = await loginAs('Finance Admin');
+    // FinanceAdminSurface is now in the Adjustments & Payroll tab
+    await userEvent.click(page.getByRole('tab', { name: /adjustments/i }));
     await expect.element(page.getByTestId('finance-home')).toBeInTheDocument();
   });
 
   test('loading a run reveals export-generate-section', async () => {
     s.current = await loginAs('Finance Admin');
+    // FinanceAdminSurface is now in the Adjustments & Payroll tab
+    await userEvent.click(page.getByRole('tab', { name: /adjustments/i }));
     await expect.element(page.getByTestId('finance-home')).toBeInTheDocument();
     // Select the close run from the run picker (by id) in FinanceAdminSurface.
     await expect.element(page.getByTestId('run-picker-select')).toBeInTheDocument();
@@ -218,6 +222,8 @@ describe('FA-3: Finance Admin generates a payroll-ready export', () => {
 
   test('generate-export-button is present when run status is Approved', async () => {
     s.current = await loginAs('Finance Admin');
+    // FinanceAdminSurface is now in the Adjustments & Payroll tab
+    await userEvent.click(page.getByRole('tab', { name: /adjustments/i }));
     await expect.element(page.getByTestId('finance-home')).toBeInTheDocument();
     await expect.element(page.getByTestId('run-picker-select')).toBeInTheDocument();
     await page.getByTestId('run-picker-select').selectOptions(s.fixture.closeRunId);
@@ -227,6 +233,8 @@ describe('FA-3: Finance Admin generates a payroll-ready export', () => {
 
   test('clicking generate produces an export row or shows a generate error', async () => {
     s.current = await loginAs('Finance Admin');
+    // FinanceAdminSurface is now in the Adjustments & Payroll tab
+    await userEvent.click(page.getByRole('tab', { name: /adjustments/i }));
     await expect.element(page.getByTestId('finance-home')).toBeInTheDocument();
     await expect.element(page.getByTestId('run-picker-select')).toBeInTheDocument();
     await page.getByTestId('run-picker-select').selectOptions(s.fixture.closeRunId);
