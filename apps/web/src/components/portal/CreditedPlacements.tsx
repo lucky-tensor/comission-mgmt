@@ -17,10 +17,7 @@ import { formatCurrency } from '../../lib/format';
 import { PortalCard, LoadingState, ErrorState, EmptyState } from './states';
 import { StatusChip } from 'ui';
 
-const rowStyle: React.CSSProperties = {
-  padding: '0.875rem 0',
-  borderBottom: '1px solid #f3f4f6',
-};
+const ROW_CLASS = 'py-3.5 border-b border-surface-sunken';
 
 /** A human-readable lead label: role title, else a short placement reference. */
 function placementLead(r: CommissionRecord): string {
@@ -39,18 +36,13 @@ export function CreditedPlacementsView({ state }: { state: AsyncState<Commission
       ) : !state.data || state.data.length === 0 ? (
         <EmptyState message="No credited placements yet." />
       ) : (
-        <ul data-testid="placements-list" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+        <ul data-testid="placements-list" className="list-none m-0 p-0">
           {state.data.map((r) => (
-            <li key={r.id} style={rowStyle} data-testid={`placement-row-${r.id}`}>
+            <li key={r.id} className={ROW_CLASS} data-testid={`placement-row-${r.id}`}>
               {/* Lead with the role title + amount + a semantic status chip;
                   the placement identity is no longer buried in the explanation. */}
-              <div
-                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-              >
-                <span
-                  data-testid={`placement-lead-${r.id}`}
-                  style={{ fontWeight: 600, color: '#111827' }}
-                >
+              <div className="flex justify-between items-center">
+                <span data-testid={`placement-lead-${r.id}`} className="font-semibold text-ink">
                   {placementLead(r)}
                 </span>
                 <StatusChip
@@ -58,33 +50,19 @@ export function CreditedPlacementsView({ state }: { state: AsyncState<Commission
                   data-testid={`placement-status-${r.id}`}
                 />
               </div>
-              <div style={{ fontSize: '0.875rem', color: '#374151', marginTop: '0.25rem' }}>
-                {formatCurrency(r.net_payable)} net
-              </div>
+              <div className="text-sm text-ink-muted mt-1">{formatCurrency(r.net_payable)} net</div>
 
               {/* Plain-language explanation as an expandable detail. */}
               {r.explanation && (
-                <details
-                  data-testid={`placement-explanation-${r.id}`}
-                  style={{ marginTop: '0.5rem' }}
-                >
-                  <summary
-                    style={{
-                      fontSize: '0.8125rem',
-                      color: '#2563eb',
-                      cursor: 'pointer',
-                      userSelect: 'none',
-                    }}
-                  >
+                <details data-testid={`placement-explanation-${r.id}`} className="mt-2">
+                  <summary className="text-[0.8125rem] text-accent cursor-pointer select-none">
                     How was this calculated?
                   </summary>
-                  <p style={{ fontSize: '0.8125rem', color: '#6b7280', margin: '0.375rem 0 0' }}>
-                    {r.explanation}
-                  </p>
+                  <p className="text-[0.8125rem] text-ink-subtle mt-1.5 mb-0">{r.explanation}</p>
                 </details>
               )}
               {r.blocked_phase && (
-                <p style={{ fontSize: '0.75rem', color: '#b45309', margin: '0.25rem 0 0' }}>
+                <p className="text-xs text-warn-fg mt-1 mb-0">
                   Blocked by phase: {r.blocked_phase.phase_name}
                 </p>
               )}

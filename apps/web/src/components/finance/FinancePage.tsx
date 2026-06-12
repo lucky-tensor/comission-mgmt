@@ -20,27 +20,11 @@
  * Issue: feat: webapp — UX overhaul: page composition (#203)
  */
 
-import type { CSSProperties, ReactNode } from 'react';
-import { colors, radius } from 'ui';
+import type { ReactNode } from 'react';
 import { DataGapQueue } from './DataGapQueue';
 import { CommissionRunReview } from './CommissionRunReview';
 import { InvoiceCollectionSection } from './FinanceAdmin';
 import { FinanceAdminSurface } from './FinanceAdminSurface';
-
-const sectionStyle: CSSProperties = {
-  background: colors.surface,
-  border: `1px solid ${colors.border}`,
-  borderRadius: radius.lg,
-  padding: '1.5rem',
-  marginBottom: '1.5rem',
-};
-
-const sectionHeadingStyle: CSSProperties = {
-  fontSize: '1.0625rem',
-  fontWeight: 700,
-  color: colors.ink,
-  margin: '0 0 1rem',
-};
 
 function Section({
   id,
@@ -58,9 +42,13 @@ function Section({
   children: ReactNode;
 }) {
   return (
-    <section style={sectionStyle} aria-labelledby={title ? id : undefined} data-testid={testId}>
+    <section
+      className="bg-surface border border-border rounded-lg p-6 mb-6"
+      aria-labelledby={title ? id : undefined}
+      data-testid={testId}
+    >
       {title && (
-        <h2 id={id} style={sectionHeadingStyle}>
+        <h2 id={id} className="text-[1.0625rem] font-bold text-ink m-0 mb-4">
           {title}
         </h2>
       )}
@@ -72,11 +60,9 @@ function Section({
 export function FinancePage() {
   return (
     <div data-testid="finance-page">
-      <header style={{ marginBottom: '1.5rem' }}>
-        <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: colors.ink, margin: 0 }}>
-          Finance Home
-        </h1>
-        <p style={{ fontSize: '0.875rem', color: colors.inkSubtle, margin: '0.25rem 0 0' }}>
+      <header className="mb-6">
+        <h1 className="text-2xl font-bold text-ink m-0">Finance Home</h1>
+        <p className="text-sm text-ink-subtle mt-1 mb-0">
           Close the period: clear data gaps, run and approve commissions, track collection, and
           export payroll.
         </p>

@@ -138,25 +138,18 @@ interface DimensionSwitcherProps {
 
 function DimensionSwitcher({ active, onChange }: DimensionSwitcherProps) {
   return (
-    <div
-      data-testid="dimension-switcher"
-      style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}
-    >
+    <div data-testid="dimension-switcher" className="flex gap-2 mb-4 flex-wrap">
       {DIMENSIONS.map(({ value, label }) => (
         <button
           key={value}
           data-testid={`dim-btn-${value}`}
           onClick={() => onChange(value)}
-          style={{
-            padding: '0.375rem 0.875rem',
-            borderRadius: '999px',
-            border: active === value ? '1.5px solid #2563eb' : '1px solid #d1d5db',
-            background: active === value ? '#eff6ff' : '#ffffff',
-            color: active === value ? '#1d4ed8' : '#374151',
-            fontWeight: active === value ? 600 : 400,
-            fontSize: '0.875rem',
-            cursor: 'pointer',
-          }}
+          className={[
+            'px-3.5 py-1.5 rounded-full text-sm cursor-pointer border',
+            active === value
+              ? 'border-accent bg-surface-sunken text-accent font-semibold'
+              : 'border-border-strong bg-surface text-ink-muted font-normal',
+          ].join(' ')}
         >
           {label}
         </button>
@@ -174,28 +167,25 @@ interface PeriodPickerProps {
 
 function PeriodPicker({ start, end, onStartChange, onEndChange }: PeriodPickerProps) {
   return (
-    <div
-      data-testid="period-picker"
-      style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '1.25rem' }}
-    >
-      <label style={{ fontSize: '0.875rem', color: '#374151' }}>
+    <div data-testid="period-picker" className="flex gap-4 items-center mb-5">
+      <label className="text-sm text-ink-muted">
         From&nbsp;
         <input
           data-testid="period-start"
           type="date"
           value={start}
           onChange={(e) => onStartChange(e.target.value)}
-          style={{ marginLeft: '0.25rem' }}
+          className="ml-1"
         />
       </label>
-      <label style={{ fontSize: '0.875rem', color: '#374151' }}>
+      <label className="text-sm text-ink-muted">
         To&nbsp;
         <input
           data-testid="period-end"
           type="date"
           value={end}
           onChange={(e) => onEndChange(e.target.value)}
-          style={{ marginLeft: '0.25rem' }}
+          className="ml-1"
         />
       </label>
     </div>
@@ -219,58 +209,17 @@ function ProfitabilityTable({ rows, sortDir, onSortToggle, dimension }: Profitab
   }
 
   return (
-    <div style={{ overflowX: 'auto' }}>
-      <table
-        data-testid="profitability-table"
-        style={{
-          width: '100%',
-          borderCollapse: 'collapse',
-          fontSize: '0.875rem',
-        }}
-      >
+    <div className="overflow-x-auto">
+      <table data-testid="profitability-table" className="w-full border-collapse text-sm">
         <thead>
-          <tr style={{ borderBottom: '2px solid #e5e7eb' }}>
-            <th
-              style={{
-                textAlign: 'left',
-                padding: '0.5rem 0.75rem',
-                color: '#374151',
-                fontWeight: 600,
-              }}
-            >
-              {labelHeader}
-            </th>
-            <th
-              style={{
-                textAlign: 'right',
-                padding: '0.5rem 0.75rem',
-                color: '#374151',
-                fontWeight: 600,
-              }}
-            >
-              {grossLabel}
-            </th>
-            <th
-              style={{
-                textAlign: 'right',
-                padding: '0.5rem 0.75rem',
-                color: '#374151',
-                fontWeight: 600,
-              }}
-            >
-              {burdenLabel}
-            </th>
+          <tr className="border-b-2 border-border">
+            <th className="text-left px-3 py-2 text-ink-muted font-semibold">{labelHeader}</th>
+            <th className="text-right px-3 py-2 text-ink-muted font-semibold">{grossLabel}</th>
+            <th className="text-right px-3 py-2 text-ink-muted font-semibold">{burdenLabel}</th>
             <th
               data-testid="sort-margin-btn"
               onClick={onSortToggle}
-              style={{
-                textAlign: 'right',
-                padding: '0.5rem 0.75rem',
-                color: '#1d4ed8',
-                fontWeight: 600,
-                cursor: 'pointer',
-                userSelect: 'none',
-              }}
+              className="text-right px-3 py-2 text-accent font-semibold cursor-pointer select-none"
             >
               Margin {sortDir === 'desc' ? '▼' : '▲'}
             </th>
@@ -281,29 +230,26 @@ function ProfitabilityTable({ rows, sortDir, onSortToggle, dimension }: Profitab
             <tr
               key={i}
               data-testid="profitability-row"
-              style={{
-                borderBottom: '1px solid #f3f4f6',
-                background: i % 2 === 0 ? '#ffffff' : '#f9fafb',
-              }}
+              className={[
+                'border-b border-surface-sunken',
+                i % 2 === 0 ? 'bg-surface' : 'bg-surface-muted',
+              ].join(' ')}
             >
               <td
-                style={{
-                  padding: '0.5rem 0.75rem',
-                  color: '#111827',
+                className={[
+                  'px-3 py-2 text-ink',
                   // Client rows show human-readable names; recruiter rows still
                   // surface raw ids, which read better in monospace.
-                  fontFamily: dimension === 'client' ? 'inherit' : 'monospace',
-                }}
+                  dimension === 'client' ? '' : 'font-mono',
+                ].join(' ')}
               >
                 {row.label}
               </td>
-              <td style={{ padding: '0.5rem 0.75rem', textAlign: 'right', color: '#111827' }}>
-                {formatCurrency(row.grossFees)}
-              </td>
-              <td style={{ padding: '0.5rem 0.75rem', textAlign: 'right', color: '#111827' }}>
+              <td className="px-3 py-2 text-right text-ink">{formatCurrency(row.grossFees)}</td>
+              <td className="px-3 py-2 text-right text-ink">
                 {formatCurrency(row.commissionBurden)}
               </td>
-              <td style={{ padding: '0.5rem 0.75rem', textAlign: 'right', color: '#111827' }}>
+              <td className="px-3 py-2 text-right text-ink">
                 {row.margin === null ? '—' : `${(row.margin * 100).toFixed(1)}%`}
               </td>
             </tr>
@@ -344,18 +290,9 @@ export function ExecProfitabilityView({
   return (
     <section
       data-testid="exec-profitability"
-      style={{
-        background: '#ffffff',
-        border: '1px solid #e5e7eb',
-        borderRadius: '0.75rem',
-        padding: '1.5rem',
-        marginBottom: '1.5rem',
-        fontFamily: 'system-ui, sans-serif',
-      }}
+      className="bg-surface border border-border rounded-xl p-6 mb-6"
     >
-      <h2 style={{ fontSize: '1.125rem', fontWeight: 600, color: '#111827', marginTop: 0 }}>
-        Profitability Analytics
-      </h2>
+      <h2 className="text-lg font-semibold text-ink mt-0">Profitability Analytics</h2>
 
       <DimensionSwitcher active={dimension} onChange={onDimensionChange} />
       <PeriodPicker
@@ -374,14 +311,7 @@ export function ExecProfitabilityView({
       ) : dimension === 'team' || dimension === 'practice' ? (
         <div
           data-testid="dimension-unavailable"
-          style={{
-            padding: '1rem',
-            background: '#fffbeb',
-            border: '1px solid #fcd34d',
-            borderRadius: '0.5rem',
-            fontSize: '0.875rem',
-            color: '#92400e',
-          }}
+          className="p-4 bg-warn-bg border border-warn-fg/30 rounded-lg text-sm text-warn-fg"
         >
           The <strong>{dimension}</strong> dimension is not yet available in the analytics response
           — a backend field is needed. Dimensions available: client, recruiter.

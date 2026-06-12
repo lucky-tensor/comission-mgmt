@@ -29,6 +29,7 @@
  */
 
 import { useState } from 'react';
+import { StatusChip } from 'ui';
 import { apiGet } from '../../lib/apiClient';
 import { useAsync } from '../../lib/useAsync';
 import { formatCurrency, formatDate } from '../../lib/format';
@@ -82,108 +83,57 @@ interface DrawBalanceSummaryProps {
 
 function DrawBalanceSummary({ balance }: DrawBalanceSummaryProps) {
   const hasBalance = Number(balance.outstanding_balance) > 0;
-  const statusColor = hasBalance ? '#b45309' : '#15803d';
-  const bgColor = hasBalance ? '#fefce8' : '#f0fdf4';
-  const borderColor = hasBalance ? '#fde68a' : '#bbf7d0';
+  const cardClass = hasBalance
+    ? 'bg-warn-bg border border-warn-fg/30'
+    : 'bg-ok-bg border border-ok-fg/30';
+  const amountClass = hasBalance ? 'text-warn-fg' : 'text-ok-fg';
 
   return (
-    <div
-      data-testid="draw-balance-summary"
-      style={{
-        background: bgColor,
-        border: `1px solid ${borderColor}`,
-        borderRadius: '0.75rem',
-        padding: '1.5rem',
-        marginBottom: '1.5rem',
-      }}
-    >
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
-          flexWrap: 'wrap',
-          gap: '1rem',
-        }}
-      >
+    <div data-testid="draw-balance-summary" className={`${cardClass} rounded-xl p-6 mb-6`}>
+      <div className="flex justify-between items-start flex-wrap gap-4">
         <div>
-          <p style={{ margin: '0 0 0.25rem', fontSize: '0.875rem', color: '#6b7280' }}>
-            Outstanding Draw Balance
-          </p>
-          <p
-            data-testid="outstanding-balance"
-            style={{ margin: 0, fontSize: '1.875rem', fontWeight: 700, color: statusColor }}
-          >
+          <p className="mt-0 mx-0 mb-1 text-sm text-ink-subtle">Outstanding Draw Balance</p>
+          <p data-testid="outstanding-balance" className={`m-0 text-3xl font-bold ${amountClass}`}>
             {formatCurrency(balance.outstanding_balance)}
           </p>
         </div>
         <div>
-          <p style={{ margin: '0 0 0.25rem', fontSize: '0.875rem', color: '#6b7280' }}>
-            Draw Limit
-          </p>
-          <p
-            data-testid="draw-limit"
-            style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600, color: '#374151' }}
-          >
+          <p className="mt-0 mx-0 mb-1 text-sm text-ink-subtle">Draw Limit</p>
+          <p data-testid="draw-limit" className="m-0 text-xl font-semibold text-ink-muted">
             {formatCurrency(balance.draw_limit)}
           </p>
         </div>
         {balance.status && (
           <div>
-            <p style={{ margin: '0 0 0.25rem', fontSize: '0.875rem', color: '#6b7280' }}>Status</p>
-            <span
-              data-testid="draw-balance-status"
-              style={{
-                display: 'inline-block',
-                padding: '0.25rem 0.75rem',
-                borderRadius: '9999px',
-                fontSize: '0.8125rem',
-                fontWeight: 600,
-                background: statusColor,
-                color: '#fff',
-              }}
-            >
+            <p className="mt-0 mx-0 mb-1 text-sm text-ink-subtle">Status</p>
+            <StatusChip variant={hasBalance ? 'amber' : 'green'} data-testid="draw-balance-status">
               {balance.status}
-            </span>
+            </StatusChip>
           </div>
         )}
       </div>
       {(balance.recovery_start || balance.recovery_end) && (
-        <div style={{ marginTop: '1rem', display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
+        <div className="mt-4 flex gap-8 flex-wrap">
           {balance.recovery_start && (
             <div>
-              <p style={{ margin: '0 0 0.125rem', fontSize: '0.75rem', color: '#6b7280' }}>
-                Recovery Start
-              </p>
-              <p
-                data-testid="recovery-start"
-                style={{ margin: 0, fontSize: '0.875rem', color: '#374151' }}
-              >
+              <p className="mt-0 mx-0 mb-0.5 text-xs text-ink-subtle">Recovery Start</p>
+              <p data-testid="recovery-start" className="m-0 text-sm text-ink-muted">
                 {formatDate(balance.recovery_start)}
               </p>
             </div>
           )}
           {balance.recovery_end && (
             <div>
-              <p style={{ margin: '0 0 0.125rem', fontSize: '0.75rem', color: '#6b7280' }}>
-                Recovery End
-              </p>
-              <p
-                data-testid="recovery-end"
-                style={{ margin: 0, fontSize: '0.875rem', color: '#374151' }}
-              >
+              <p className="mt-0 mx-0 mb-0.5 text-xs text-ink-subtle">Recovery End</p>
+              <p data-testid="recovery-end" className="m-0 text-sm text-ink-muted">
                 {formatDate(balance.recovery_end)}
               </p>
             </div>
           )}
           {balance.updated_at && (
             <div>
-              <p style={{ margin: '0 0 0.125rem', fontSize: '0.75rem', color: '#6b7280' }}>
-                Last Updated
-              </p>
-              <p style={{ margin: 0, fontSize: '0.875rem', color: '#374151' }}>
-                {formatDate(balance.updated_at)}
-              </p>
+              <p className="mt-0 mx-0 mb-0.5 text-xs text-ink-subtle">Last Updated</p>
+              <p className="m-0 text-sm text-ink-muted">{formatDate(balance.updated_at)}</p>
             </div>
           )}
         </div>
@@ -206,22 +156,15 @@ function RecoveryScheduleTable({ schedules }: RecoveryScheduleTableProps) {
   }
 
   return (
-    <div data-testid="recovery-schedule-table" style={{ overflowX: 'auto' }}>
-      <table
-        style={{
-          width: '100%',
-          borderCollapse: 'collapse',
-          fontSize: '0.875rem',
-          color: '#374151',
-        }}
-      >
+    <div data-testid="recovery-schedule-table" className="overflow-x-auto">
+      <table className="w-full border-collapse text-sm text-ink-muted">
         <thead>
-          <tr style={{ borderBottom: '2px solid #e5e7eb' }}>
-            <th style={thStyle}>Placement ID</th>
-            <th style={thStyle}>Clawback Amount</th>
-            <th style={thStyle}>Installments</th>
-            <th style={thStyle}>Per Installment</th>
-            <th style={thStyle}>Created</th>
+          <tr className="border-b-2 border-border">
+            <th className={TH_CLASS}>Placement ID</th>
+            <th className={TH_CLASS}>Clawback Amount</th>
+            <th className={TH_CLASS}>Installments</th>
+            <th className={TH_CLASS}>Per Installment</th>
+            <th className={TH_CLASS}>Created</th>
           </tr>
         </thead>
         <tbody>
@@ -229,22 +172,19 @@ function RecoveryScheduleTable({ schedules }: RecoveryScheduleTableProps) {
             <tr
               key={s.id}
               data-testid={`recovery-row-${s.id}`}
-              style={{ borderBottom: '1px solid #f3f4f6' }}
+              className="border-b border-surface-sunken"
             >
-              <td style={tdStyle}>
-                <span
-                  title={s.placement_id}
-                  style={{ fontFamily: 'monospace', fontSize: '0.8125rem' }}
-                >
+              <td className={TD_CLASS}>
+                <span title={s.placement_id} className="font-mono text-[0.8125rem]">
                   {s.placement_id.slice(0, 8)}…
                 </span>
               </td>
-              <td style={{ ...tdStyle, fontWeight: 600, color: '#b45309' }}>
+              <td className={`${TD_CLASS} font-semibold text-warn-fg`}>
                 {formatCurrency(s.clawback_amount)}
               </td>
-              <td style={tdStyle}>{s.installment_count}</td>
-              <td style={tdStyle}>{formatCurrency(s.installment_amount)}</td>
-              <td style={tdStyle}>{formatDate(s.created_at)}</td>
+              <td className={TD_CLASS}>{s.installment_count}</td>
+              <td className={TD_CLASS}>{formatCurrency(s.installment_amount)}</td>
+              <td className={TD_CLASS}>{formatDate(s.created_at)}</td>
             </tr>
           ))}
         </tbody>
@@ -253,20 +193,10 @@ function RecoveryScheduleTable({ schedules }: RecoveryScheduleTableProps) {
   );
 }
 
-const thStyle: React.CSSProperties = {
-  textAlign: 'left',
-  padding: '0.625rem 0.75rem',
-  fontWeight: 600,
-  color: '#6b7280',
-  fontSize: '0.8125rem',
-  textTransform: 'uppercase',
-  letterSpacing: '0.05em',
-};
+const TH_CLASS =
+  'text-left px-3 py-2.5 font-semibold text-ink-subtle text-[0.8125rem] uppercase tracking-wider';
 
-const tdStyle: React.CSSProperties = {
-  padding: '0.75rem',
-  verticalAlign: 'top',
-};
+const TD_CLASS = 'p-3 align-top';
 
 // ---------------------------------------------------------------------------
 // ProducerDrawBalancePanel — fetching panel for a given producerId
@@ -315,22 +245,17 @@ export function DrawBalanceView() {
   return (
     <div
       data-testid="draw-balance-view"
-      style={{
-        minHeight: 'calc(100vh - 3.25rem)',
-        background: '#f9fafb',
-        fontFamily: 'system-ui, sans-serif',
-        padding: '2rem 1rem',
-      }}
+      className="min-h-[calc(100vh-3.25rem)] bg-surface-muted px-4 py-8"
     >
-      <div style={{ maxWidth: '880px', margin: '0 auto' }}>
-        <header style={{ marginBottom: '1.5rem' }}>
+      <div className="max-w-[880px] mx-auto">
+        <header className="mb-6">
           <h1
             data-testid="draw-balance-heading"
-            style={{ fontSize: '1.5rem', fontWeight: 700, color: '#111827', margin: '0 0 0.25rem' }}
+            className="text-2xl font-bold text-ink mt-0 mx-0 mb-1"
           >
             Draw Balance &amp; Recovery Schedule
           </h1>
-          <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: 0 }}>
+          <p className="text-sm text-ink-subtle m-0">
             View a producer's outstanding draw balance and their clawback recovery schedules.
             Read-only — contact Finance Admin to post adjustments.
           </p>
@@ -339,13 +264,7 @@ export function DrawBalanceView() {
         {/* Producer selector — pick a producer by name, not a UUID (#203). */}
         <div
           data-testid="producer-selector"
-          style={{
-            background: '#ffffff',
-            border: '1px solid #e5e7eb',
-            borderRadius: '0.75rem',
-            padding: '1.25rem 1.5rem',
-            marginBottom: '1.5rem',
-          }}
+          className="bg-surface border border-border rounded-xl px-6 py-5 mb-6"
         >
           <EntityPicker
             name="producer"
