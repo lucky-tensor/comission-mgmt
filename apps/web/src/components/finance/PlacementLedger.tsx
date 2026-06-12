@@ -394,7 +394,11 @@ function ContributorPanel({ placementId }: ContributorPanelProps) {
         </table>
       )}
 
-      <form onSubmit={handleAdd} data-testid="add-contributor-form" className="flex gap-2 flex-wrap items-end">
+      <form
+        onSubmit={handleAdd}
+        data-testid="add-contributor-form"
+        className="flex gap-2 flex-wrap items-end"
+      >
         <div>
           <label className="block text-xs text-ink-subtle mb-0.5">Producer ID</label>
           <input
@@ -584,9 +588,7 @@ function PlacementRow({ placement: initial, onUpdated }: PlacementRowProps) {
             />
           ) : (
             <span className="text-xs text-ink">
-              {placement.fee_amount
-                ? `$${Number(placement.fee_amount).toLocaleString()}`
-                : '—'}
+              {placement.fee_amount ? `$${Number(placement.fee_amount).toLocaleString()}` : '—'}
             </span>
           )}
         </td>
@@ -765,4 +767,3 @@ export function PlacementLedger() {
     </div>
   );
 }
-
