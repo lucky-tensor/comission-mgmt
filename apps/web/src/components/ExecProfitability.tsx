@@ -145,7 +145,7 @@ function DimensionSwitcher({ active, onChange }: DimensionSwitcherProps) {
           data-testid={`dim-btn-${value}`}
           onClick={() => onChange(value)}
           className={[
-            'px-3.5 py-1.5 rounded-full text-sm cursor-pointer border',
+            'px-3.5 py-1.5 rounded-xs text-sm cursor-pointer border',
             active === value
               ? 'border-accent bg-surface-sunken text-accent font-semibold'
               : 'border-border-strong bg-surface text-ink-muted font-normal',
@@ -290,7 +290,7 @@ export function ExecProfitabilityView({
   return (
     <section
       data-testid="exec-profitability"
-      className="bg-surface border border-border rounded-xl p-6 mb-6"
+      className="bg-surface border border-border rounded-md p-6 mb-6"
     >
       <h2 className="text-lg font-semibold text-ink mt-0">Profitability Analytics</h2>
 
@@ -311,7 +311,7 @@ export function ExecProfitabilityView({
       ) : dimension === 'team' || dimension === 'practice' ? (
         <div
           data-testid="dimension-unavailable"
-          className="p-4 bg-warn-bg border border-warn-fg/30 rounded-lg text-sm text-warn-fg"
+          className="p-4 bg-warn-bg border border-warn-fg/30 rounded-md text-sm text-warn-fg"
         >
           The <strong>{dimension}</strong> dimension is not yet available in the analytics response
           — a backend field is needed. Dimensions available: client, recruiter.

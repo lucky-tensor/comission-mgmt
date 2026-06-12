@@ -89,7 +89,7 @@ function DrawBalanceSummary({ balance }: DrawBalanceSummaryProps) {
   const amountClass = hasBalance ? 'text-warn-fg' : 'text-ok-fg';
 
   return (
-    <div data-testid="draw-balance-summary" className={`${cardClass} rounded-xl p-6 mb-6`}>
+    <div data-testid="draw-balance-summary" className={`${cardClass} rounded-md p-6 mb-6`}>
       <div className="flex justify-between items-start flex-wrap gap-4">
         <div>
           <p className="mt-0 mx-0 mb-1 text-sm text-ink-subtle">Outstanding Draw Balance</p>
@@ -175,7 +175,7 @@ function RecoveryScheduleTable({ schedules }: RecoveryScheduleTableProps) {
               className="border-b border-surface-sunken"
             >
               <td className={TD_CLASS}>
-                <span title={s.placement_id} className="font-mono text-[0.8125rem]">
+                <span title={s.placement_id} className="font-mono text-sm">
                   {s.placement_id.slice(0, 8)}…
                 </span>
               </td>
@@ -194,7 +194,7 @@ function RecoveryScheduleTable({ schedules }: RecoveryScheduleTableProps) {
 }
 
 const TH_CLASS =
-  'text-left px-3 py-2.5 font-semibold text-ink-subtle text-[0.8125rem] uppercase tracking-wider';
+  'text-left px-3 py-2.5 font-semibold text-ink-subtle text-sm uppercase tracking-wider';
 
 const TD_CLASS = 'p-3 align-top';
 
@@ -243,11 +243,8 @@ export function DrawBalanceView() {
   );
 
   return (
-    <div
-      data-testid="draw-balance-view"
-      className="min-h-[calc(100vh-3.25rem)] bg-surface-muted px-4 py-8"
-    >
-      <div className="max-w-[880px] mx-auto">
+    <div data-testid="draw-balance-view" className="min-h-surface bg-surface-muted px-4 py-8">
+      <div className="max-w-narrow mx-auto">
         <header className="mb-6">
           <h1
             data-testid="draw-balance-heading"
@@ -264,7 +261,7 @@ export function DrawBalanceView() {
         {/* Producer selector — pick a producer by name, not a UUID (#203). */}
         <div
           data-testid="producer-selector"
-          className="bg-surface border border-border rounded-xl px-6 py-5 mb-6"
+          className="bg-surface border border-border rounded-md px-6 py-5 mb-6"
         >
           <EntityPicker
             name="producer"

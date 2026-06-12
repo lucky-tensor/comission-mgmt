@@ -1,0 +1,27 @@
+<!-- @dsCard group="Brand" viewport="700x190" name="Iconography — Lucide" subtitle="1.5px stroke line icons, set at 16px in dense UI" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<style>
+  body { margin: 0; padding: 22px; background: var(--surface-card); }
+  .set { display: grid; grid-template-columns: repeat(10, 1fr); gap: 10px; }
+  .ic { display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 10px 0; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); color: var(--text-secondary); }
+  .ic svg { width: 18px; height: 18px; }
+  .ic span { font: 9px var(--font-mono); color: var(--text-tertiary); }
+  .note { margin-top: 14px; font: var(--text-xs) var(--font-sans); color: var(--text-tertiary); }
+</style>
+</head>
+<body>
+  <div class="set" id="set"></div>
+  <div class="note">Atlas uses <b>Lucide</b> — consistent 1.5px stroke, rounded joins. Render at 16px inside controls, 18px standalone. Match <code>currentColor</code> to text tone.</div>
+<script>
+  const names = ['layout-dashboard','users','table','settings','search','plus','filter','pencil','trash-2','more-horizontal','check','x','chevron-down','bell','shield','download','arrow-up-right','calendar','folder','key'];
+  const set = document.getElementById('set');
+  set.innerHTML = names.map(n=>`<div class="ic"><i data-lucide="${n}"></i><span>${n}</span></div>`).join('');
+  lucide.createIcons();
+</script>
+</body>
+</html>

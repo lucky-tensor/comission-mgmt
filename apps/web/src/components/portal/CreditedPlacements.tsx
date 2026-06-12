@@ -55,10 +55,10 @@ export function CreditedPlacementsView({ state }: { state: AsyncState<Commission
               {/* Plain-language explanation as an expandable detail. */}
               {r.explanation && (
                 <details data-testid={`placement-explanation-${r.id}`} className="mt-2">
-                  <summary className="text-[0.8125rem] text-accent cursor-pointer select-none">
+                  <summary className="text-sm text-accent cursor-pointer select-none">
                     How was this calculated?
                   </summary>
-                  <p className="text-[0.8125rem] text-ink-subtle mt-1.5 mb-0">{r.explanation}</p>
+                  <p className="text-sm text-ink-subtle mt-1.5 mb-0">{r.explanation}</p>
                 </details>
               )}
               {r.blocked_phase && (

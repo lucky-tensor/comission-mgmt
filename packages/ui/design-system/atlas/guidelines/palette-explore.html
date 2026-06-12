@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Atlas — Kitchen Sink</title>
+<link rel="stylesheet" href="../styles.css" />
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script src="../_ds_bundle.js"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<style>
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; background: rgb(51, 53, 60); }
+  #root { height: 100vh; display: flex; flex-direction: column; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+
+/* ─── Palette data ─────────────────────────────────────────── */
+const PALETTES = [
+  {
+    id: 'A', name: 'Slate & Cobalt', desc: 'Cool · classic',
+    n: ['#ffffff','#f6f8fb','#eef2f7','#e4ebf4','#d9e2ef','#c2cfe3','#94a7c3','#667e9b','#465c75','#344457','#1f2d3d','#121c29','#080d14'],
+    accent:'#2f5fe0', accentSoft:'#eaf0fe', accentSoftFg:'#2348b5',
+    success:'#0b9a65', successSoft:'#e4f6ee', successFg:'#07714a',
+    warning:'#d98a0b', warningSoft:'#fdf2dd', warningFg:'#8f5908',
+    danger:'#e23d59', dangerSoft:'#fdebef', dangerFg:'#b32441',
+  },
+  {
+    id: 'B', name: 'Greige & Evergreen', desc: 'Warm · editorial',
+    n: ['#ffffff','#f8f7f4','#f0ede7','#e6e2d9','#d9d4c8','#c5bead','#9b9282','#756c5b','#554e40','#3e3830','#2a2520','#1a1714','#0c0b09'],
+    accent:'#1b7a5c', accentSoft:'#e4f2ec', accentSoftFg:'#125c45',
+    success:'#388c47', successSoft:'#eaf3eb', successFg:'#266635',
+    warning:'#b97612', warningSoft:'#f7eed8', warningFg:'#844f0b',
+    danger:'#c54730', dangerSoft:'#f8e8e4', dangerFg:'#8f2d1e',
+  },
+  {
+    id: 'C', name: 'Carbon & Iris', desc: 'Neutral · modern',
+    n: ['#ffffff','#f7f7f9','#eeeff3','#e5e6eb','#d9dae0','#c4c5ce','#8f909d','#60616e','#3e3f4c','#2b2c38','#191a23','#0e0f16','#05060b'],
+    accent:'#5b53e8', accentSoft:'#eeecfd', accentSoftFg:'#3f39c0',
+    success:'#11a068', successSoft:'#e5f6ef', successFg:'#0c744c',
+    warning:'#cc8714', warningSoft:'#faf0da', warningFg:'#885509',
+    danger:'#e23b54', dangerSoft:'#fdeaee', dangerFg:'#b3243e',
+  },
+  {
+    id: 'D', name: 'Graphite & Ink', desc: 'Minimal · near-monochrome, ink accent',
+    n: ['#ffffff','#f8f8f9','#f0f0f2','#e5e5e8','#d6d6da','#bdbdc4','#888892','#555560','#37373f','#252529','#141417','#0a0a0c','#040406'],
+    accent:'#7c3aed', accentSoft:'#f1ebfd', accentSoftFg:'#5b21b6',
+    success:'#16a34a', successSoft:'#e6f5ec', successFg:'#117236',
+    warning:'#d97706', warningSoft:'#fef3c2', warningFg:'#8f4e04',
+    danger:'#e11d48', dangerSoft:'#fee0e9', dangerFg:'#970f2e',
+  },
+];
+
+/* ─── Color helpers ─────────────────────────────────────────── */
+function hexToRgb(hex) {
+  const h = hex.replace('#','');
+  return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)];
+}
+function toHex(r,g,b) {
+  return '#'+[r,g,b].map(v=>Math.max(0,Math.min(255,Math.round(v))).toString(16).padStart(2,'0')).join('');
+}
+function darkenHex(hex, amt) { const [r,g,b]=hexToRgb(hex); return toHex(r-amt,g-amt,b-amt); }
+function hexAlpha(hex, a) { const [r,g,b]=hexToRgb(hex); return `rgba(${r},${g},${b},${a})`; }
+
+function hexToHsl(hex) {
+  let [r,g,b] = hexToRgb(hex).map(v=>v/255);
+  const max=Math.max(r,g,b), min=Math.min(r,g,b);
+  let h, s, l=(max+min)/2;
+  if (max===min) { h=0; s=0; }
+  else {
+    const d=max-min;
+    s = l>0.5 ? d/(2-max-min) : d/(max+min);
+    switch(max){ case r: h=(g-b)/d+(g<b?6:0); break; case g: h=(b-r)/d+2; break; default: h=(r-g)/d+4; }
+    h/=6;
+  }
+  return [h*360, s*100, l*100];
+}
+function hslToHex(h, s, l) {
+  h=(h%360+360)%360; h/=360; s/=100; l/=100;
+  let r,g,b;
+  if (s===0) { r=g=b=l; }
+  else {
+    const hue=(p,q,t)=>{ if(t<0)t+=1; if(t>1)t-=1; if(t<1/6)return p+(q-p)*6*t; if(t<1/2)return q; if(t<2/3)return p+(q-p)*(2/3-t)*6; return p; };
+    const q=l<0.5?l*(1+s):l+s-l*s, p=2*l-q;
+    r=hue(p,q,h+1/3); g=hue(p,q,h); b=hue(p,q,h-1/3);
+  }
+  return toHex(r*255,g*255,b*255);
+}
+// pull hue `from` a few degrees toward `to` (shortest path)
+function pullHue(from, to, t) {
+  let d=((to-from+540)%360)-180;
+  return (from + d*t + 360)%360;
+}
+
+/* ─── Color-theory palette generator ───────────────────────────
+   Given one accent hex, derive a fully cohesive palette:
+   • neutrals are a graphite ramp TINTED toward the accent hue
+     (rising saturation into the shadows, so the ink reads as a
+     deep tint of the accent, not flat gray)
+   • accent soft/fg are same-hue tints of the accent
+   • success / danger keep their semantic identity but are nudged
+     a few degrees toward the accent hue and matched in chroma, so
+     they read as siblings, not stock RGB. */
+function cohesivePalette(accentHex, meta) {
+  const [aH, aS] = hexToHsl(accentHex);
+  // neutral ramp: lightness ladder + a gentle saturation curve at the accent hue
+  const Ls = [100, 98.4, 96.3, 93.8, 90.6, 82,   66,   51,   38,   27.5, 17.5, 9.5,  4.5];
+  const Ss = [0,   5,    7,    8,    9,    10,    10,   11,   12,   13,   14,   15,   16];
+  const n = Ls.map((L,i)=> i===0 ? '#ffffff' : hslToHex(aH, Ss[i], L));
+
+  const accentSoft   = hslToHex(aH, Math.min(aS, 62), 95.5);
+  const accentSoftFg = hslToHex(aH, Math.min(aS+6, 80), 40);
+
+  // How chromatic is the accent? Achromatic (near-black/gray) accents have a
+  // meaningless hue, so we must NOT drag the semantic colors toward it —
+  // they stay true green/red. Saturated accents pull their siblings closer.
+  const chroma = Math.max(0, Math.min(1, aS / 45));
+
+  // success — cool emerald, nudged toward accent only as far as chroma allows
+  const sH = pullHue(152, aH, 0.12 * chroma), sS = 48;
+  const success = hslToHex(sH, sS, 37), successSoft = hslToHex(sH, sS*0.5, 95.5), successFg = hslToHex(sH, sS, 26);
+
+  // danger — true crimson, nudged toward accent only as far as chroma allows
+  const dH = pullHue(353, aH, 0.14 * chroma), dS = 62;
+  const danger = hslToHex(dH, dS, 54), dangerSoft = hslToHex(dH, dS*0.55, 96), dangerFg = hslToHex(dH, dS, 41);
+
+  return { ...meta, n, accent:accentHex, accentSoft, accentSoftFg, success, successSoft, successFg, danger, dangerSoft, dangerFg };
+}
+
+/* ─── Build CSS vars from palette ─────────────────────────────── */
+function buildVars(p, customAccent, corners, primaryBtn) {
+  const accent = customAccent || p.accent;
+  const accentH = darkenHex(accent, 18);
+  const accentA = darkenHex(accent, 32);
+
+  const primary = primaryBtn === 'accent'
+    ? { '--action-primary': accent, '--action-primary-hover': accentH, '--action-primary-active': accentA, '--action-primary-fg': '#ffffff' }
+    : { '--action-primary': p.n[11], '--action-primary-hover': p.n[10], '--action-primary-active': p.n[12], '--action-primary-fg': p.n[0] };
+
+  const radii = corners === 'sharp'
+    ? { '--radius-xs':'2px', '--radius-sm':'3px', '--radius-md':'4px', '--radius-lg':'6px', '--radius-xl':'8px' }
+    : corners === 'soft'
+    ? { '--radius-xs':'8px', '--radius-sm':'12px', '--radius-md':'16px', '--radius-lg':'20px', '--radius-xl':'26px', '--radius-full':'999px' }
+    : {};
+
+  return {
+    /* gray ramp */
+    '--gray-0':p.n[0],'--gray-25':p.n[1],'--gray-50':p.n[1],'--gray-100':p.n[2],
+    '--gray-150':p.n[3],'--gray-200':p.n[4],'--gray-300':p.n[5],'--gray-400':p.n[6],
+    '--gray-500':p.n[7],'--gray-600':p.n[8],'--gray-700':p.n[9],'--gray-800':p.n[10],
+    '--gray-900':p.n[11],'--gray-950':p.n[12],
+    /* blue → accent ramp */
+    '--blue-50':p.accentSoft,'--blue-100':p.accentSoft,'--blue-200':hexAlpha(accent,0.2),
+    '--blue-300':hexAlpha(accent,0.4),'--blue-400':hexAlpha(accent,0.65),
+    '--blue-500':accent,'--blue-600':accent,'--blue-700':p.accentSoftFg,
+    '--blue-800':p.accentSoftFg,'--blue-900':p.accentSoftFg,
+    /* status ramps — warning/amber aliased to neutral; info aliased to accent */
+    '--green-50':p.successSoft,'--green-100':p.successSoft,'--green-500':p.success,
+    '--green-600':p.success,'--green-700':p.successFg,
+    '--amber-50':p.n[2],'--amber-100':p.n[3],'--amber-500':p.n[6],
+    '--amber-600':p.n[7],'--amber-700':p.n[8],
+    '--red-50':p.dangerSoft,'--red-100':p.dangerSoft,'--red-500':p.danger,
+    '--red-600':p.danger,'--red-700':p.dangerFg,
+    /* surfaces */
+    '--surface-page':p.n[1],'--surface-card':p.n[0],'--surface-sunken':p.n[2],
+    '--surface-raised':p.n[0],'--surface-hover':p.n[2],'--surface-active':p.n[3],
+    '--surface-inverse':accent,
+    /* borders */
+    '--border-subtle':p.n[3],'--border-default':p.n[4],'--border-strong':p.n[5],'--border-inverse':p.n[10],
+    /* text */
+    '--text-primary':p.n[11],'--text-secondary':p.n[8],'--text-tertiary':p.n[7],
+    '--text-disabled':p.n[6],'--text-inverse':p.n[0],'--text-link':accent,
+    /* accent */
+    '--accent':accent,'--accent-hover':accentH,'--accent-active':accentA,
+    '--accent-soft':p.accentSoft,'--accent-fg':'#ffffff',
+    '--focus-ring':accent,
+    /* status semantic — 3 tones only: success / danger / neutral */
+    '--status-success':p.success,'--status-success-soft':p.successSoft,
+    '--status-warning':p.n[7],'--status-warning-soft':p.n[2],
+    '--status-danger':p.danger,'--status-danger-soft':p.dangerSoft,
+    '--status-info':p.n[7],'--status-info-soft':p.n[2],
+    /* rings */
+    '--ring-focus':`0 0 0 3px ${hexAlpha(accent,0.35)}`,
+    '--ring-danger':`0 0 0 3px ${hexAlpha(p.danger,0.30)}`,
+    ...primary, ...radii,
+  };
+}
+
+/* ─── Icon (Lucide) ─────────────────────────────────────────── */
+function Icon({ name, size = 16, strokeWidth = 1.6 }) {
+  const ref = React.useRef(null);
+  React.useEffect(() => {
+    if (!ref.current) return;
+    ref.current.innerHTML = '';
+    const i = document.createElement('i');
+    i.setAttribute('data-lucide', name);
+    ref.current.appendChild(i);
+    if (window.lucide) window.lucide.createIcons({ attrs: { width: size, height: size, 'stroke-width': strokeWidth } });
+  }, [name, size]);
+  return <span ref={ref} style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:size, height:size }} />;
+}
+
+/* ─── Section wrapper ─────────────────────────────────────────── */
+function Sec({ label, children }) {
+  return (
+    <section style={{ marginBottom: 32 }}>
+      <div style={{ font: 'var(--weight-semibold) 11px/1 var(--font-sans)', letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-tertiary)', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 10 }}>
+        {label}
+        <span style={{ flex: 1, height: 1, background: 'var(--border-subtle)' }} />
+      </div>
+      {children}
+    </section>
+  );
+}
+
+/* ─── Kitchen sink ─────────────────────────────────────────────── */
+function KitchenSink({ vars }) {
+  const {
+    Button, IconButton, Input, Select, Textarea, Checkbox, Switch,
+    Badge, Avatar, Card, Table, StatCard, Banner, Toast, Dialog,
+    Tabs, Breadcrumb, Pagination,
+  } = window.AtlasDesignSystem_9b7d80;
+
+  const [sel, setSel] = React.useState([1]);
+  const [dlg, setDlg] = React.useState(false);
+  const [navTab, setNavTab] = React.useState('members');
+  const [cbA, setCbA] = React.useState(true);
+  const [cbB, setCbB] = React.useState(false);
+  const [sw1, setSw1] = React.useState(true);
+  const [sw2, setSw2] = React.useState(false);
+  const [page, setPage] = React.useState(2);
+  const [bannerVis, setBannerVis] = React.useState(true);
+
+  const users = [
+    { id:1, name:'Dana Reyes',   email:'dana@acme.com',  role:'Owner',  status:'Active'    },
+    { id:2, name:'Liam Okafor',  email:'liam@acme.com',  role:'Admin',  status:'Active'    },
+    { id:3, name:'Priya Shah',   email:'priya@acme.com', role:'Member', status:'Pending'   },
+    { id:4, name:'Marco Bianchi',email:'marco@acme.com', role:'Viewer', status:'Suspended' },
+    { id:5, name:'Aisha Khan',   email:'aisha@acme.com', role:'Admin',  status:'Active'    },
+  ];
+
+  const toneFor = { Active:'success', Pending:'neutral', Suspended:'danger' };
+  const cols = [
+    { key:'name', header:'User', render:(v,r)=>(
+      <span style={{ display:'inline-flex', alignItems:'center', gap:9 }}>
+        <Avatar name={v} size="sm" />
+        <span style={{ display:'flex', flexDirection:'column', lineHeight:1.25 }}>
+          <span style={{ fontWeight:500, fontSize:'var(--text-sm)', color:'var(--text-primary)' }}>{v}</span>
+          <span style={{ fontSize:'var(--text-xs)', color:'var(--text-tertiary)' }}>{r.email}</span>
+        </span>
+      </span>
+    )},
+    { key:'role',   header:'Role',   render:(v)=><span style={{ fontSize:'var(--text-sm)', color:'var(--text-secondary)' }}>{v}</span> },
+    { key:'status', header:'Status', render:(v)=><Badge tone={toneFor[v]} dot>{v}</Badge> },
+    { key:'id', header:'', width:44, align:'right', render:()=><IconButton label="Actions" size="sm"><Icon name="ellipsis" size={15}/></IconButton> },
+  ];
+
+  return (
+    <div style={{ ...vars, background:'var(--surface-page)', minHeight:'100%' }}>
+      <div style={{ maxWidth: 1100, margin:'0 auto', padding:'28px 28px 60px' }}>
+
+        {/* Palette display */}
+        <Sec label="Color palette">
+          <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+            {/* Neutral ramp */}
+            <div>
+              <div style={{ font:'9px/1 var(--font-mono)', color:'var(--text-tertiary)', letterSpacing:'0.05em', textTransform:'uppercase', marginBottom:6 }}>Neutrals</div>
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(13,1fr)', gap:3 }}>
+                {['--gray-0','--gray-25','--gray-100','--gray-150','--gray-200','--gray-300','--gray-400','--gray-500','--gray-600','--gray-700','--gray-800','--gray-900','--gray-950'].map((tok,i) => (
+                  <div key={tok} style={{ display:'flex', flexDirection:'column', gap:4, alignItems:'center' }}>
+                    <div style={{ width:'100%', height:36, borderRadius:4, background:`var(${tok})`, border:'1px solid var(--border-default)' }} />
+                    <span style={{ font:'9px/1 var(--font-mono)', color:'var(--text-tertiary)' }}>{[0,25,100,150,200,300,400,500,600,700,800,900,950][i]}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Accent + status row */}
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12 }}>
+              {[
+                { label:'Accent',  swatches:[['--accent','solid'],['--accent-soft','soft']] },
+                { label:'Success', swatches:[['--status-success','solid'],['--status-success-soft','soft']] },
+                { label:'Danger',  swatches:[['--status-danger','solid'],['--status-danger-soft','soft']] },
+                { label:'Neutral', swatches:[['--gray-500','500'],['--gray-100','100']] },
+              ].map(({ label, swatches }) => (
+                <div key={label} style={{ display:'flex', flexDirection:'column', gap:5 }}>
+                  <div style={{ font:'9px/1 var(--font-mono)', color:'var(--text-tertiary)', letterSpacing:'0.05em', textTransform:'uppercase' }}>{label}</div>
+                  <div style={{ display:'flex', gap:4 }}>
+                    {swatches.map(([tok, name]) => (
+                      <div key={tok} style={{ flex:1, display:'flex', flexDirection:'column', gap:3, alignItems:'center' }}>
+                        <div style={{ width:'100%', height:34, borderRadius:5, background:`var(${tok})`, border:'1px solid var(--border-default)' }} />
+                        <span style={{ font:'9px/1 var(--font-mono)', color:'var(--text-tertiary)' }}>{name}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Surface tokens */}
+            <div style={{ display:'flex', gap:5, flexWrap:'wrap' }}>
+              {[
+                ['page',   'var(--surface-page)',    'var(--text-tertiary)'],
+                ['card',   'var(--surface-card)',    'var(--text-tertiary)'],
+                ['sunken', 'var(--surface-sunken)',  'var(--text-tertiary)'],
+                ['hover',  'var(--surface-hover)',   'var(--text-tertiary)'],
+                ['active', 'var(--surface-active)',  'var(--text-secondary)'],
+                ['inverse','var(--surface-inverse)', 'var(--text-inverse)'],
+              ].map(([lbl, bg, fg]) => (
+                <div key={lbl} style={{ flex:'1 1 80px', height:42, borderRadius:5, background:bg, border:'1px solid var(--border-default)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                  <span style={{ font:'9px/1 var(--font-mono)', color:fg }}>{lbl}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </Sec>
+
+        {/* Actions */}
+        <Sec label="Actions — buttons">
+          <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+            <div style={{ display:'flex', gap:8, flexWrap:'wrap', alignItems:'center' }}>
+              <Button variant="primary" iconLeft={<Icon name="plus" size={15}/>}>New record</Button>
+              <Button variant="secondary">Secondary</Button>
+              <Button variant="ghost">Ghost</Button>
+              <Button variant="accent" iconLeft={<Icon name="sparkles" size={15}/>}>Accent</Button>
+              <Button variant="danger" iconLeft={<Icon name="trash-2" size={15}/>}>Delete</Button>
+              <Button variant="secondary" disabled>Disabled</Button>
+            </div>
+            <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+              <Button size="sm" variant="secondary">Small</Button>
+              <Button size="md" variant="secondary">Medium</Button>
+              <Button size="lg" variant="secondary">Large</Button>
+              <span style={{ width:1, height:24, background:'var(--border-default)', margin:'0 4px' }}/>
+              <IconButton label="Add" variant="outline"><Icon name="plus" size={16}/></IconButton>
+              <IconButton label="Search"><Icon name="search" size={16}/></IconButton>
+              <IconButton label="Settings"><Icon name="settings" size={16}/></IconButton>
+              <IconButton label="Delete"><Icon name="trash-2" size={16}/></IconButton>
+              <IconButton label="More"><Icon name="ellipsis" size={16}/></IconButton>
+            </div>
+          </div>
+        </Sec>
+
+        {/* Forms */}
+        <Sec label="Form controls">
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:16, alignItems:'start' }}>
+            <Input label="Full name" placeholder="Dana Reyes" />
+            <Input label="Email" placeholder="dana@acme.com" iconLeft={<Icon name="mail" size={15}/>} />
+            <Input label="Slug" error="Already taken" defaultValue="acme" trailing={<span style={{ font:'11px var(--font-mono)', color:'var(--text-tertiary)' }}>.atlas.app</span>} />
+            <Select label="Role" options={['Owner','Admin','Member','Viewer']} defaultValue="Member" />
+            <Select label="Status" options={['Active','Pending','Suspended']} defaultValue="Active" hint="Applies immediately" />
+            <Textarea label="Notes" rows={3} placeholder="Internal notes visible only to admins…" />
+            <div style={{ display:'flex', flexDirection:'column', gap:12, paddingTop:2 }}>
+              <Checkbox checked={cbA} onChange={setCbA} label="Send weekly digest" />
+              <Checkbox checked={cbB} onChange={setCbB} label="API access" description="Can create personal API keys" />
+              <Checkbox indeterminate label="Select all (3 of 8)" />
+            </div>
+            <div style={{ display:'flex', flexDirection:'column', gap:14, paddingTop:2 }}>
+              <Switch checked={sw1} onChange={setSw1} label="Email notifications" />
+              <Switch checked={sw2} onChange={setSw2} label="Two-factor auth" />
+              <Switch checked={true} disabled label="SSO enforced (read-only)" />
+            </div>
+          </div>
+        </Sec>
+
+        {/* Badges + Avatars */}
+        <Sec label="Badges & avatars">
+          <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+            <div style={{ display:'flex', gap:6, flexWrap:'wrap', alignItems:'center' }}>
+              <Badge tone="success" dot>Active</Badge>
+              <Badge tone="neutral" dot>Pending</Badge>
+              <Badge tone="danger" dot>Suspended</Badge>
+              <Badge tone="neutral">Beta</Badge>
+              <Badge>v2.4.1</Badge>
+              <Badge tone="success">Operational</Badge>
+              <Badge tone="neutral">Degraded</Badge>
+              <Badge tone="danger">Outage</Badge>
+              <Badge tone="neutral" dot>Processing</Badge>
+            </div>
+            <div style={{ display:'flex', gap:10, alignItems:'center' }}>
+              {['Dana Reyes','Liam Okafor','Priya Shah','Marco Bianchi','Aisha Khan','Sofia Mendez'].map((n,i)=>(
+                <Avatar key={n} name={n} size={['lg','md','md','sm','sm','xs'][i]} />
+              ))}
+              <span style={{ font:'var(--text-xs) var(--font-sans)', color:'var(--text-tertiary)', marginLeft:4 }}>lg → xs</span>
+            </div>
+          </div>
+        </Sec>
+
+        {/* Stats */}
+        <Sec label="Statistics">
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12 }}>
+            <StatCard label="Total users" value="8,420" delta="+18%" trend="up"   icon={<Icon name="users" size={16}/>} />
+            <StatCard label="Active today" value="1,240" delta="+4%"  trend="up"   icon={<Icon name="activity" size={16}/>} />
+            <StatCard label="Churn rate"  value="1.8%"  delta="-0.3%" trend="down" icon={<Icon name="trending-down" size={16}/>} />
+            <StatCard label="Open tickets" value="36"   trend="flat"  icon={<Icon name="circle-alert" size={16}/>} />
+          </div>
+        </Sec>
+
+        {/* Table */}
+        <Sec label="Data table">
+          <Card padding="none" title="Members" subtitle="5 users across all teams"
+            actions={<>
+              <Button size="sm" variant="secondary" iconLeft={<Icon name="download" size={14}/>}>Export</Button>
+              <Button size="sm" variant="primary" iconLeft={<Icon name="plus" size={14}/>}>Invite</Button>
+            </>}>
+            <Table columns={cols} data={users} rowKey="id" selectable selected={sel} onSelectedChange={setSel} />
+            <div style={{ padding:'10px 14px', borderTop:'1px solid var(--border-subtle)' }}>
+              <Pagination page={page} pageSize={5} total={248} onPageChange={setPage} />
+            </div>
+          </Card>
+        </Sec>
+
+        {/* Feedback */}
+        <Sec label="Feedback — banners, toasts, dialog">
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 320px', gap:20, alignItems:'start' }}>
+            <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+              <Banner tone="danger" title="3 fields need attention" />
+              <Banner tone="success" title="Deployment complete">v2.4.1 is live on all regions.</Banner>
+              <div style={{ paddingTop:4 }}>
+                <Button variant="secondary" onClick={()=>setDlg(true)} iconLeft={<Icon name="square-arrow-out-up-right" size={15}/>}>Open dialog</Button>
+              </div>
+            </div>
+            <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+              <Toast tone="success" title="Changes saved" message="Your role updates are live." onDismiss={()=>{}} />
+              <Toast tone="danger"  title="Invite failed" message="That email is already a member." onDismiss={()=>{}} />
+              <Toast tone="neutral" title="Export ready" onDismiss={()=>{}} />
+            </div>
+          </div>
+        </Sec>
+
+        {/* Navigation */}
+        <Sec label="Navigation — breadcrumb, tabs, pagination">
+          <div style={{ display:'flex', flexDirection:'column', gap:20 }}>
+            <Breadcrumb items={[{label:'Users',href:'#'},{label:'Engineering',href:'#'},{label:'Dana Reyes'}]} />
+            <div>
+              <Tabs value={navTab} onChange={setNavTab} items={[
+                {value:'overview',  label:'Overview'},
+                {value:'members',   label:'Members', count:42},
+                {value:'activity',  label:'Activity'},
+                {value:'settings',  label:'Settings'},
+              ]} />
+              <div style={{ padding:'14px 0 0', font:'var(--text-sm)/1.5 var(--font-sans)', color:'var(--text-tertiary)' }}>
+                Active tab: <strong style={{ color:'var(--text-primary)' }}>{navTab}</strong>
+              </div>
+            </div>
+            <Pagination page={page} pageSize={25} total={1240} onPageChange={setPage} />
+          </div>
+        </Sec>
+
+        {/* Card surface */}
+        <Sec label="Card surfaces">
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:14, alignItems:'start' }}>
+            <Card title="Default card" subtitle="1px border, no shadow">
+              <p style={{ font:'var(--text-sm)/1.5 var(--font-sans)', color:'var(--text-secondary)', margin:0 }}>Body text at 14/1.5. Atlas cards rely on border, not elevation, to define their edge.</p>
+            </Card>
+            <Card title="With actions" actions={<Button size="sm" variant="secondary">Edit</Button>} padding="sm">
+              <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                {[['Owner','Dana Reyes'],['Plan','Pro · $99/mo'],['Region','us-east-1']].map(([k,v])=>(
+                  <div key={k} style={{ display:'flex', justifyContent:'space-between', fontSize:'var(--text-sm)', paddingBottom:8, borderBottom:'1px solid var(--border-subtle)' }}>
+                    <span style={{ color:'var(--text-tertiary)' }}>{k}</span>
+                    <span style={{ color:'var(--text-primary)', fontWeight:500 }}>{v}</span>
+                  </div>
+                ))}
+              </div>
+            </Card>
+            <Card title="Danger zone" style={{ borderColor:'var(--red-100)' }}>
+              <Banner tone="danger" title="Permanently deletes all data" />
+              <div style={{ marginTop:12, display:'flex', justifyContent:'flex-end' }}>
+                <Button variant="danger" size="sm" iconLeft={<Icon name="trash-2" size={14}/>}>Delete workspace</Button>
+              </div>
+            </Card>
+          </div>
+        </Sec>
+
+      </div>
+
+      <Dialog open={dlg} onClose={()=>setDlg(false)} title="Delete project?"
+        description="This permanently removes the project and all its data."
+        footer={<>
+          <Button variant="secondary" onClick={()=>setDlg(false)}>Cancel</Button>
+          <Button variant="danger" onClick={()=>setDlg(false)}>Delete</Button>
+        </>}>
+        All records, API keys, and webhooks will be removed immediately. This action cannot be undone.
+      </Dialog>
+    </div>
+  );
+}
+
+/* ─── App ─────────────────────────────────────────────────────── */
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "corners": "sharp",
+  "primaryBtn": "accent",
+  "dAccent": "#0a0a0a"
+}/*EDITMODE-END*/;
+
+function App() {
+  const [activeId, setActiveId] = React.useState('D');
+  const [t, setTweak] = window.useTweaks(TWEAK_DEFAULTS);
+
+  const baseP = PALETTES.find(x => x.id === activeId);
+  // D derives a fully cohesive palette from its accent (tinted neutrals + harmonized status)
+  const p = activeId === 'D' ? cohesivePalette(t.dAccent, { id:'D', name:'Graphite & Ink' }) : baseP;
+  const customAccent = null;
+  const vars = buildVars(p, customAccent, t.corners, t.primaryBtn);
+  const accent = p.accent;
+
+  return (
+    <div style={{ display:'flex', flexDirection:'column', height:'100vh' }}>
+
+      {/* Chrome header — always dark */}
+      <header style={{
+        flex:'0 0 auto', zIndex:20, background:'rgb(75, 78, 87)',
+        borderBottom:'1px solid rgba(255,255,255,0.07)',
+        display:'flex', alignItems:'center', gap:16, padding:'0 20px', height:52,
+      }}>
+        <span style={{ font:'var(--weight-semibold) 15px/1 var(--font-sans)', letterSpacing:'-0.025em', color:'#fff', flex:'0 0 auto' }}>
+          Atlas Kitchen Sink
+        </span>
+        <div style={{ display:'flex', gap:5, flex:1 }}>
+          {PALETTES.map(pl => {
+            const on = pl.id === activeId;
+            return (
+              <button key={pl.id} onClick={() => setActiveId(pl.id)} style={{
+                height:32, padding:'0 14px', cursor:'pointer',
+                borderRadius:'var(--radius-sm)',
+                font:'var(--weight-medium) 13px/1 var(--font-sans)',
+                border:`1px solid ${on ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.07)'}`,
+                background: on ? 'rgba(255,255,255,0.10)' : 'transparent',
+                color: on ? '#ffffff' : 'rgba(255,255,255,0.42)',
+                transition:'background 120ms ease, color 120ms ease, border-color 120ms ease',
+              }}>
+                <span style={{ fontWeight:600 }}>{pl.id}</span>
+                <span style={{ marginLeft:6, opacity:0.7 }}>—</span>
+                <span style={{ marginLeft:6 }}>{pl.name}</span>
+              </button>
+            );
+          })}
+        </div>
+        <div style={{ display:'flex', alignItems:'center', gap:8, flex:'0 0 auto' }}>
+          <span style={{ width:18, height:18, borderRadius:4, background:accent, border:'2px solid rgba(255,255,255,0.15)', display:'inline-block', flexShrink:0 }} />
+          <span style={{ font:'12px/1 var(--font-mono)', color:'rgba(255,255,255,0.35)' }}>{accent}</span>
+        </div>
+      </header>
+
+      {/* Scrolling content */}
+      <div style={{ flex:1, overflow:'auto' }}>
+        <KitchenSink key={activeId + t.corners + t.primaryBtn + (activeId==='D'?t.dAccent:'')} vars={vars} />
+      </div>
+
+      {/* Tweaks */}
+      <window.TweaksPanel title="Kitchen sink">
+        <window.TweakSection label="Style" />
+        <window.TweakRadio label="Corners" value={t.corners} options={['sharp','default','soft']} onChange={v=>setTweak('corners',v)} />
+        <window.TweakRadio label="Primary btn" value={t.primaryBtn} options={['ink','accent']} onChange={v=>setTweak('primaryBtn',v)} />
+        {activeId === 'D' && <>
+          <window.TweakSection label="D — Graphite & Ink" />
+          <window.TweakColor label="Accent" value={t.dAccent}
+            options={['#18181b','#1c1a17','#14161c','#1a1411','#161a17','#3f3f46','#27272a','#0a0a0a','#7c3aed','#e8450a']}
+            onChange={v=>setTweak('dAccent',v)} />
+        </>}
+      </window.TweaksPanel>
+
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

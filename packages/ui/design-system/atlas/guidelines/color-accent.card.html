@@ -1,0 +1,33 @@
+<!-- @dsCard group="Colors" viewport="700x180" name="Accent — Ink" subtitle="The accent is near-black: actions, links, focus, selection" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin: 0; padding: 18px; background: var(--surface-card); }
+  .ramp { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0; border-radius: var(--radius-sm); overflow: hidden; border: 1px solid var(--border-default); }
+  .sw { height: 60px; display: flex; align-items: flex-end; padding: 6px; }
+  .sw span { font: 9px var(--font-mono); }
+  .lab { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0; margin-top: 8px; }
+  .lab span { text-align: center; font: var(--weight-medium) 10px/1.2 var(--font-mono); color: var(--text-tertiary); }
+  .note { margin-top: 14px; font: var(--text-xs) var(--font-sans); color: var(--text-tertiary); max-width: 640px; line-height: 1.5; }
+  .note b { color: var(--accent); font-weight: var(--weight-semibold); }
+</style>
+</head>
+<body>
+<div class="ramp">
+  <div class="sw" style="background:var(--ink-50)"></div>
+  <div class="sw" style="background:var(--ink-100)"></div>
+  <div class="sw" style="background:var(--gray-300)"></div>
+  <div class="sw" style="background:var(--gray-500)"></div>
+  <div class="sw" style="background:var(--gray-700)"></div>
+  <div class="sw" style="background:var(--ink-500)"></div>
+  <div class="sw" style="background:var(--ink-600)"></div>
+</div>
+<div class="lab">
+  <span>soft</span><span>100</span><span>300</span><span>500</span><span>700</span><span>ink-500</span><span>ink-600</span>
+</div>
+<div class="note"><b>--accent = --ink-600 (#0a0a0a)</b>. Atlas has no chromatic accent — interactive state, links, the focus ring, selected rows, and the primary action all render as ink. Color is reserved entirely for status (success / danger).</div>
+</body>
+</html>

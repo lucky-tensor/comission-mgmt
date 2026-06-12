@@ -1,0 +1,29 @@
+<!-- @dsCard group="Type" viewport="700x170" name="Weights & overline" subtitle="Geist 400/500/600/700 + the uppercase overline" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin: 0; padding: 22px; background: var(--surface-card); }
+  .weights { display: flex; gap: 28px; flex-wrap: wrap; }
+  .w { display: flex; flex-direction: column; gap: 4px; }
+  .w .big { font-size: 28px; color: var(--text-primary); letter-spacing: var(--tracking-tight); }
+  .w .m { font: var(--text-xs) var(--font-mono); color: var(--text-tertiary); }
+  .ov { margin-top: 22px; display: flex; align-items: center; gap: 14px; }
+</style>
+</head>
+<body>
+  <div class="weights">
+    <div class="w"><span class="big" style="font-weight:400">Aa</span><span class="m">400 · regular</span></div>
+    <div class="w"><span class="big" style="font-weight:500">Aa</span><span class="m">500 · medium</span></div>
+    <div class="w"><span class="big" style="font-weight:600">Aa</span><span class="m">600 · semibold</span></div>
+    <div class="w"><span class="big" style="font-weight:700">Aa</span><span class="m">700 · bold</span></div>
+    <div class="w"><span class="big" style="font-family:var(--font-mono);font-weight:500">01</span><span class="m">mono · tabular</span></div>
+  </div>
+  <div class="ov">
+    <span class="atlas-overline">Section overline</span>
+    <span style="font:var(--text-xs) var(--font-mono);color:var(--text-tertiary)">.atlas-overline · 11px / +0.04em / uppercase</span>
+  </div>
+</body>
+</html>

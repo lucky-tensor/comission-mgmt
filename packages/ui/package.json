@@ -2,6 +2,10 @@
   "name": "ui",
   "private": true,
   "main": "index.ts",
+  "exports": {
+    ".": "./index.ts",
+    "./design-system/app.css": "./design-system/app.css"
+  },
   "scripts": {
     "build": "echo 'ui: no build step (imported directly by Vite)'"
   },

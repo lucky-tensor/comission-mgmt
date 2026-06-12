@@ -177,7 +177,7 @@ function DisputeDetailView({
       <button
         data-testid="back-to-list"
         onClick={onBack}
-        className="mb-4 text-[0.8125rem] bg-transparent border-none text-accent cursor-pointer p-0 underline"
+        className="mb-4 text-sm bg-transparent border-none text-accent cursor-pointer p-0 underline"
       >
         ← Back to escalated disputes
       </button>
@@ -222,14 +222,14 @@ function DisputeDetailView({
                 >
                   <span
                     data-testid="timeline-event-type"
-                    className="text-xs bg-surface-sunken text-ink-muted px-2 py-0.5 rounded font-semibold shrink-0"
+                    className="text-xs bg-surface-sunken text-ink-muted px-2 py-0.5 rounded-xs font-semibold shrink-0"
                   >
                     {event.event_type}
                   </span>
                   <div>
-                    <div className="text-[0.8125rem] text-ink-muted">Actor: {event.actor_id}</div>
+                    <div className="text-sm text-ink-muted">Actor: {event.actor_id}</div>
                     {event.reason && (
-                      <div className="text-[0.8125rem] text-ink-subtle mt-1">{event.reason}</div>
+                      <div className="text-sm text-ink-subtle mt-1">{event.reason}</div>
                     )}
                     <div className="text-xs text-ink-faint mt-1">
                       {new Date(event.created_at).toLocaleString()}
@@ -247,7 +247,7 @@ function DisputeDetailView({
           <div data-testid="arbitration-section">
             {arbStatus === 'idle' && (
               <>
-                <p className="text-[0.8125rem] text-ink-subtle mt-0 mb-3">
+                <p className="text-sm text-ink-subtle mt-0 mb-3">
                   Request an AI recommendation for this escalated dispute. The output is advisory
                   only — the final resolution is always a documented human decision recorded below.
                 </p>
@@ -268,7 +268,7 @@ function DisputeDetailView({
               <div
                 data-testid="arbitration-rejected"
                 role="status"
-                className="text-[0.8125rem] text-ink-subtle"
+                className="text-sm text-ink-subtle"
               >
                 Recommendation rejected. Resolve the dispute with your own rationale below.
               </div>
@@ -277,13 +277,13 @@ function DisputeDetailView({
             {arbStatus === 'done' && recommendation && (
               <div
                 data-testid="arbitration-recommendation"
-                className="p-5 bg-surface-sunken border border-border rounded-lg"
+                className="p-5 bg-surface-sunken border border-border rounded-md"
               >
                 <div className="mb-3">
                   <div className="text-xs text-ink-subtle font-semibold">Recommendation</div>
                   <div
                     data-testid="arbitration-summary"
-                    className="text-[0.9375rem] font-semibold text-ink"
+                    className="text-base font-semibold text-ink"
                   >
                     {recommendation.recommendation}
                   </div>
@@ -301,10 +301,7 @@ function DisputeDetailView({
 
                 <div className="mb-3">
                   <div className="text-xs text-ink-subtle font-semibold">Payout adjustment</div>
-                  <div
-                    data-testid="arbitration-payout-adjustment"
-                    className="text-[0.9375rem] text-ink"
-                  >
+                  <div data-testid="arbitration-payout-adjustment" className="text-base text-ink">
                     {recommendation.payout_adjustment}
                   </div>
                 </div>
@@ -314,7 +311,7 @@ function DisputeDetailView({
                     <div className="text-xs text-ink-subtle font-semibold">Edge cases</div>
                     <ul data-testid="arbitration-edge-cases" className="mt-1 mb-0 pl-5">
                       {recommendation.edge_cases.map((ec, i) => (
-                        <li key={i} className="text-[0.8125rem] text-ink-muted">
+                        <li key={i} className="text-sm text-ink-muted">
                           {ec}
                         </li>
                       ))}
@@ -359,7 +356,7 @@ function DisputeDetailView({
           <div
             data-testid="resolve-confirmation"
             role="status"
-            className="p-5 bg-ok-bg border border-ok-fg/30 rounded-lg text-ok-fg text-sm"
+            className="p-5 bg-ok-bg border border-ok-fg/30 rounded-md text-ok-fg text-sm"
           >
             Dispute resolved — placement is unblocked for the commission run. Rationale recorded in
             the audit trail.
@@ -370,7 +367,7 @@ function DisputeDetailView({
           <div data-testid="resolve-form">
             <label
               htmlFor="resolution-rationale"
-              className="block text-[0.8125rem] text-ink-muted mb-1.5 font-semibold"
+              className="block text-sm text-ink-muted mb-1.5 font-semibold"
             >
               Rationale (required)
             </label>
@@ -380,25 +377,17 @@ function DisputeDetailView({
               value={rationale}
               onChange={(e) => setRationale(e.target.value)}
               placeholder="Enter the final decision rationale to be recorded in the audit trail…"
-              className="w-full box-border px-3 py-2.5 border border-border-strong rounded-lg text-sm min-h-[5rem] resize-y mb-3"
+              className="w-full box-border px-3 py-2.5 border border-border-strong rounded-md text-sm min-h-20 resize-y mb-3"
             />
 
             {rationaleError && (
-              <div
-                data-testid="rationale-error"
-                role="alert"
-                className="text-bad-fg text-[0.8125rem] mb-3"
-              >
+              <div data-testid="rationale-error" role="alert" className="text-bad-fg text-sm mb-3">
                 {rationaleError}
               </div>
             )}
 
             {saveError && (
-              <div
-                data-testid="save-error"
-                role="alert"
-                className="text-bad-fg text-[0.8125rem] mb-3"
-              >
+              <div data-testid="save-error" role="alert" className="text-bad-fg text-sm mb-3">
                 {saveError}
               </div>
             )}
@@ -429,10 +418,8 @@ function DisputeRow({ dispute, onSelect }: DisputeRowProps) {
       className="border-b border-border py-4 flex items-start justify-between gap-4"
     >
       <div>
-        <div className="font-semibold text-ink text-[0.9375rem]">
-          Dispute #{dispute.id.slice(0, 8)}
-        </div>
-        <div className="text-[0.8125rem] text-ink-subtle mt-1">{dispute.description}</div>
+        <div className="font-semibold text-ink text-base">Dispute #{dispute.id.slice(0, 8)}</div>
+        <div className="text-sm text-ink-subtle mt-1">{dispute.description}</div>
         <div className="text-xs text-ink-faint mt-1">
           Submitted {new Date(dispute.created_at).toLocaleDateString()}
         </div>
@@ -440,7 +427,7 @@ function DisputeRow({ dispute, onSelect }: DisputeRowProps) {
       <button
         data-testid={`review-btn-${dispute.id}`}
         onClick={() => onSelect(dispute)}
-        className="shrink-0 text-[0.8125rem] px-3 py-1.5 rounded-md bg-ink text-white cursor-pointer"
+        className="shrink-0 text-sm px-3 py-1.5 rounded-md bg-ink text-white cursor-pointer"
       >
         Review
       </button>
@@ -489,11 +476,8 @@ export function ExecDisputeApprovalView({
   const escalated = (disputes ?? []).filter((d) => d.state === 'UnderReview');
 
   return (
-    <div
-      data-testid="exec-dispute-approval"
-      className="min-h-[calc(100vh-3.25rem)] bg-surface-muted px-4 py-8"
-    >
-      <div className="max-w-[880px] mx-auto">
+    <div data-testid="exec-dispute-approval" className="min-h-surface bg-surface-muted px-4 py-8">
+      <div className="max-w-narrow mx-auto">
         <header className="mb-6">
           <h1 data-testid="exec-dispute-heading" className="text-2xl font-bold text-ink mt-0 mb-1">
             Escalated Dispute Approval

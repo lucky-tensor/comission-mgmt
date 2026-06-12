@@ -8,7 +8,7 @@
  * Issue: feat: Producer Portal UI + headless-Chromium browser/E2E harness (#78)
  */
 
-const BOX_CLASS = 'p-5 rounded-lg text-sm';
+const BOX_CLASS = 'p-5 rounded-md text-sm';
 
 /** Spinner-free loading placeholder. */
 export function LoadingState({ label }: { label: string }) {
@@ -47,7 +47,7 @@ export function EmptyState({ message }: { message: string }) {
 /** Card wrapper with a heading used by every portal panel. */
 export function PortalCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="bg-surface border border-border rounded-xl p-6 mb-6">
+    <section className="bg-surface border border-border rounded-md p-6 mb-6">
       <h2 className="text-lg font-semibold text-ink mt-0">{title}</h2>
       {children}
     </section>

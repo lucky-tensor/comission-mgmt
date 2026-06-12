@@ -66,9 +66,9 @@ export interface EscalatedDispute {
 // ---------------------------------------------------------------------------
 
 const FIELD_CLASS =
-  'w-full px-3 py-2.5 border border-border-strong rounded-lg text-sm box-border mb-3.5';
+  'w-full px-3 py-2.5 border border-border-strong rounded-md text-sm box-border mb-3.5';
 
-const LABEL_CLASS = 'block text-[0.8125rem] text-ink-muted mb-1';
+const LABEL_CLASS = 'block text-sm text-ink-muted mb-1';
 
 const TABLE_CLASS = 'w-full border-collapse text-sm';
 
@@ -118,13 +118,13 @@ export function EscalationForm({
         <div
           data-testid="escalation-confirmation"
           role="status"
-          className="p-5 bg-ok-bg border border-ok-fg/30 rounded-lg text-ok-fg text-sm"
+          className="p-5 bg-ok-bg border border-ok-fg/30 rounded-md text-ok-fg text-sm"
         >
           Escalation submitted — dispute state:{' '}
           <strong data-testid="escalation-state">{result.state}</strong>. The designated tiebreaker
           will be notified to review.
         </div>
-        <p className="mt-3 text-[0.8125rem] text-ink-subtle">
+        <p className="mt-3 text-sm text-ink-subtle">
           <em>
             Note: a distinct &quot;escalate to named tiebreaker&quot; endpoint is not yet available
             on the backend. The rationale has been recorded via the existing dispute-resolution
@@ -175,18 +175,14 @@ export function EscalationForm({
           Rationale
           <textarea
             data-testid="escalation-rationale"
-            className={`${FIELD_CLASS} min-h-[5rem] resize-y`}
+            className={`${FIELD_CLASS} min-h-20 resize-y`}
             value={rationale}
             onChange={(e) => setRationale(e.target.value)}
             placeholder="Explain why this split cannot be resolved at the manager level and requires tiebreaker review…"
           />
         </label>
         {error && (
-          <div
-            data-testid="escalation-error"
-            role="alert"
-            className="text-bad-fg text-[0.8125rem] mb-3"
-          >
+          <div data-testid="escalation-error" role="alert" className="text-bad-fg text-sm mb-3">
             {error}
           </div>
         )}
@@ -293,7 +289,7 @@ export function ManagerPortal({
 
   return (
     <div className="min-h-screen bg-surface-muted px-4 py-8">
-      <div className="max-w-[880px] mx-auto">
+      <div className="max-w-narrow mx-auto">
         <header className="mb-8">
           <h1 className="text-2xl font-bold text-ink m-0">Manager — Cross-Team Split Escalation</h1>
           <p className="text-sm text-ink-subtle mt-1 mb-0">

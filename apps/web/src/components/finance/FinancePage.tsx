@@ -44,12 +44,12 @@ function Section({
 }) {
   return (
     <section
-      className="bg-surface border border-border rounded-lg p-6 mb-6"
+      className="bg-surface border border-border rounded-md p-6 mb-6"
       aria-labelledby={title ? id : undefined}
       data-testid={testId}
     >
       {title && (
-        <h2 id={id} className="text-[1.0625rem] font-bold text-ink m-0 mb-4">
+        <h2 id={id} className="text-lg font-bold text-ink m-0 mb-4">
           {title}
         </h2>
       )}
@@ -75,11 +75,11 @@ export function FinancePage() {
             {/* The Data Gap Queue child renders its own "Data Gap Queue" heading, so
                 this section omits a second one (avoids duplicate heading text). */}
             <Section id="finance-data-gap" testId="finance-section-data-gap">
-              <DataGapQueue />
+              <DataGapQueue embedded />
             </Section>
 
-            <Section id="finance-runs" title="Commission Runs" testId="finance-section-runs">
-              <CommissionRunReview />
+            <Section id="finance-runs" testId="finance-section-runs">
+              <CommissionRunReview embedded />
             </Section>
 
             <Section
@@ -103,7 +103,9 @@ export function FinancePage() {
         </Tabs.Tab>
 
         <Tabs.Tab id="reconciliation" label="Reconciliation">
-          <ReconciliationReport />
+          <Section id="finance-reconciliation" testId="finance-section-reconciliation">
+            <ReconciliationReport embedded />
+          </Section>
         </Tabs.Tab>
       </Tabs>
     </div>

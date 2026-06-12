@@ -94,7 +94,7 @@ export interface ReconciliationReportData {
 // Shared style tokens — Tailwind class strings (theme tokens, no raw hex)
 // ---------------------------------------------------------------------------
 
-const CARD_CLASS = 'bg-surface border border-border rounded-xl p-6 mb-6';
+const CARD_CLASS = 'bg-surface border border-border rounded-md p-6 mb-6';
 
 const HEADING_CLASS = 'text-lg font-semibold text-ink mt-0 mb-4';
 
@@ -159,7 +159,7 @@ export function PeriodForm({ onFetch, fetching, error }: PeriodFormProps) {
           <div
             data-testid="recon-fetch-error"
             role="alert"
-            className="mt-3 p-3 bg-bad-bg border border-bad-fg/30 rounded-lg text-bad-fg text-sm"
+            className="mt-3 p-3 bg-bad-bg border border-bad-fg/30 rounded-md text-bad-fg text-sm"
           >
             {error}
           </div>
@@ -233,13 +233,10 @@ function AcknowledgeForm({
       {open && (
         <div
           data-testid={`acknowledge-form-${discrepancyId}`}
-          className="mt-2 bg-surface-muted border border-border rounded-lg p-3"
+          className="mt-2 bg-surface-muted border border-border rounded-md p-3"
         >
           <form onSubmit={(e) => void handleSubmit(e)}>
-            <label
-              htmlFor={`note-${discrepancyId}`}
-              className="block text-[0.8125rem] font-semibold mb-1"
-            >
+            <label htmlFor={`note-${discrepancyId}`} className="block text-sm font-semibold mb-1">
               Acknowledgement note
             </label>
             <textarea
@@ -249,13 +246,13 @@ function AcknowledgeForm({
               onChange={(e) => setNote(e.target.value)}
               rows={2}
               required
-              className="w-full box-border px-2 py-1.5 border border-border-strong rounded-md text-[0.8125rem] mb-2"
+              className="w-full box-border px-2 py-1.5 border border-border-strong rounded-md text-sm mb-2"
             />
             {acknowledgeError && (
               <div
                 data-testid={`acknowledge-error-${discrepancyId}`}
                 role="alert"
-                className="text-bad-fg text-[0.8125rem] mb-2"
+                className="text-bad-fg text-sm mb-2"
               >
                 {acknowledgeError}
               </div>
@@ -310,25 +307,23 @@ function DiscrepancyRow({
           <div className="flex items-center gap-2 flex-wrap">
             <span
               data-testid={`discrepancy-type-badge-${discrepancy.id}`}
-              className={`text-[0.6875rem] font-semibold px-2 py-0.5 rounded-full ${meta.chip}`}
+              className={`text-xs font-semibold px-2 py-0.5 rounded-xs ${meta.chip}`}
             >
               {meta.label}
             </span>
             {discrepancy.invoice_number && (
-              <span className="text-[0.8125rem] text-ink-muted font-mono">
-                {discrepancy.invoice_number}
-              </span>
+              <span className="text-sm text-ink-muted font-mono">{discrepancy.invoice_number}</span>
             )}
             {discrepancy.acknowledged && (
               <span
                 data-testid={`acknowledged-badge-${discrepancy.id}`}
-                className="text-[0.6875rem] font-semibold px-2 py-0.5 rounded-full bg-ok-bg text-ok-fg"
+                className="text-xs font-semibold px-2 py-0.5 rounded-xs bg-ok-bg text-ok-fg"
               >
                 Acknowledged
               </span>
             )}
           </div>
-          <div className="mt-1.5 text-[0.8125rem] text-ink-subtle flex gap-6 flex-wrap">
+          <div className="mt-1.5 text-sm text-ink-subtle flex gap-6 flex-wrap">
             {discrepancy.ledger_amount_billed != null && (
               <span>
                 Ledger: <strong className="text-ink">{discrepancy.ledger_amount_billed}</strong>
@@ -360,7 +355,7 @@ function DiscrepancyRow({
           {discrepancy.acknowledged && discrepancy.acknowledged_note && (
             <div
               data-testid={`acknowledged-note-${discrepancy.id}`}
-              className="mt-1.5 text-[0.8125rem] text-ink-muted italic"
+              className="mt-1.5 text-sm text-ink-muted italic"
             >
               Note: {discrepancy.acknowledged_note}
             </div>
@@ -404,13 +399,10 @@ function BucketCard({
   const meta = BUCKET_META[type];
   const typeTestId = type.replace(/_/g, '-');
   return (
-    <div
-      data-testid={`bucket-${typeTestId}`}
-      className={`${CARD_CLASS} border-l-[3px] ${meta.border}`}
-    >
+    <div data-testid={`bucket-${typeTestId}`} className={`${CARD_CLASS} border-l-2 ${meta.border}`}>
       <h3 className="text-base font-semibold text-ink mt-0 mb-3 flex items-center gap-2">
         {meta.label}
-        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${meta.chip}`}>
+        <span className={`text-xs font-semibold px-2 py-0.5 rounded-xs ${meta.chip}`}>
           {discrepancies.length}
         </span>
       </h3>
@@ -444,6 +436,7 @@ export type ReportPhase =
   | { kind: 'data'; report: ReconciliationReportData };
 
 export interface ReconciliationReportViewProps {
+  embedded?: boolean;
   phase: ReportPhase;
   onFetch: (periodStart: string, periodEnd: string) => Promise<void>;
   onAcknowledge: (id: string, note: string) => Promise<void>;
@@ -455,6 +448,7 @@ export interface ReconciliationReportViewProps {
 }
 
 export function ReconciliationReportView({
+  embedded = false,
   phase,
   onFetch,
   onAcknowledge,
@@ -467,11 +461,14 @@ export function ReconciliationReportView({
   return (
     <div
       data-testid="reconciliation-report"
-      className="min-h-[calc(100vh-3.25rem)] bg-surface-muted px-4 py-8"
+      data-embedded={embedded ? 'true' : 'false'}
+      className={embedded ? '' : 'min-h-surface bg-surface-muted px-4 py-8'}
     >
-      <div className="max-w-[960px] mx-auto">
+      <div className={embedded ? '' : 'max-w-report mx-auto'}>
         <header className="mb-8">
-          <h1 className="text-2xl font-bold text-ink m-0">Financial Reconciliation Report</h1>
+          <h2 className={`${embedded ? 'text-xl' : 'text-2xl'} font-bold text-ink m-0`}>
+            Financial Reconciliation Report
+          </h2>
           <p className="text-sm text-ink-subtle mt-1 mb-0">
             Compare the commission ledger against the financial system of record. Acknowledge all
             discrepancies to unblock run finalization.
@@ -490,7 +487,7 @@ export function ReconciliationReportView({
           <div
             data-testid="recon-error-state"
             role="alert"
-            className="bg-bad-bg border border-bad-fg/30 rounded-xl p-6 mb-6 text-bad-fg"
+            className="bg-bad-bg border border-bad-fg/30 rounded-md p-6 mb-6 text-bad-fg"
           >
             {phase.message}
           </div>
@@ -512,9 +509,7 @@ export function ReconciliationReportView({
                   ['Unacknowledged', String(unacknowledgedCount)],
                 ].map(([label, value]) => (
                   <div key={label} className="flex flex-col gap-0.5">
-                    <dt className="text-[0.6875rem] text-ink-subtle font-semibold uppercase">
-                      {label}
-                    </dt>
+                    <dt className="text-xs text-ink-subtle font-semibold uppercase">{label}</dt>
                     <dd
                       data-testid={
                         label === 'Unacknowledged' ? 'recon-unacknowledged-count' : undefined
@@ -536,7 +531,7 @@ export function ReconciliationReportView({
                 <div
                   data-testid="recon-all-clear"
                   role="status"
-                  className="px-4 py-3 bg-ok-bg border border-ok-fg/30 rounded-lg text-ok-fg text-sm font-semibold"
+                  className="px-4 py-3 bg-ok-bg border border-ok-fg/30 rounded-md text-ok-fg text-sm font-semibold"
                 >
                   All discrepancies acknowledged — run finalization is unblocked.
                 </div>
@@ -547,7 +542,7 @@ export function ReconciliationReportView({
                 <div
                   data-testid="recon-clean"
                   role="status"
-                  className="px-4 py-3 bg-ok-bg border border-ok-fg/30 rounded-lg text-ok-fg text-sm font-semibold"
+                  className="px-4 py-3 bg-ok-bg border border-ok-fg/30 rounded-md text-ok-fg text-sm font-semibold"
                 >
                   No discrepancies found — ledger and financial system are in agreement.
                 </div>
@@ -587,7 +582,7 @@ export function ReconciliationReportView({
  * Passes explicit state to ReconciliationReportView so every UI state is
  * exercisable via component tests with in-test data.
  */
-export function ReconciliationReport() {
+export function ReconciliationReport({ embedded = false }: { embedded?: boolean }) {
   const [phase, setPhase] = useState<ReportPhase>({ kind: 'idle' });
   const [fetching, setFetching] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -667,6 +662,7 @@ export function ReconciliationReport() {
 
   return (
     <ReconciliationReportView
+      embedded={embedded}
       phase={phase}
       onFetch={handleFetch}
       onAcknowledge={handleAcknowledge}
