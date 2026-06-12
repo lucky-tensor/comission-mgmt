@@ -41,11 +41,7 @@ describe('placement ledger RBAC', () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: 'Active' }),
     });
-    const response = await handleUpdatePlacement(
-      crypto.randomUUID(),
-      request,
-      claims('Executive'),
-    );
+    const response = await handleUpdatePlacement(crypto.randomUUID(), request, claims('Executive'));
     expect(response.status).toBe(403);
   });
 });

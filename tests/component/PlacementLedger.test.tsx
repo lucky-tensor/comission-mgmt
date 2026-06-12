@@ -23,10 +23,14 @@ describe('PlacementLedger role surface', () => {
       />,
     );
 
-    await expect.element(page.getByRole('heading', { name: 'Placement Ledger' })).toBeInTheDocument();
+    await expect
+      .element(page.getByRole('heading', { name: 'Placement Ledger' }))
+      .toBeInTheDocument();
     await expect.element(page.getByRole('button', { name: 'New placement' })).toBeInTheDocument();
     for (const column of ['customer', 'status', 'billing', 'producers']) {
-      await expect.element(page.getByRole('button', { name: new RegExp(column, 'i') })).toBeInTheDocument();
+      await expect
+        .element(page.getByRole('button', { name: new RegExp(column, 'i') }))
+        .toBeInTheDocument();
     }
   });
 
@@ -38,7 +42,9 @@ describe('PlacementLedger role surface', () => {
       />,
     );
 
-    await expect.element(page.getByRole('heading', { name: 'Placement Ledger' })).toBeInTheDocument();
+    await expect
+      .element(page.getByRole('heading', { name: 'Placement Ledger' }))
+      .toBeInTheDocument();
     expect(mounted.container.textContent).not.toContain('New placement');
   });
 });

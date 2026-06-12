@@ -27,11 +27,7 @@ afterEach(() => {
   mounted = undefined;
 });
 
-const PROCESSING_HEADINGS = [
-  'Data Gap Queue',
-  'Commission Runs',
-  'Invoice & Collection Tracking',
-];
+const PROCESSING_HEADINGS = ['Data Gap Queue', 'Commission Runs', 'Invoice & Collection Tracking'];
 
 describe('FinancePage composition', () => {
   test('renders exactly one composed finance page', async () => {

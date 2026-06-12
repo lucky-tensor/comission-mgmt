@@ -302,7 +302,8 @@ export function PlacementLedger({
                                 </span>
                                 <span className="text-xs text-ink-subtle">
                                   {' '}
-                                  · {CONTRIBUTOR_ROLE_LABELS[
+                                  ·{' '}
+                                  {CONTRIBUTOR_ROLE_LABELS[
                                     contributor.role as keyof typeof CONTRIBUTOR_ROLE_LABELS
                                   ] ?? contributor.role}{' '}
                                   · {Math.round(contributor.splitPct * 100)}%
@@ -570,7 +571,9 @@ function ProducerAssignments({
   useEffect(() => {
     apiGet<{ producers: ProducerOption[] }>('/producers')
       .then((response) => setProducers(response.producers))
-      .catch((err: unknown) => setError(err instanceof Error ? err.message : 'Failed to load producers'));
+      .catch((err: unknown) =>
+        setError(err instanceof Error ? err.message : 'Failed to load producers'),
+      );
   }, []);
 
   async function add(event: React.FormEvent) {
@@ -597,7 +600,9 @@ function ProducerAssignments({
     setError(null);
     try {
       await apiDelete(`/placements/${placement.id}/contributors/${contributorId}`);
-      setContributors((current) => current.filter((contributor) => contributor.id !== contributorId));
+      setContributors((current) =>
+        current.filter((contributor) => contributor.id !== contributorId),
+      );
       await onSaved();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to remove producer');
@@ -624,7 +629,11 @@ function ProducerAssignments({
                   · {Math.round(contributor.splitPct * 100)}%
                 </div>
               </div>
-              <Button variant="destructive" type="button" onClick={() => void remove(contributor.id)}>
+              <Button
+                variant="destructive"
+                type="button"
+                onClick={() => void remove(contributor.id)}
+              >
                 Remove
               </Button>
             </div>

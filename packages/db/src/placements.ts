@@ -289,11 +289,7 @@ export async function getPlacementLedgerMetadata(
       splitPct: Number(raw.split_pct),
     });
     contributorsByPlacement.set(raw.placement_id, contributors);
-    if (
-      managerId &&
-      raw.producer_id === managerId &&
-      raw.role_code === 'ManagerOverride'
-    ) {
+    if (managerId && raw.producer_id === managerId && raw.role_code === 'ManagerOverride') {
       managedPlacementIds.add(raw.placement_id);
     }
   }
