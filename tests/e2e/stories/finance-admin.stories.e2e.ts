@@ -128,8 +128,9 @@ describe('FA-2: Finance Admin reviews and approves a commission run', () => {
   test('finalize succeeds after all discrepancies are acknowledged', async () => {
     s.current = await loginAs('Finance Admin');
     await expect.element(page.getByTestId('commission-run-review')).toBeInTheDocument();
-    // Acknowledge the reconciliation discrepancy first.
-    navigate('/reconciliation');
+    // Acknowledge the reconciliation discrepancy first (reconciliation is now a tab on /finance).
+    navigate('/finance');
+    await userEvent.click(page.getByRole('tab', { name: /reconciliation/i }));
     await expect.element(page.getByTestId('reconciliation-report')).toBeInTheDocument();
     await userEvent.fill(page.getByTestId('recon-period-start-input'), '2025-05-01');
     await userEvent.fill(page.getByTestId('recon-period-end-input'), '2025-05-31');
@@ -346,6 +347,8 @@ describe('FA-4: Finance Admin tracks invoice and collection status', () => {
 describe('FA-5: Finance Admin applies adjustments via the append-only ledger', () => {
   test('adjustment-ledger renders when a placement is loaded in FinanceAdminSurface', async () => {
     s.current = await loginAs('Finance Admin');
+    // FinanceAdminSurface is now in the Adjustments & Payroll tab
+    await userEvent.click(page.getByRole('tab', { name: /adjustments/i }));
     await expect.element(page.getByTestId('finance-home')).toBeInTheDocument();
     // Use the placement-id-input form in FinanceAdminSurface.
     await expect
@@ -359,6 +362,8 @@ describe('FA-5: Finance Admin applies adjustments via the append-only ledger', (
 
   test('trigger form is visible after loading placement ledger', async () => {
     s.current = await loginAs('Finance Admin');
+    // FinanceAdminSurface is now in the Adjustments & Payroll tab
+    await userEvent.click(page.getByRole('tab', { name: /adjustments/i }));
     await expect.element(page.getByTestId('finance-home')).toBeInTheDocument();
     await expect
       .element(page.getByTestId('adjustment-placement-picker-select'))
@@ -375,6 +380,8 @@ describe('FA-5: Finance Admin applies adjustments via the append-only ledger', (
 
   test('submitting the trigger form shows a result (adjustment row or trigger error)', async () => {
     s.current = await loginAs('Finance Admin');
+    // FinanceAdminSurface is now in the Adjustments & Payroll tab
+    await userEvent.click(page.getByRole('tab', { name: /adjustments/i }));
     await expect.element(page.getByTestId('finance-home')).toBeInTheDocument();
     await expect
       .element(page.getByTestId('adjustment-placement-picker-select'))
