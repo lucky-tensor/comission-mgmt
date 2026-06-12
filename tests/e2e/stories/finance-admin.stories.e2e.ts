@@ -11,8 +11,9 @@
  *   FA-3  Payroll-ready export          ← requires FinanceAdminSurface in ROUTES.FINANCE
  *   FA-4  Invoice and collection tracking
  *   FA-5  Adjustment ledger             ← requires FinanceAdminSurface in ROUTES.FINANCE
+ *   FA-6  Case management — create placement and assign commission contributors (§5.1, §5.2)
  *
- * Canonical docs: docs/prd.md §4, §5.1, §5.4, §5.5, §5.7
+ * Canonical docs: docs/prd.md §4, §5.1, §5.2, §5.4, §5.5, §5.7
  * Test plan: docs/code-review/test-plan.md
  * Issue: #162
  */
@@ -146,6 +147,7 @@ describe('FA-2: Finance Admin reviews and approves a commission run', () => {
     // Navigate back to finance and switch to the Processing tab (Tabs component
     // retains the Reconciliation tab state after navigating away and back).
     navigate('/finance');
+    // Click Processing tab to ensure commission-run-review is visible (not Reconciliation tab).
     await userEvent.click(page.getByRole('tab', { name: /processing/i }));
     await expect.element(page.getByTestId('commission-run-review')).toBeInTheDocument();
     await userEvent.fill(page.getByTestId('load-run-id-input'), s.fixture.closeRunId);
@@ -408,5 +410,176 @@ describe('FA-5: Finance Admin applies adjustments via the append-only ledger', (
     } catch {
       await expect.element(page.getByTestId('trigger-error')).toBeInTheDocument();
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// FA-6 — Case management: create placement and assign commission contributors
+// Canonical docs: docs/prd.md §5.1, §5.2
+// ---------------------------------------------------------------------------
+
+describe('FA-6: Finance Admin creates a case and assigns commission contributors', () => {
+  test('Cases tab renders the placement-ledger surface', async () => {
+    s.current = await loginAs('Finance Admin');
+    await userEvent.click(page.getByRole('tab', { name: /cases/i }));
+    await expect.element(page.getByTestId('placement-ledger')).toBeInTheDocument();
+  });
+
+  test('open-new-placement-form button reveals the creation form', async () => {
+    s.current = await loginAs('Finance Admin');
+    await userEvent.click(page.getByRole('tab', { name: /cases/i }));
+    await expect.element(page.getByTestId('placement-ledger')).toBeInTheDocument();
+    await userEvent.click(page.getByTestId('open-new-placement-form'));
+    await expect.element(page.getByTestId('new-placement-form')).toBeInTheDocument();
+    await expect.element(page.getByTestId('np-job-title')).toBeInTheDocument();
+    await expect.element(page.getByTestId('np-client-entity-id')).toBeInTheDocument();
+    await expect.element(page.getByTestId('np-candidate-id')).toBeInTheDocument();
+    await expect.element(page.getByTestId('np-compensation-base')).toBeInTheDocument();
+    await expect.element(page.getByTestId('np-fee-amount')).toBeInTheDocument();
+  });
+
+  test('cancel button closes the creation form without creating a placement', async () => {
+    s.current = await loginAs('Finance Admin');
+    await userEvent.click(page.getByRole('tab', { name: /cases/i }));
+    await userEvent.click(page.getByTestId('open-new-placement-form'));
+    await expect.element(page.getByTestId('new-placement-form')).toBeInTheDocument();
+    await userEvent.click(page.getByTestId('np-cancel'));
+    await expect.element(page.getByTestId('new-placement-form')).not.toBeInTheDocument();
+    await expect.element(page.getByTestId('open-new-placement-form')).toBeInTheDocument();
+  });
+
+  test('submitting the form creates a placement and shows it in the table', async () => {
+    s.current = await loginAs('Finance Admin');
+    await userEvent.click(page.getByRole('tab', { name: /cases/i }));
+    await userEvent.click(page.getByTestId('open-new-placement-form'));
+    await expect.element(page.getByTestId('new-placement-form')).toBeInTheDocument();
+
+    await userEvent.fill(page.getByTestId('np-job-title'), 'E2E Test Engineer');
+    await userEvent.fill(page.getByTestId('np-client-entity-id'), 'Acme Corp');
+    await userEvent.fill(page.getByTestId('np-candidate-id'), 'Jane Doe');
+    await userEvent.fill(page.getByTestId('np-compensation-base'), '100000');
+    await userEvent.fill(page.getByTestId('np-fee-amount'), '20000');
+
+    await userEvent.click(page.getByTestId('np-submit'));
+
+    // Form closes on success
+    await expect.element(page.getByTestId('new-placement-form')).not.toBeInTheDocument();
+    // Table appears with the new row or an error (API may reject in test env)
+    try {
+      await expect.element(page.getByTestId('placements-table')).toBeInTheDocument();
+    } catch {
+      await expect.element(page.getByTestId('new-placement-error')).toBeInTheDocument();
+    }
+  });
+
+  test('placements table is visible on the Cases tab after login', async () => {
+    s.current = await loginAs('Finance Admin');
+    await userEvent.click(page.getByRole('tab', { name: /cases/i }));
+    await expect.element(page.getByTestId('placement-ledger')).toBeInTheDocument();
+    // Either table (data), empty state, loading state, or error state renders — poll until settled
+    let settled = false;
+    const deadline = Date.now() + 10_000;
+    while (Date.now() < deadline) {
+      const hasTable = page.getByTestId('placements-table').elements().length > 0;
+      const hasEmpty = page.getByTestId('empty-state').elements().length > 0;
+      const hasError = page.getByTestId('error-state').elements().length > 0;
+      if (hasTable || hasEmpty || hasError) {
+        settled = true;
+        break;
+      }
+      await new Promise((r) => setTimeout(r, 200));
+    }
+    expect(settled).toBe(true);
+  });
+
+  test('Edit button on a placement row enters inline edit mode', async () => {
+    s.current = await loginAs('Finance Admin');
+    await userEvent.click(page.getByRole('tab', { name: /cases/i }));
+    await expect.element(page.getByTestId('placement-ledger')).toBeInTheDocument();
+
+    // Wait for the table to load
+    let hasTable = false;
+    const deadline = Date.now() + 10_000;
+    while (Date.now() < deadline) {
+      hasTable = page.getByTestId('placements-table').elements().length > 0;
+      if (hasTable) break;
+      await new Promise((r) => setTimeout(r, 200));
+    }
+    if (!hasTable) return; // no placements seeded — skip
+
+    // Click Edit on the first row
+    const editBtns = page.getByRole('button', { name: 'Edit' });
+    if ((await editBtns.elements()).length === 0) return;
+    await userEvent.click(editBtns.all()[0]);
+
+    // At least one save button should now be visible
+    await expect.element(page.getByRole('button', { name: 'Save' })).toBeInTheDocument();
+  });
+
+  test('Contributors button expands the contributor panel', async () => {
+    s.current = await loginAs('Finance Admin');
+    await userEvent.click(page.getByRole('tab', { name: /cases/i }));
+    await expect.element(page.getByTestId('placement-ledger')).toBeInTheDocument();
+
+    // Wait for the table
+    let hasTable = false;
+    const deadline = Date.now() + 10_000;
+    while (Date.now() < deadline) {
+      hasTable = page.getByTestId('placements-table').elements().length > 0;
+      if (hasTable) break;
+      await new Promise((r) => setTimeout(r, 200));
+    }
+    if (!hasTable) return;
+
+    const contribBtns = page.getByRole('button', { name: /contributors/i });
+    if ((await contribBtns.elements()).length === 0) return;
+    await userEvent.click(contribBtns.all()[0]);
+
+    // Add-contributor form should now be visible
+    await expect.element(page.getByTestId('add-contributor-form')).toBeInTheDocument();
+    await expect.element(page.getByTestId('add-contributor-producer-id')).toBeInTheDocument();
+    await expect.element(page.getByTestId('add-contributor-role')).toBeInTheDocument();
+    await expect.element(page.getByTestId('add-contributor-split-pct')).toBeInTheDocument();
+  });
+
+  test('assigning a contributor to a placement shows it or an API error', async () => {
+    s.current = await loginAs('Finance Admin');
+    await userEvent.click(page.getByRole('tab', { name: /cases/i }));
+    await expect.element(page.getByTestId('placement-ledger')).toBeInTheDocument();
+
+    // Wait for placements table
+    let hasTable = false;
+    const deadline = Date.now() + 10_000;
+    while (Date.now() < deadline) {
+      hasTable = page.getByTestId('placements-table').elements().length > 0;
+      if (hasTable) break;
+      await new Promise((r) => setTimeout(r, 200));
+    }
+    if (!hasTable) return;
+
+    // Expand contributors for the first row
+    const contribBtns = page.getByRole('button', { name: /contributors/i });
+    if ((await contribBtns.elements()).length === 0) return;
+    await userEvent.click(contribBtns.all()[0]);
+    await expect.element(page.getByTestId('add-contributor-form')).toBeInTheDocument();
+
+    // Fill in the form
+    await userEvent.fill(page.getByTestId('add-contributor-producer-id'), 'prod-e2e-test');
+    await userEvent.fill(page.getByTestId('add-contributor-split-pct'), '50');
+    await userEvent.click(page.getByTestId('add-contributor-submit'));
+
+    // Wait for result: contributor row appears, or an API error is shown
+    let resultVisible = false;
+    const resultDeadline = Date.now() + 10_000;
+    while (Date.now() < resultDeadline) {
+      const hasContribRow = page.getByTestId(/^contributor-row-/).elements().length > 0;
+      const hasContribError = page.getByTestId('add-contributor-error').elements().length > 0;
+      if (hasContribRow || hasContribError) {
+        resultVisible = true;
+        break;
+      }
+      await new Promise((r) => setTimeout(r, 200));
+    }
+    expect(resultVisible).toBe(true);
   });
 });

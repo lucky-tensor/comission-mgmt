@@ -26,6 +26,7 @@ import { CommissionRunReview } from './CommissionRunReview';
 import { InvoiceCollectionSection } from './FinanceAdmin';
 import { FinanceAdminSurface } from './FinanceAdminSurface';
 import { ReconciliationReport } from './ReconciliationReport';
+import { PlacementLedger } from './PlacementLedger';
 
 function Section({
   id,
@@ -105,6 +106,12 @@ export function FinancePage() {
         <Tabs.Tab id="reconciliation" label="Reconciliation">
           <Section id="finance-reconciliation" testId="finance-section-reconciliation">
             <ReconciliationReport embedded />
+          </Section>
+        </Tabs.Tab>
+
+        <Tabs.Tab id="cases" label="Cases">
+          <Section id="finance-cases" testId="finance-section-cases">
+            <PlacementLedger />
           </Section>
         </Tabs.Tab>
       </Tabs>
