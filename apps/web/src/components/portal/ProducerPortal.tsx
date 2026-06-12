@@ -45,7 +45,7 @@ export function ProducerPortal({ onUnauthenticated }: { onUnauthenticated?: () =
 
   return (
     <div className="min-h-screen bg-surface-muted px-4 py-8">
-      <div className="max-w-[880px] mx-auto">
+      <div className="max-w-narrow mx-auto">
         <header className="mb-8">
           <h1 className="text-2xl font-bold text-ink m-0">Producer Payout Portal</h1>
           <p className="text-sm text-ink-subtle mt-1 mb-0">

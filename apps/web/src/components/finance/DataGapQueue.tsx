@@ -89,7 +89,7 @@ function ResolveRow({ placement, onResolved }: ResolveRowProps) {
     <div data-testid={`gap-row-${placement.id}`} className="border-b border-border py-4">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <div className="font-semibold text-ink text-[0.9375rem]">
+          <div className="font-semibold text-ink text-base">
             {placement.job_title ?? 'Untitled placement'}
             {placement.is_confidential && (
               <span
@@ -100,7 +100,7 @@ function ResolveRow({ placement, onResolved }: ResolveRowProps) {
               </span>
             )}
           </div>
-          <div className="text-[0.8125rem] text-ink-subtle mt-1">ID: {placement.id}</div>
+          <div className="text-sm text-ink-subtle mt-1">ID: {placement.id}</div>
           <div
             data-testid={`missing-fields-${placement.id}`}
             className="mt-2 flex flex-wrap gap-1.5"
@@ -122,7 +122,7 @@ function ResolveRow({ placement, onResolved }: ResolveRowProps) {
             data-testid={`resolve-btn-${placement.id}`}
             onClick={() => setOpen((o) => !o)}
             className={[
-              'shrink-0 text-[0.8125rem] px-3 py-1.5 rounded-md border-none cursor-pointer',
+              'shrink-0 text-sm px-3 py-1.5 rounded-md border-none cursor-pointer',
               open ? 'bg-surface-sunken text-ink-muted' : 'bg-ink text-white',
             ].join(' ')}
           >
@@ -140,7 +140,7 @@ function ResolveRow({ placement, onResolved }: ResolveRowProps) {
             <div key={field} className="mb-3">
               <label
                 htmlFor={`field-${placement.id}-${field}`}
-                className="block text-[0.8125rem] font-semibold text-ink-muted mb-1"
+                className="block text-sm font-semibold text-ink-muted mb-1"
               >
                 {FIELD_LABELS[field] ?? field}
               </label>
@@ -156,11 +156,7 @@ function ResolveRow({ placement, onResolved }: ResolveRowProps) {
           ))}
 
           {saveError && (
-            <div
-              data-testid="save-error"
-              role="alert"
-              className="text-bad-fg text-[0.8125rem] mb-3"
-            >
+            <div data-testid="save-error" role="alert" className="text-bad-fg text-sm mb-3">
               {saveError}
             </div>
           )}
@@ -198,11 +194,8 @@ export function DataGapQueue() {
   const visiblePlacements = (queueState.data ?? []).filter((p) => !resolved.has(p.id));
 
   return (
-    <div
-      data-testid="data-gap-queue"
-      className="min-h-[calc(100vh-3.25rem)] bg-surface-muted px-4 py-8"
-    >
-      <div className="max-w-[880px] mx-auto">
+    <div data-testid="data-gap-queue" className="min-h-surface bg-surface-muted px-4 py-8">
+      <div className="max-w-narrow mx-auto">
         <header className="mb-6">
           <h1 data-testid="data-gap-queue-heading" className="text-2xl font-bold text-ink m-0 mb-1">
             Data Gap Queue

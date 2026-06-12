@@ -1,0 +1,37 @@
+<!-- @dsCard group="Colors" viewport="700x200" name="Semantic aliases in use" subtitle="Surfaces, borders, text — the tokens you actually reference" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin: 0; padding: 18px; background: var(--surface-page); }
+  .demo { display: grid; grid-template-columns: 1.3fr 1fr; gap: 14px; align-items: stretch; }
+  .card { background: var(--surface-card); border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: 14px; }
+  .row { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid var(--border-subtle); }
+  .row:last-child { border-bottom: none; }
+  .k { font: var(--text-xs) var(--font-mono); color: var(--text-tertiary); }
+  .chip { width: 22px; height: 22px; border-radius: var(--radius-xs); border: 1px solid var(--border-default); }
+  .title { font: var(--weight-semibold) var(--text-sm) var(--font-sans); color: var(--text-primary); }
+  .sub { font: var(--text-xs) var(--font-sans); color: var(--text-secondary); margin-top: 3px; }
+  .ter { font: var(--text-xs) var(--font-sans); color: var(--text-tertiary); }
+</style>
+</head>
+<body>
+<div class="demo">
+  <div class="card">
+    <div class="title">Atlas leans on tokens, not hex</div>
+    <div class="sub">Reference the semantic alias, never the raw ramp value, in UI.</div>
+    <div class="ter" style="margin-top:6px">--text-tertiary on --surface-card</div>
+    <div style="margin-top:12px;display:flex;gap:8px"><span class="chip" style="background:var(--surface-page)"></span><span class="chip" style="background:var(--surface-sunken)"></span><span class="chip" style="background:var(--surface-hover)"></span><span class="chip" style="background:var(--surface-inverse)"></span></div>
+  </div>
+  <div class="card" style="padding:0">
+    <div class="row" style="padding:9px 14px"><span class="k">--surface-card</span><span class="chip" style="background:var(--surface-card)"></span></div>
+    <div class="row" style="padding:9px 14px"><span class="k">--surface-sunken</span><span class="chip" style="background:var(--surface-sunken)"></span></div>
+    <div class="row" style="padding:9px 14px"><span class="k">--border-default</span><span class="chip" style="background:var(--border-default)"></span></div>
+    <div class="row" style="padding:9px 14px"><span class="k">--text-primary</span><span class="chip" style="background:var(--text-primary)"></span></div>
+    <div class="row" style="padding:9px 14px"><span class="k">--accent</span><span class="chip" style="background:var(--accent)"></span></div>
+  </div>
+</div>
+</body>
+</html>

@@ -70,7 +70,7 @@ function today(): string {
 // View component (pure presentational — renders ExecAnalytics or state)
 // ---------------------------------------------------------------------------
 
-const containerClass = 'min-h-[calc(100vh-3.25rem)] bg-surface-muted p-8';
+const containerClass = 'min-h-surface bg-surface-muted p-8';
 
 const periodBarClass = 'flex items-center gap-3 mb-6 flex-wrap';
 
@@ -78,7 +78,7 @@ const labelClass = 'text-sm font-semibold text-ink-muted';
 
 const inputClass = 'text-sm border border-border-strong rounded-md px-2 py-1.5 text-ink';
 
-const gridClass = 'grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-4 mt-2';
+const gridClass = 'grid grid-cols-metrics gap-4 mt-2';
 
 const metricCardClass = 'bg-surface border border-border rounded-xl p-5';
 

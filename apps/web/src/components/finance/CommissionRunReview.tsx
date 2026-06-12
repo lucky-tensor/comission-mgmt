@@ -97,9 +97,9 @@ const CARD_CLASS = 'bg-surface border border-border rounded-xl p-6 mb-6';
 
 const HEADING_CLASS = 'text-lg font-semibold text-ink mt-0 mb-4';
 
-const CELL_CLASS = 'px-3 py-2 text-[0.8125rem] border-b border-surface-sunken text-left align-top';
+const CELL_CLASS = 'px-3 py-2 text-sm border-b border-surface-sunken text-left align-top';
 
-const HEAD_CELL_CLASS = `${CELL_CLASS} font-semibold text-ink-subtle uppercase text-[0.6875rem] tracking-wide`;
+const HEAD_CELL_CLASS = `${CELL_CLASS} font-semibold text-ink-subtle uppercase text-xs tracking-wide`;
 
 // ---------------------------------------------------------------------------
 // StartRunForm — inline form to create a new commission run
@@ -168,7 +168,7 @@ export function StartRunForm({ onStart, submitting, error }: StartRunFormProps) 
             onChange={(e) => setPlacementIdsText(e.target.value)}
             rows={4}
             required
-            className="w-full p-2 border border-border-strong rounded-md text-[0.8125rem] box-border"
+            className="w-full p-2 border border-border-strong rounded-md text-sm box-border"
           />
         </div>
         {error && (
@@ -213,7 +213,7 @@ function categoryBadge(cat: QueueItem['queue_category']): React.ReactNode {
     approved: 'Approved',
   };
   return (
-    <StatusChip variant={variants[cat]} className="text-[0.6875rem] font-semibold">
+    <StatusChip variant={variants[cat]} className="text-xs font-semibold">
       {labels[cat]}
     </StatusChip>
   );
@@ -267,13 +267,13 @@ export function QueueTable({ items, onApproveRecord, runId, approvingRecordId }:
                   {item.net_payable != null ? formatCurrency(item.net_payable) : '—'}
                 </td>
                 <td className={CELL_CLASS}>{item.hold_reason ?? '—'}</td>
-                <td className={`${CELL_CLASS} max-w-[240px] text-ink-muted`}>
+                <td className={`${CELL_CLASS} max-w-compact text-ink-muted`}>
                   {item.explanation ?? '—'}
                 </td>
                 <td className={CELL_CLASS}>{categoryBadge(item.queue_category)}</td>
                 <td className={CELL_CLASS}>
                   {item.individually_approved ? (
-                    <span className="text-ok-fg text-[0.8125rem] font-semibold">
+                    <span className="text-ok-fg text-sm font-semibold">
                       ✓ Approved{' '}
                       {item.individually_approved_at
                         ? formatDate(item.individually_approved_at)
@@ -309,7 +309,7 @@ export function FinalizeBlockedState({ reason }: { reason: FinalizeBlockedReason
       role="alert"
       className="p-5 bg-warn-bg border border-warn-fg/30 rounded-lg mt-4"
     >
-      <p className="font-semibold text-warn-fg m-0 mb-2 text-[0.9375rem]">Finalization blocked</p>
+      <p className="font-semibold text-warn-fg m-0 mb-2 text-base">Finalization blocked</p>
       <p className="text-warn-fg text-sm m-0 mb-2">{reason.error}</p>
       {reason.unacknowledged_discrepancy_count != null && (
         <p data-testid="discrepancy-count" className="text-warn-fg text-sm m-0 mb-1">
@@ -323,9 +323,7 @@ export function FinalizeBlockedState({ reason }: { reason: FinalizeBlockedReason
           <strong>{reason.unapproved_record_ids.length}</strong>
         </p>
       )}
-      {reason.hint && (
-        <p className="text-warn-fg text-[0.8125rem] mt-2 mb-0 italic">{reason.hint}</p>
-      )}
+      {reason.hint && <p className="text-warn-fg text-sm mt-2 mb-0 italic">{reason.hint}</p>}
     </div>
   );
 }
@@ -357,7 +355,7 @@ export function LoadRunForm({ onLoad, loading }: LoadRunFormProps) {
           placeholder="Run UUID…"
           value={runId}
           onChange={(e) => setRunId(e.target.value)}
-          className="p-2 border border-border-strong rounded-md text-sm min-w-[20rem]"
+          className="p-2 border border-border-strong rounded-md text-sm min-w-form"
         />
         <Button type="submit" data-testid="load-run-queue-button" disabled={loading}>
           {loading ? 'Loading…' : 'Load run'}
@@ -411,11 +409,8 @@ export function CommissionRunReviewView({
   mutationError,
 }: CommissionRunReviewViewProps) {
   return (
-    <div
-      data-testid="commission-run-review"
-      className="min-h-[calc(100vh-3.25rem)] bg-surface-muted px-4 py-8"
-    >
-      <div className="max-w-[960px] mx-auto">
+    <div data-testid="commission-run-review" className="min-h-surface bg-surface-muted px-4 py-8">
+      <div className="max-w-report mx-auto">
         <header className="mb-8">
           <h1 className="text-2xl font-bold text-ink m-0">Commission run review</h1>
           <p className="text-sm text-ink-subtle mt-1 mb-0">
@@ -464,9 +459,7 @@ export function CommissionRunReviewView({
                   ['Approved', String(phase.data.totals.approved)],
                 ].map(([label, value]) => (
                   <div key={label} className="flex flex-col gap-0.5">
-                    <dt className="text-[0.6875rem] text-ink-subtle font-semibold uppercase">
-                      {label}
-                    </dt>
+                    <dt className="text-xs text-ink-subtle font-semibold uppercase">{label}</dt>
                     <dd className="text-base font-bold text-ink m-0">{value}</dd>
                   </div>
                 ))}

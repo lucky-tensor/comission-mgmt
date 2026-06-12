@@ -1,0 +1,51 @@
+<!-- @dsCard group="Components" viewport="700x300" name="Feedback — banners, dialog, toast, tooltip" subtitle="Banner, Dialog, Toast, Tooltip" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../../styles.css" />
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>
+  body { padding: 20px; background: var(--surface-page); }
+  .col { display: flex; flex-direction: column; gap: 10px; max-width: 440px; }
+  .right { display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
+  .wrap { display: grid; grid-template-columns: 1fr 320px; gap: 24px; align-items: start; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { Banner, Toast, Tooltip, Dialog, Button, IconButton } = window.AtlasDesignSystem_9b7d80;
+const Info = () => <svg viewBox="0 0 16 16" width="16" height="16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.4"/><path d="M8 7.3v3.4M8 5.2v.1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>;
+function Demo(){
+  const [open,setOpen]=React.useState(false);
+  return (
+    <div className="wrap">
+      <div className="col">
+        <Banner tone="info" title="Scheduled maintenance" onDismiss={()=>{}}>Read replicas will be briefly unavailable at 02:00 UTC.</Banner>
+        <Banner tone="warning" title="Unsaved changes">You have edits that haven't been saved.</Banner>
+        <Banner tone="danger" title="3 fields need attention" />
+        <div style={{marginTop:4}}>
+          <Tooltip content="This applies immediately"><Button variant="secondary" iconLeft={<Info/>}>Hover for tooltip</Button></Tooltip>
+          <span style={{marginLeft:10}}><Button variant="primary" onClick={()=>setOpen(true)}>Open dialog</Button></span>
+        </div>
+      </div>
+      <div className="right">
+        <Toast tone="success" title="Changes saved" message="Your role updates are live." onDismiss={()=>{}} />
+        <Toast tone="danger" title="Invite failed" message="That email is already a member." onDismiss={()=>{}} />
+      </div>
+      <Dialog open={open} onClose={()=>setOpen(false)} title="Delete project?"
+        description="This permanently removes the project and all its data."
+        footer={<><Button variant="secondary" onClick={()=>setOpen(false)}>Cancel</Button><Button variant="danger" onClick={()=>setOpen(false)}>Delete</Button></>}>
+        Type the project name to confirm this action.
+      </Dialog>
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo/>);
+</script>
+</body>
+</html>

@@ -140,14 +140,14 @@ function ContributorRow({ contributor, onSave }: ContributorRowProps) {
           max="100"
           value={splitPercent}
           onChange={(e) => setSplitPercent(e.target.value)}
-          className="w-[4.5rem] text-[0.8125rem] px-1.5 py-1 border border-border-strong rounded-md text-right"
+          className="w-20 text-sm px-1.5 py-1 border border-border-strong rounded-md text-right"
         />
         <Button
           data-testid={`save-split-btn-${contributor.id}`}
           type="button"
           disabled={saving}
           onClick={handleSave}
-          className="ml-1.5 text-[0.8125rem] px-3 py-1.5"
+          className="ml-1.5 text-sm px-3 py-1.5"
         >
           Save
         </Button>
@@ -182,7 +182,7 @@ function ContributorTable({ placementId, onLoad, onUpdateContributor }: Contribu
   return (
     <table
       data-testid={`contributors-table-${placementId}`}
-      className="w-full border-collapse text-[0.8125rem]"
+      className="w-full border-collapse text-sm"
     >
       <thead>
         <tr className="text-ink-subtle border-b border-border">
@@ -265,8 +265,8 @@ function DealRow({
     <div data-testid={`deal-row-${item.placement_id}`} className={ROW_CLASS}>
       <div className="flex items-start justify-between gap-4">
         <div>
-          <div className="font-semibold text-ink text-[0.9375rem]">{item.job_title}</div>
-          <div className="text-[0.8125rem] text-ink-subtle mt-1">
+          <div className="font-semibold text-ink text-base">{item.job_title}</div>
+          <div className="text-sm text-ink-subtle mt-1">
             Placement ID: {item.placement_id} · Submitted: {item.submitted_at}
           </div>
         </div>
@@ -274,14 +274,14 @@ function DealRow({
           <Button
             variant="secondary"
             data-testid={`expand-btn-${item.placement_id}`}
-            className="text-[0.8125rem] px-3 py-1.5"
+            className="text-sm px-3 py-1.5"
             onClick={() => setExpanded((e) => !e)}
           >
             {expanded ? 'Collapse' : 'Review splits'}
           </Button>
           <Button
             data-testid={`approve-btn-${item.placement_id}`}
-            className="text-[0.8125rem] px-3 py-1.5"
+            className="text-sm px-3 py-1.5"
             disabled={acting}
             onClick={handleApprove}
           >
@@ -290,7 +290,7 @@ function DealRow({
           <Button
             variant="destructive"
             data-testid={`reject-btn-${item.placement_id}`}
-            className="text-[0.8125rem] px-3 py-1.5"
+            className="text-sm px-3 py-1.5"
             disabled={acting}
             onClick={() => setRejectMode((m) => !m)}
           >
@@ -319,12 +319,12 @@ function DealRow({
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             placeholder="Reason for rejection…"
-            className="flex-1 text-[0.8125rem] px-2 py-1.5 rounded-md border border-border-strong resize-y min-h-[3rem]"
+            className="flex-1 text-sm px-2 py-1.5 rounded-md border border-border-strong resize-y min-h-12"
           />
           <Button
             variant="destructive"
             data-testid={`confirm-reject-btn-${item.placement_id}`}
-            className="text-[0.8125rem] px-3 py-1.5"
+            className="text-sm px-3 py-1.5"
             disabled={acting || !reason.trim()}
             onClick={handleReject}
           >
@@ -334,10 +334,7 @@ function DealRow({
       )}
 
       {actionError && (
-        <div
-          data-testid={`action-error-${item.placement_id}`}
-          className="mt-2 text-bad-fg text-[0.8125rem]"
-        >
+        <div data-testid={`action-error-${item.placement_id}`} className="mt-2 text-bad-fg text-sm">
           {actionError}
         </div>
       )}

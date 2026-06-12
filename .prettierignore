@@ -6,3 +6,5 @@ docs
 *.md
 bun.lock
 .github
+packages/ui/design-system/atlas
+.e2e-fixture.json

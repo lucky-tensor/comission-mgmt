@@ -1,0 +1,84 @@
+/* ============================================================
+   Atlas — base element styles + a thin reset.
+   Sets the typographic baseline and page surface. Component
+   styles live with their components; this is foundations only.
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  -webkit-text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  line-height: var(--leading-normal);
+  color: var(--text-primary);
+  background: var(--surface-page);
+  font-feature-settings: 'cv01', 'cv03', 'ss01';
+}
+
+/* Headings — tight tracking, medium-bold weight */
+h1, h2, h3, h4, h5, h6 {
+  margin: 0;
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-tight);
+  line-height: var(--leading-tight);
+  color: var(--text-primary);
+}
+
+p { margin: 0; }
+
+a {
+  color: var(--text-link);
+  text-decoration: none;
+}
+a:hover { text-decoration: underline; }
+
+code, kbd, samp, pre {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+}
+
+/* Numeric data should align — tabular figures everywhere it matters */
+.atlas-tnum { font-variant-numeric: tabular-nums; }
+
+/* Overline / eyebrow label */
+.atlas-overline {
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+/* Global focus ring — applied to buttons, links, etc.
+   Form controls (input/select/textarea) manage their own rings
+   via their wrapper, so suppress it there. */
+:focus-visible {
+  outline: none;
+  box-shadow: var(--ring-focus);
+  border-radius: var(--radius-sm);
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+::selection { background: var(--ink-100); }
+
+/* Thin, unobtrusive scrollbars for dense panels */
+.atlas-scroll { scrollbar-width: thin; scrollbar-color: var(--gray-300) transparent; }
+.atlas-scroll::-webkit-scrollbar { width: 10px; height: 10px; }
+.atlas-scroll::-webkit-scrollbar-thumb {
+  background: var(--gray-300);
+  border-radius: var(--radius-full);
+  border: 3px solid transparent;
+  background-clip: content-box;
+}

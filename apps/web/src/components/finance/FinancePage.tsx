@@ -49,7 +49,7 @@ function Section({
       data-testid={testId}
     >
       {title && (
-        <h2 id={id} className="text-[1.0625rem] font-bold text-ink m-0 mb-4">
+        <h2 id={id} className="text-lg font-bold text-ink m-0 mb-4">
           {title}
         </h2>
       )}

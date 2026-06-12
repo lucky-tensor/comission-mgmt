@@ -61,12 +61,11 @@ export function splitNavItems<T>(
   return { visible: items.slice(0, cap - 1), overflow: items.slice(cap - 1) };
 }
 
-const NAV_CLASS = 'sticky top-0 z-[100] flex items-center gap-2 h-13 px-6 bg-ink text-white';
+const NAV_CLASS = 'sticky top-0 z-nav flex items-center gap-2 h-13 px-6 bg-ink text-white';
 
-const BRAND_CLASS = 'font-bold text-[0.9375rem] text-white mr-4 whitespace-nowrap';
+const BRAND_CLASS = 'font-bold text-base text-white mr-4 whitespace-nowrap';
 
-const NAV_ITEM_BASE =
-  'px-3 py-[0.4375rem] rounded-md text-sm whitespace-nowrap no-underline cursor-pointer';
+const NAV_ITEM_BASE = 'px-3 py-2 rounded-md text-sm whitespace-nowrap no-underline cursor-pointer';
 
 /** Tailwind classes for a nav item, by active state. */
 function navItemClass(active: boolean): string {
@@ -77,13 +76,13 @@ function navItemClass(active: boolean): string {
 }
 
 const LOGOUT_CLASS =
-  'px-3 py-[0.4375rem] rounded-md text-[0.8125rem] font-medium text-ink-faint cursor-pointer ' +
+  'px-3 py-2 rounded-md text-sm font-medium text-ink-faint cursor-pointer ' +
   'border border-white/10 bg-transparent hover:text-white';
 
 const ROLE_BADGE_CLASS =
-  'text-xs font-medium text-ink-faint px-2.5 py-1 bg-white/[0.06] rounded-full whitespace-nowrap';
+  'text-xs font-medium text-ink-faint px-2.5 py-1 bg-inverse-soft rounded-full whitespace-nowrap';
 
-const CONTENT_CLASS = 'mx-auto max-w-[1140px] p-6';
+const CONTENT_CLASS = 'mx-auto max-w-content p-6';
 
 /** Stable per-item test id derived from the route path. */
 function navTestId(path: string): string {
@@ -152,7 +151,7 @@ function OverflowMenu({
         <div
           role="menu"
           data-testid="nav-overflow-menu"
-          className="absolute top-full left-0 mt-1 flex min-w-[11rem] flex-col rounded-lg bg-ink p-1 shadow-[0_6px_20px_rgba(0,0,0,0.35)] z-[200]"
+          className="absolute top-full left-0 mt-1 flex min-w-menu flex-col rounded-md bg-ink p-1 shadow-md z-menu"
         >
           {items.map((item) => (
             <a

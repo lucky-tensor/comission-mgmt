@@ -89,8 +89,7 @@ const META_GRID_CLASS = 'grid grid-cols-3 gap-4 mb-4';
 
 const META_ITEM_CLASS = 'bg-surface border border-border rounded-lg p-3';
 
-const META_LABEL_CLASS =
-  'text-[0.6875rem] font-semibold text-ink-subtle uppercase tracking-wide mb-1';
+const META_LABEL_CLASS = 'text-xs font-semibold text-ink-subtle uppercase tracking-wide mb-1';
 
 const META_VALUE_CLASS = 'text-base font-bold text-ink';
 
@@ -275,18 +274,12 @@ export function PhaseCard({
           {saving ? 'Saving…' : 'Save'}
         </Button>
         {saveError && (
-          <span
-            data-testid={`save-error-${phase.phase_name}`}
-            className="text-[0.8125rem] text-bad-fg"
-          >
+          <span data-testid={`save-error-${phase.phase_name}`} className="text-sm text-bad-fg">
             {saveError}
           </span>
         )}
         {saveSuccess && !saveError && (
-          <span
-            data-testid={`save-success-${phase.phase_name}`}
-            className="text-[0.8125rem] text-ok-fg"
-          >
+          <span data-testid={`save-success-${phase.phase_name}`} className="text-sm text-ok-fg">
             Saved
           </span>
         )}

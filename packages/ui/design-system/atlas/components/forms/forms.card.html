@@ -1,0 +1,65 @@
+<!-- @dsCard group="Components" viewport="700x300" name="Forms — buttons & inputs" subtitle="Buttons, inputs, select, checkbox, switch" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../../styles.css" />
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>
+  body { padding: 20px; background: var(--surface-page); }
+  .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; max-width: 520px; }
+  .lbl { font: var(--weight-semibold) var(--text-2xs)/1 var(--font-sans); letter-spacing: var(--tracking-wide); text-transform: uppercase; color: var(--text-tertiary); margin-bottom: 10px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { Button, IconButton, Input, Select, Checkbox, Switch } = window.AtlasDesignSystem_9b7d80;
+const Dots = () => <svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><circle cx="8" cy="3" r="1.4"/><circle cx="8" cy="8" r="1.4"/><circle cx="8" cy="13" r="1.4"/></svg>;
+const Plus = () => <svg viewBox="0 0 16 16" width="16" height="16" fill="none"><path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/></svg>;
+const Search = () => <svg viewBox="0 0 16 16" width="16" height="16" fill="none"><circle cx="7" cy="7" r="4.5" stroke="currentColor" strokeWidth="1.5"/><path d="M10.5 10.5L14 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>;
+function Demo(){
+  const [chk,setChk]=React.useState(true); const [sw,setSw]=React.useState(true);
+  return (
+    <div>
+      <div className="lbl">Buttons</div>
+      <div className="row">
+        <Button variant="primary" iconLeft={<Plus/>}>New record</Button>
+        <Button variant="secondary">Cancel</Button>
+        <Button variant="accent">Save</Button>
+        <Button variant="ghost">Ghost</Button>
+        <Button variant="danger">Delete</Button>
+        <Button variant="secondary" disabled>Disabled</Button>
+        <IconButton label="More"><Dots/></IconButton>
+        <IconButton label="More" variant="outline"><Dots/></IconButton>
+      </div>
+      <div className="grid">
+        <div>
+          <Input label="Workspace name" defaultValue="acme-inc" />
+        </div>
+        <div>
+          <Input label="Search" iconLeft={<Search/>} placeholder="Filter users…" />
+        </div>
+        <div>
+          <Select label="Role" options={['Owner','Admin','Member','Viewer']} defaultValue="Admin" />
+        </div>
+        <div>
+          <Input label="Slug" error="Already taken" defaultValue="acme" />
+        </div>
+      </div>
+      <div className="row" style={{marginTop:18, gap:24}}>
+        <Checkbox checked={chk} onChange={setChk} label="Send weekly digest" />
+        <Checkbox indeterminate label="Select all" />
+        <Switch checked={sw} onChange={setSw} label="Email notifications" />
+      </div>
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo/>);
+</script>
+</body>
+</html>

@@ -175,7 +175,7 @@ function RecoveryScheduleTable({ schedules }: RecoveryScheduleTableProps) {
               className="border-b border-surface-sunken"
             >
               <td className={TD_CLASS}>
-                <span title={s.placement_id} className="font-mono text-[0.8125rem]">
+                <span title={s.placement_id} className="font-mono text-sm">
                   {s.placement_id.slice(0, 8)}…
                 </span>
               </td>
@@ -194,7 +194,7 @@ function RecoveryScheduleTable({ schedules }: RecoveryScheduleTableProps) {
 }
 
 const TH_CLASS =
-  'text-left px-3 py-2.5 font-semibold text-ink-subtle text-[0.8125rem] uppercase tracking-wider';
+  'text-left px-3 py-2.5 font-semibold text-ink-subtle text-sm uppercase tracking-wider';
 
 const TD_CLASS = 'p-3 align-top';
 
@@ -243,11 +243,8 @@ export function DrawBalanceView() {
   );
 
   return (
-    <div
-      data-testid="draw-balance-view"
-      className="min-h-[calc(100vh-3.25rem)] bg-surface-muted px-4 py-8"
-    >
-      <div className="max-w-[880px] mx-auto">
+    <div data-testid="draw-balance-view" className="min-h-surface bg-surface-muted px-4 py-8">
+      <div className="max-w-narrow mx-auto">
         <header className="mb-6">
           <h1
             data-testid="draw-balance-heading"

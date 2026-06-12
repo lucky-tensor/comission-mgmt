@@ -21,10 +21,10 @@ interface PlaceholderSurfaceProps {
 export function PlaceholderSurface({ title, description, testId }: PlaceholderSurfaceProps) {
   return (
     <div
-      className="min-h-[calc(100vh-3.25rem)] bg-surface-muted flex flex-col justify-center items-center p-8"
+      className="min-h-surface bg-surface-muted flex flex-col justify-center items-center p-8"
       data-testid={testId}
     >
-      <div className="bg-surface p-10 rounded-2xl shadow-sm border border-border text-center max-w-[480px] w-full">
+      <div className="bg-surface p-10 rounded-2xl shadow-sm border border-border text-center max-w-empty w-full">
         <h1 className="text-xl font-bold text-ink mb-3">{title}</h1>
         <p className="text-sm text-ink-subtle m-0">{description}</p>
       </div>

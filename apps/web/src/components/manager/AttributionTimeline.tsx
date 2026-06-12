@@ -166,19 +166,19 @@ export function AttributionTimelineView({
                 {!isLast && (
                   <div
                     aria-hidden="true"
-                    className="absolute left-[0.6875rem] top-6 bottom-0 w-0.5 bg-border"
+                    className="absolute left-3 top-6 bottom-0 w-0.5 bg-border"
                   />
                 )}
                 {/* Dot */}
                 <div
                   aria-hidden="true"
-                  className={`w-[1.375rem] h-[1.375rem] rounded-full shrink-0 mt-0.5 ${colorClass}`}
+                  className={`w-6 h-6 rounded-full shrink-0 mt-0.5 ${colorClass}`}
                 />
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <span
                       data-testid={`event-type-${event.id}`}
-                      className={`text-[0.8125rem] font-semibold px-2 py-0.5 rounded-full ${colorClass}`}
+                      className={`text-sm font-semibold px-2 py-0.5 rounded-full ${colorClass}`}
                     >
                       {EVENT_TYPE_LABELS[event.event_type] ?? event.event_type}
                     </span>
@@ -186,11 +186,11 @@ export function AttributionTimelineView({
                       {formatDate(event.created_at)}
                     </span>
                   </div>
-                  <div className="text-[0.8125rem] text-ink-subtle mt-1">by {event.actor_id}</div>
+                  <div className="text-sm text-ink-subtle mt-1">by {event.actor_id}</div>
                   {event.reason && (
                     <div
                       data-testid={`event-reason-${event.id}`}
-                      className="text-[0.8125rem] text-ink-muted mt-1 italic"
+                      className="text-sm text-ink-muted mt-1 italic"
                     >
                       &ldquo;{event.reason}&rdquo;
                     </div>

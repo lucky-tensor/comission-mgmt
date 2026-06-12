@@ -91,7 +91,7 @@ export function DisputeForm({
   return (
     <PortalCard title="Submit a dispute">
       <form data-testid="dispute-form" onSubmit={handleSubmit}>
-        <label className="block text-[0.8125rem] text-ink-muted">
+        <label className="block text-sm text-ink-muted">
           Commission record
           <select
             data-testid="dispute-record"
@@ -106,22 +106,18 @@ export function DisputeForm({
             ))}
           </select>
         </label>
-        <label className="block text-[0.8125rem] text-ink-muted">
+        <label className="block text-sm text-ink-muted">
           What&apos;s the issue?
           <textarea
             data-testid="dispute-description"
-            className={`${FIELD_CLASS} min-h-[5rem] resize-y`}
+            className={`${FIELD_CLASS} min-h-20 resize-y`}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Describe the discrepancy you'd like reviewed…"
           />
         </label>
         {error && (
-          <div
-            data-testid="dispute-error"
-            role="alert"
-            className="text-bad-fg text-[0.8125rem] mb-3"
-          >
+          <div data-testid="dispute-error" role="alert" className="text-bad-fg text-sm mb-3">
             {error}
           </div>
         )}

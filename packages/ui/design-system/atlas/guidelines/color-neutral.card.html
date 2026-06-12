@@ -1,0 +1,35 @@
+<!-- @dsCard group="Colors" viewport="700x150" name="Neutral ramp" subtitle="Cool-gray scale — the backbone of Atlas surfaces & text" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin: 0; padding: 18px; background: var(--surface-card); }
+  .ramp { display: grid; grid-template-columns: repeat(13, 1fr); gap: 0; border-radius: var(--radius-sm); overflow: hidden; border: 1px solid var(--border-default); }
+  .sw { height: 64px; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 6px; }
+  .lab { display: grid; grid-template-columns: repeat(13, 1fr); gap: 0; margin-top: 8px; }
+  .lab span { text-align: center; font: var(--weight-medium) 10px/1.2 var(--font-mono); color: var(--text-tertiary); }
+</style>
+</head>
+<body>
+<div class="ramp">
+  <div class="sw" style="background:var(--gray-0);border-right:1px solid var(--border-subtle)"></div>
+  <div class="sw" style="background:var(--gray-50)"></div>
+  <div class="sw" style="background:var(--gray-100)"></div>
+  <div class="sw" style="background:var(--gray-150)"></div>
+  <div class="sw" style="background:var(--gray-200)"></div>
+  <div class="sw" style="background:var(--gray-300)"></div>
+  <div class="sw" style="background:var(--gray-400)"></div>
+  <div class="sw" style="background:var(--gray-500)"></div>
+  <div class="sw" style="background:var(--gray-600)"></div>
+  <div class="sw" style="background:var(--gray-700)"></div>
+  <div class="sw" style="background:var(--gray-800)"></div>
+  <div class="sw" style="background:var(--gray-900)"></div>
+  <div class="sw" style="background:var(--gray-950)"></div>
+</div>
+<div class="lab">
+  <span>0</span><span>50</span><span>100</span><span>150</span><span>200</span><span>300</span><span>400</span><span>500</span><span>600</span><span>700</span><span>800</span><span>900</span><span>950</span>
+</div>
+</body>
+</html>

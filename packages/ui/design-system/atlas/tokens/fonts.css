@@ -1,0 +1,4 @@
+/* Atlas typefaces — Geist (sans) + Geist Mono.
+   Loaded from Google Fonts CDN. Binaries are CDN-hosted; if you need
+   self-hosted .woff2 files, swap the @import for local @font-face rules. */
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;450;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap');

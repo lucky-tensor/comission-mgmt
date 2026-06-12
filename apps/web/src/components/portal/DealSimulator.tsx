@@ -207,7 +207,7 @@ function HypotheticalBuilderTab() {
 
   return (
     <form data-testid="hypothetical-form" onSubmit={handleSubmit}>
-      <label className="block text-[0.8125rem] text-ink-muted">
+      <label className="block text-sm text-ink-muted">
         Compensation amount
         <input
           data-testid="hypothetical-amount"
@@ -219,7 +219,7 @@ function HypotheticalBuilderTab() {
           placeholder="e.g. 50000"
         />
       </label>
-      <label className="block text-[0.8125rem] text-ink-muted">
+      <label className="block text-sm text-ink-muted">
         Tier
         <select
           data-testid="hypothetical-tier"
@@ -232,7 +232,7 @@ function HypotheticalBuilderTab() {
           <option value="principal">Principal</option>
         </select>
       </label>
-      <label className="block text-[0.8125rem] text-ink-muted">
+      <label className="block text-sm text-ink-muted">
         Accrual percent
         <input
           data-testid="hypothetical-accrual"
@@ -244,7 +244,7 @@ function HypotheticalBuilderTab() {
           placeholder="e.g. 5"
         />
       </label>
-      <label className="flex items-center gap-2 text-[0.8125rem] text-ink-muted mb-3.5">
+      <label className="flex items-center gap-2 text-sm text-ink-muted mb-3.5">
         <input
           data-testid="hypothetical-bonus"
           type="checkbox"

@@ -241,7 +241,7 @@ export function TeamCommissionViewView({
 }: TeamCommissionViewViewProps) {
   return (
     <div data-testid="team-commission-view" className="min-h-screen bg-surface-muted px-4 py-8">
-      <div className="max-w-[960px] mx-auto">
+      <div className="max-w-report mx-auto">
         <header className="mb-8">
           <h1
             data-testid="team-commission-view-heading"

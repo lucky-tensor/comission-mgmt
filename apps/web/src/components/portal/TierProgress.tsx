@@ -55,11 +55,11 @@ function TierProgressBody({ data }: { data: TierProgress }) {
         <div className="h-full bg-accent" style={{ width: `${pct}%` }} />
       </div>
       {atTop ? (
-        <p data-testid="tier-at-cap" className="text-[0.8125rem] text-ok-fg mt-3 mb-0">
+        <p data-testid="tier-at-cap" className="text-sm text-ok-fg mt-3 mb-0">
           You&apos;ve reached the top tier.
         </p>
       ) : (
-        <p data-testid="tier-next-threshold" className="text-[0.8125rem] text-ink-subtle mt-3 mb-0">
+        <p data-testid="tier-next-threshold" className="text-sm text-ink-subtle mt-3 mb-0">
           <strong data-testid="tier-remaining">
             {formatCurrency(data.remaining_to_next_tier ?? 0)}
           </strong>{' '}

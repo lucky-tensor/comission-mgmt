@@ -1,0 +1,38 @@
+/* ============================================================
+   Atlas — Typography tokens
+   One family does the work: Geist for UI/display, Geist Mono for
+   data, IDs, code. Tight, legible, dense-friendly.
+   ============================================================ */
+:root {
+  /* Families */
+  --font-sans: 'Geist', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, 'SFMono-Regular', 'Menlo', monospace;
+
+  /* Weights */
+  --weight-regular: 400;
+  --weight-medium:  500;
+  --weight-semibold: 600;
+  --weight-bold:    700;
+
+  /* Type scale (px) — admin UIs run small + dense */
+  --text-display: 30px;  /* page hero / empty-state */
+  --text-h1: 24px;       /* page title */
+  --text-h2: 19px;       /* section title */
+  --text-h3: 16px;       /* card / panel title */
+  --text-body: 14px;     /* default body + controls */
+  --text-sm: 13px;       /* secondary, table cells */
+  --text-xs: 12px;       /* meta, labels, badges */
+  --text-2xs: 11px;      /* overline, table headers */
+
+  /* Line heights */
+  --leading-tight: 1.2;
+  --leading-snug: 1.35;
+  --leading-normal: 1.5;
+
+  /* Letter spacing */
+  --tracking-tight: -0.02em;   /* display + headings */
+  --tracking-snug: -0.01em;
+  --tracking-normal: 0em;
+  --tracking-wide: 0.04em;     /* overline / table headers */
+  --tracking-caps: 0.06em;
+}
