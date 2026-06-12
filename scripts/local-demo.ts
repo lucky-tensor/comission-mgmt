@@ -150,12 +150,22 @@ function ensureCluster(): void {
       `k3d cluster create ${CLUSTER_NAME} --port 0.0.0.0:${INGRESS_HOST_PORT}:80@loadbalancer --wait`,
       { stdio: 'inherit' },
     );
+    // Wait for API server to be fully ready
+    console.log('Waiting for API server to be ready...');
+    execSync('sleep 5');
   } else {
     console.log(`\nk3d cluster ${CLUSTER_NAME} already exists. Reusing.`);
   }
 
   console.log('Writing kubeconfig...');
-  run(`k3d kubeconfig write ${CLUSTER_NAME} --output ${KUBECONFIG_PATH}`, { stdio: 'inherit' });
+  // Use 'get' instead of 'write' as 'write' has a bug where it creates an empty file
+  run(`k3d kubeconfig get ${CLUSTER_NAME} > ${KUBECONFIG_PATH}`, { stdio: 'inherit' });
+
+  // Verify kubeconfig is valid
+  const kubeconfigContent = run(`cat ${KUBECONFIG_PATH}`);
+  if (!kubeconfigContent.includes('apiVersion') || !kubeconfigContent.includes('clusters:')) {
+    throw new Error('Kubeconfig is empty or malformed');
+  }
 }
 
 function applyPostgres(): void {
@@ -167,6 +177,10 @@ function applyPostgres(): void {
   run(`kubectl rollout status statefulset/commission-dev-postgres -n ${NAMESPACE} --timeout=180s`, {
     stdio: 'inherit',
   });
+
+  // Wait a bit longer for Postgres to fully initialize and accept connections
+  console.log('Waiting for Postgres to fully initialize...');
+  execSync('sleep 3');
 }
 
 function waitForPort(host: string, port: number, timeoutMs = 20_000): Promise<void> {
@@ -178,10 +192,21 @@ function waitForPort(host: string, port: number, timeoutMs = 20_000): Promise<vo
 
       socket.once('connect', () => {
         socket.destroy();
-        resolve();
+        // Give the port a moment to fully stabilize after connect
+        setTimeout(resolve, 500);
       });
 
       socket.once('error', () => {
+        socket.destroy();
+        if (Date.now() >= deadline) {
+          reject(new Error(`Timed out waiting for ${host}:${port}`));
+          return;
+        }
+        setTimeout(attempt, 250);
+      });
+
+      socket.setTimeout(5000);
+      socket.once('timeout', () => {
         socket.destroy();
         if (Date.now() >= deadline) {
           reject(new Error(`Timed out waiting for ${host}:${port}`));
@@ -226,6 +251,8 @@ async function withDbPortForward<T>(fn: () => T | Promise<T>): Promise<T> {
 
   try {
     await waitForPort('127.0.0.1', DB_HOST_PORT);
+    // Give the port-forward extra time to stabilize
+    await new Promise((resolve) => setTimeout(resolve, 1000));
     return await fn();
   } finally {
     if (!portForward.killed) {
