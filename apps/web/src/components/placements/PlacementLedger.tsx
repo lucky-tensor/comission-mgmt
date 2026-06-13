@@ -249,14 +249,22 @@ export function PlacementLedger({
             Placement lifecycle, billing, and producer ownership in one view.
           </p>
         </div>
-        {editable && <Button onClick={() => setEditor('create')}>New placement</Button>}
+        {editable && (
+          <Button data-testid="open-new-placement-form" onClick={() => setEditor('create')}>
+            New placement
+          </Button>
+        )}
       </div>
 
       {loading && <div className="text-sm text-ink-subtle py-8">Loading placements…</div>}
-      {error && <div className="text-sm text-bad-fg py-4">{error}</div>}
+      {error && (
+        <div data-testid="error-state" className="text-sm text-bad-fg py-4">
+          {error}
+        </div>
+      )}
       {!loading && !error && (
         <div className="overflow-x-auto border border-border rounded-xl">
-          <table className="w-full border-collapse text-sm">
+          <table data-testid="placements-table" className="w-full border-collapse text-sm">
             <thead className="bg-surface-sunken text-ink-subtle text-xs uppercase">
               <tr>
                 {(['customer', 'status', 'billing', 'producers'] as SortKey[]).map((key) => (
@@ -275,7 +283,11 @@ export function PlacementLedger({
             <tbody>
               {sortedRows.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="text-center text-ink-subtle px-4 py-10">
+                  <td
+                    colSpan={4}
+                    data-testid="empty-state"
+                    className="text-center text-ink-subtle px-4 py-10"
+                  >
                     No placements available.
                   </td>
                 </tr>
@@ -347,7 +359,7 @@ export function PlacementLedger({
         description="Create the placement record before assigning producers and billing."
         onClose={closeEditor}
       >
-        <PlacementForm onSaved={saved} />
+        <PlacementForm onSaved={saved} onCancel={closeEditor} />
       </Modal>
 
       <Modal
@@ -392,9 +404,11 @@ export function PlacementLedger({
 function PlacementForm({
   placement,
   onSaved,
+  onCancel,
 }: {
   placement?: PlacementLedgerRow;
   onSaved: () => Promise<void>;
+  onCancel?: () => void;
 }) {
   const [candidateId, setCandidateId] = useState(placement?.candidate_id ?? '');
   const [clientId, setClientId] = useState(placement?.client_entity_id ?? '');
@@ -435,11 +449,16 @@ function PlacementForm({
   }
 
   return (
-    <form onSubmit={submit} className="grid grid-cols-2 gap-4">
+    <form
+      data-testid={placement ? undefined : 'new-placement-form'}
+      onSubmit={submit}
+      className="grid grid-cols-2 gap-4"
+    >
       <label>
         <span className={LABEL_CLASS}>Customer record ID</span>
         <input
           required
+          data-testid="np-client-entity-id"
           className={INPUT_CLASS}
           value={clientId}
           onChange={(event) => setClientId(event.target.value)}
@@ -449,6 +468,7 @@ function PlacementForm({
         <span className={LABEL_CLASS}>Candidate record ID</span>
         <input
           required
+          data-testid="np-candidate-id"
           className={INPUT_CLASS}
           value={candidateId}
           onChange={(event) => setCandidateId(event.target.value)}
@@ -458,6 +478,7 @@ function PlacementForm({
         <span className={LABEL_CLASS}>Job title</span>
         <input
           required
+          data-testid="np-job-title"
           className={INPUT_CLASS}
           value={jobTitle}
           onChange={(event) => setJobTitle(event.target.value)}
@@ -487,6 +508,7 @@ function PlacementForm({
         <input
           required
           inputMode="decimal"
+          data-testid="np-compensation-base"
           className={INPUT_CLASS}
           value={compensationBase}
           onChange={(event) => setCompensationBase(event.target.value)}
@@ -497,6 +519,7 @@ function PlacementForm({
         <input
           required
           inputMode="decimal"
+          data-testid="np-fee-amount"
           className={INPUT_CLASS}
           value={feeAmount}
           onChange={(event) => setFeeAmount(event.target.value)}
@@ -510,9 +533,18 @@ function PlacementForm({
         />
         Confidential placement
       </label>
-      {error && <div className="col-span-2 text-sm text-bad-fg">{error}</div>}
-      <div className="col-span-2 flex justify-end">
-        <Button type="submit" disabled={saving}>
+      {error && (
+        <div data-testid="new-placement-error" className="col-span-2 text-sm text-bad-fg">
+          {error}
+        </div>
+      )}
+      <div className="col-span-2 flex justify-end gap-2">
+        {!placement && onCancel && (
+          <Button type="button" data-testid="np-cancel" variant="secondary" onClick={onCancel}>
+            Cancel
+          </Button>
+        )}
+        <Button type="submit" data-testid="np-submit" disabled={saving}>
           {saving ? 'Saving…' : placement ? 'Save details' : 'Create placement'}
         </Button>
       </div>
@@ -635,6 +667,7 @@ function ProducerAssignments({
           contributors.map((contributor) => (
             <div
               key={contributor.id}
+              data-testid={`contributor-row-${contributor.id}`}
               className="flex items-center justify-between gap-4 border border-border rounded-sm px-3 py-2"
             >
               <div className="text-sm">
@@ -658,11 +691,16 @@ function ProducerAssignments({
         )}
       </div>
 
-      <form onSubmit={add} className="grid grid-cols-3 gap-3 border-t border-border pt-4">
+      <form
+        data-testid="add-contributor-form"
+        onSubmit={add}
+        className="grid grid-cols-3 gap-3 border-t border-border pt-4"
+      >
         <label>
           <span className={LABEL_CLASS}>Producer</span>
           <select
             required
+            data-testid="add-contributor-producer-id"
             className={INPUT_CLASS}
             value={producerId}
             onChange={(event) => setProducerId(event.target.value)}
@@ -678,6 +716,7 @@ function ProducerAssignments({
         <label>
           <span className={LABEL_CLASS}>Role</span>
           <select
+            data-testid="add-contributor-role"
             className={INPUT_CLASS}
             value={role}
             onChange={(event) => setRole(event.target.value as typeof role)}
@@ -697,14 +736,21 @@ function ProducerAssignments({
             min="0.01"
             max="100"
             step="0.01"
+            data-testid="add-contributor-split-pct"
             className={INPUT_CLASS}
             value={splitPct}
             onChange={(event) => setSplitPct(event.target.value)}
           />
         </label>
-        {error && <div className="col-span-3 text-sm text-bad-fg">{error}</div>}
+        {error && (
+          <div data-testid="add-contributor-error" className="col-span-3 text-sm text-bad-fg">
+            {error}
+          </div>
+        )}
         <div className="col-span-3 flex justify-end">
-          <Button type="submit">Add producer</Button>
+          <Button type="submit" data-testid="add-contributor-submit">
+            Add producer
+          </Button>
         </div>
       </form>
     </div>
