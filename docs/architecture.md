@@ -126,7 +126,9 @@ Mandatory patterns and prohibitions, each traceable to a blueprint rule:
   `apps/web/src/components`: producer portal (`portal/`, incl. `DealSimulator.tsx`), finance queue (`finance/`,
   e.g. `PayrollExport.tsx`), manager view (`manager/`, e.g. `SplitApproval.tsx`), executive dashboard
   (`executive/`, e.g. `ExecFinancialPosition.tsx`, `ExecDisputeApproval.tsx`), HR (`hr/`, e.g.
-  `DrawBalanceView.tsx`), and partner (`partner/PartnerPayoutView.tsx`), plus the login surface.
+  `DrawBalanceView.tsx`), partner (`partner/PartnerPayoutView.tsx`), and the cross-role shared directory
+  `placements/` (e.g. `PlacementLedger.tsx`, mounted in FinancePage, HRHome, ManagerHome, and
+  ExecutiveDashboard), plus the login surface.
   (UX-D-002/D-004/D-005, UX-X-006/X-007)
 - **Instrument every surface; annotate dormant-by-design code.** Target: every UI surface, page view, API route, and
   role-gated action emits a usage event to `commission_analytics`; cross-phase foundational code (clawback worker,
@@ -243,7 +245,7 @@ changes a stated choice, §2–§4 and §6 already reflect it.
 | `implementations/ts/env-ts.yaml` | Bun/git/gh/Playwright/tmux host toolchain, port-31415 preview convention | Agent-CLI/agent-context rules partial (dev-environment governance) |
 | `implementations/ts/process-ts.yaml` | GitHub-Issues planning, gh surface, worktrees, scaffold-first, PRD state machines; **_(planned)_** `.gitattributes merge=binary` | Calypso workflow YAML / task-catalog partial; `rust-quality`→TS substitution; IMPL-PROCESS-015 deprecated |
 | `implementations/ts/test-ts.yaml` | Vitest single driver, Playwright provider, real-PG integration, per-suite CI, golden fixtures, dynamic ports | `release.yml`/schema-upgrade-compat workflows partial (not yet shipped) |
-| `implementations/ts/ux-ts.yaml` | Bun surface layout, `Capability`/`ActorType`, service-flow state machines, React/Tailwind, DIY tokens/forms, headless verify, all six role surfaces shipped (`apps/web/src/components/{portal,finance,manager,executive,hr,partner}`) | Agent-presence/SDK interfaces (IMPL-UX-004/015-SDK) — no account-bound agent in scope |
+| `implementations/ts/ux-ts.yaml` | Bun surface layout, `Capability`/`ActorType`, service-flow state machines, React/Tailwind, DIY tokens/forms, headless verify, all six role surfaces shipped (`apps/web/src/components/{portal,finance,manager,executive,hr,partner}`) plus cross-role shared `placements/` (`PlacementLedger.tsx`) | Agent-presence/SDK interfaces (IMPL-UX-004/015-SDK) — no account-bound agent in scope |
 
 ## 10. Conformance Drift Ledger
 
