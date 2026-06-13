@@ -143,7 +143,9 @@ describe('CreditedPlacementsView', () => {
     expect((await chip.element())?.getAttribute('data-variant')).toBe('amber');
     await expect.element(page.getByText('$0.00 net')).toBeInTheDocument();
     // Explanation wording mentions guarantee window
-    await expect.element(page.getByText('Payment is held inside a guarantee window.')).toBeInTheDocument();
+    await expect
+      .element(page.getByText('Payment is held inside a guarantee window.'))
+      .toBeInTheDocument();
   });
 
   test('unheld positive-net record renders green Payable chip', async () => {
@@ -161,7 +163,8 @@ describe('CreditedPlacementsView', () => {
   test('explanation does not render UUID-like strings in primary prose', async () => {
     const noUuidRecord: CommissionRecord = {
       ...record,
-      explanation: 'You received 100% credit on a $30,000.00 placement. Your base rate is 20%, producing $6,000.00 gross commission. Your net payable is $6,000.00.',
+      explanation:
+        'You received 100% credit on a $30,000.00 placement. Your base rate is 20%, producing $6,000.00 gross commission. Your net payable is $6,000.00.',
     };
     mounted = renderInBrowser(
       <CreditedPlacementsView state={{ data: [noUuidRecord], loading: false, error: null }} />,
@@ -177,16 +180,21 @@ describe('CreditedPlacementsView', () => {
       ...record,
       id: 'r-confidential',
       position_title: 'Confidential',
-      explanation: 'You received 100% credit on a $20,000.00 placement. Your base rate is 25%, producing $5,000.00 gross commission. Your net payable is $5,000.00.',
+      explanation:
+        'You received 100% credit on a $20,000.00 placement. Your base rate is 25%, producing $5,000.00 gross commission. Your net payable is $5,000.00.',
     };
     mounted = renderInBrowser(
-      <CreditedPlacementsView state={{ data: [confidentialRecord], loading: false, error: null }} />,
+      <CreditedPlacementsView
+        state={{ data: [confidentialRecord], loading: false, error: null }}
+      />,
     );
     await expect
       .element(page.getByTestId(`placement-lead-${confidentialRecord.id}`))
       .toHaveTextContent('Confidential');
     // Lead should not contain any job-specific role title
-    const leadText = (await page.getByTestId(`placement-lead-${confidentialRecord.id}`).element())?.textContent ?? '';
+    const leadText =
+      (await page.getByTestId(`placement-lead-${confidentialRecord.id}`).element())?.textContent ??
+      '';
     expect(leadText).toBe('Confidential');
   });
 });

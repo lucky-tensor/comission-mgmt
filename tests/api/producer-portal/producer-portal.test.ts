@@ -929,10 +929,9 @@ describe('issue #222 — trace metadata present in response, absent from explana
 
     // Caller must not issue a mutation query to fix the legacy record — we only read.
     // (Verified by confirming the DB status column was NOT reset during the GET call.)
-    const rows = (await testSql.unsafe(
-      `SELECT status FROM commission_records WHERE id = $1`,
-      [recordIds[0]],
-    )) as unknown as { status: string }[];
+    const rows = (await testSql.unsafe(`SELECT status FROM commission_records WHERE id = $1`, [
+      recordIds[0],
+    ])) as unknown as { status: string }[];
     // Status column is unchanged (the GET handler is read-only — no mutation issued).
     expect(rows[0].status).toBe('Payable');
   });

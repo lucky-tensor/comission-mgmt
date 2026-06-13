@@ -71,10 +71,7 @@ function errorResponse(message: string, status: number): Response {
  * Non-held statuses (Accrued, PendingApproval, Approved, Paid) pass through
  * unchanged — they do not contradict hold state.
  */
-function producerDisplayStatus(
-  status: string,
-  holdReason: string | null,
-): string {
+function producerDisplayStatus(status: string, holdReason: string | null): string {
   if (holdReason === 'collection_gate') return 'Pending Collection';
   if (holdReason === 'guarantee_hold') return 'Held';
   if (holdReason === 'held_pending_phase_invoice') return 'Held';

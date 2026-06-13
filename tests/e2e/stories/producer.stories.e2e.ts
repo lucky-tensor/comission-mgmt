@@ -187,8 +187,11 @@ describe('PR-5: Retained-search CFO card has consistent status, amount, and expl
           await userEvent.click(summary as HTMLElement);
           openedOne = true;
           // After expanding, the explanation text must not contain a UUID pattern
-          const explanationText = (row.querySelector('details p') as HTMLElement | null)?.textContent ?? '';
-          expect(explanationText).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
+          const explanationText =
+            (row.querySelector('details p') as HTMLElement | null)?.textContent ?? '';
+          expect(explanationText).not.toMatch(
+            /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i,
+          );
           break;
         }
       }
