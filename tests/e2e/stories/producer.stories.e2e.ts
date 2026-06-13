@@ -155,6 +155,81 @@ describe('PR-3: Producer sees hold status and reason for held payouts', () => {
 // PR-4 — Submit dispute
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// PR-5 — Retained search CFO card status/amount/explanation consistency (issue #222)
+// ---------------------------------------------------------------------------
+
+describe('PR-5: Retained-search CFO card has consistent status, amount, and explanation (issue #222)', () => {
+  test('CFO retained-search card: placements list has a row with the CFO title', async () => {
+    mount.current = await loginAs('Producer');
+    await expect.element(page.getByTestId('placements-list')).toBeInTheDocument();
+    // The seeded CFO retained-search placement must appear somewhere on the portal
+    const listText = (await page.getByTestId('placements-list').element())?.textContent ?? '';
+    expect(listText).toContain('Chief Financial Officer');
+  });
+
+  test('CFO retained-search retainer phase: expanded explanation contains no UUID', async () => {
+    mount.current = await loginAs('Producer');
+    await expect.element(page.getByTestId('placements-list')).toBeInTheDocument();
+
+    // Open the first "How was this calculated?" detail on any CFO row.
+    // Because the CFO card has two phases the retainer may render at any position
+    // in the list. We locate all detail summaries and click the first one whose
+    // ancestor row contains "Chief Financial Officer".
+    const listEl = await page.getByTestId('placements-list').element();
+    const rows = listEl?.querySelectorAll('[data-testid^="placement-row-"]') ?? [];
+    let openedOne = false;
+    for (const row of Array.from(rows)) {
+      const rowText = row.textContent ?? '';
+      if (rowText.includes('Chief Financial Officer')) {
+        const summary = row.querySelector('details > summary');
+        if (summary) {
+          await userEvent.click(summary as HTMLElement);
+          openedOne = true;
+          // After expanding, the explanation text must not contain a UUID pattern
+          const explanationText =
+            (row.querySelector('details p') as HTMLElement | null)?.textContent ?? '';
+          expect(explanationText).not.toMatch(
+            /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i,
+          );
+          break;
+        }
+      }
+    }
+    expect(openedOne).toBe(true);
+  });
+
+  test('CFO retained-search delivery phase: held card shows amber/held status, not Payable', async () => {
+    mount.current = await loginAs('Producer');
+    await expect.element(page.getByTestId('placements-list')).toBeInTheDocument();
+
+    const listEl = await page.getByTestId('placements-list').element();
+    const rows = listEl?.querySelectorAll('[data-testid^="placement-row-"]') ?? [];
+
+    // Find CFO rows — there should be at least one with Held (the delivery phase)
+    let foundHeldRow = false;
+    for (const row of Array.from(rows)) {
+      const rowText = row.textContent ?? '';
+      if (!rowText.includes('Chief Financial Officer')) continue;
+      // Check the status chip
+      const chips = row.querySelectorAll('[data-testid^="placement-status-"]');
+      for (const chip of Array.from(chips)) {
+        const variant = chip.getAttribute('data-variant');
+        // A held phase must have amber chip, not green
+        if (variant === 'amber') {
+          foundHeldRow = true;
+          // The net amount for a held row should be $0.00
+          expect(rowText).toContain('$0.00 net');
+          break;
+        }
+      }
+      if (foundHeldRow) break;
+    }
+    // The delivery phase is Held — we must find at least one amber CFO row
+    expect(foundHeldRow).toBe(true);
+  });
+});
+
 describe('PR-4: Producer submits a dispute', () => {
   test('dispute form renders on /portal', async () => {
     mount.current = await loginAs('Producer');

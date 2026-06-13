@@ -53,7 +53,10 @@ export function CreditedPlacementsView({ state }: { state: AsyncState<Commission
                 >
                   {placementLead(r)}
                 </span>
-                <StatusChip status={r.status} data-testid={`placement-status-${r.id}`} />
+                <StatusChip
+                  status={r.producer_display_status ?? r.status}
+                  data-testid={`placement-status-${r.id}`}
+                />
               </div>
               <div style={{ fontSize: '0.875rem', color: '#374151', marginTop: '0.25rem' }}>
                 {formatCurrency(r.net_payable)} net

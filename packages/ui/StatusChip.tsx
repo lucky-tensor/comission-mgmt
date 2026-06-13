@@ -54,6 +54,7 @@ export function statusVariant(status: string): StatusVariant {
     [
       'held',
       'pending',
+      'pending collection',
       'draft',
       'open',
       'in_progress',

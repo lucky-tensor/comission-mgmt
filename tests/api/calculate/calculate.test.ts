@@ -754,9 +754,15 @@ describe('GET /commission-records/:id — explainability (issue #11)', () => {
     expect(getBody.id).toBe(recordId);
     expect(getBody.explanation).toBeTruthy();
     expect(getBody.explanation.length).toBeGreaterThan(0);
-    // Explanation must reference placement ID for traceability (PRD §9)
-    expect(getBody.explanation).toContain(placementId);
-    // Explanation must reference plan version ID for traceability
-    expect(getBody.explanation).toContain(getBody.plan_version_id);
+    // Explanation must contain the monetary amounts (PRD §9 — producer understands payout derivation)
+    expect(getBody.explanation).toContain('$40,000.00');
+    expect(getBody.explanation).toContain('$10,000.00');
+    // Raw placement ID and plan version ID must NOT appear in the producer-facing explanation
+    // prose — they remain accessible as top-level API fields (issue #222).
+    expect(getBody.explanation).not.toContain(placementId);
+    expect(getBody.explanation).not.toContain(getBody.plan_version_id);
+    // Trace metadata is still present as structured fields (not prose)
+    expect(getBody.placement_id).toBe(placementId);
+    expect(getBody.plan_version_id).toBeTruthy();
   });
 });

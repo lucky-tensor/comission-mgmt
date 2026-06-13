@@ -170,10 +170,9 @@ export function generateExplanation(input: ExplanationInput): string {
     );
   }
 
-  // 7. Traceability sentence
-  sentences.push(
-    `This calculation is based on plan version ${input.planVersionId} and placement ${input.placementId}.`,
-  );
+  // Note: planVersionId and placementId are retained as ExplanationInput fields for
+  // audit traceability (accessible via API response metadata) but are intentionally
+  // absent from the producer-facing explanation prose (issue #222).
 
   return sentences.join(' ');
 }

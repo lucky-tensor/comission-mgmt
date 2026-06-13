@@ -58,6 +58,27 @@ function errorResponse(message: string, status: number): Response {
   return jsonResponse({ error: message }, status);
 }
 
+/**
+ * Derive a producer-facing display status that is always consistent with the
+ * hold reason and net payable amount (issue #222).
+ *
+ * The DB `status` column can lag behind hold state on legacy records (e.g. a
+ * record that has status=Payable but hold_reason=collection_gate and
+ * net_payable=0). This function returns a display status that is truthful:
+ * collection-gated and guarantee-gated records are always presented as held or
+ * pending, never as Payable or Released.
+ *
+ * Non-held statuses (Accrued, PendingApproval, Approved, Paid) pass through
+ * unchanged — they do not contradict hold state.
+ */
+function producerDisplayStatus(status: string, holdReason: string | null): string {
+  if (holdReason === 'collection_gate') return 'Pending Collection';
+  if (holdReason === 'guarantee_hold') return 'Held';
+  if (holdReason === 'held_pending_phase_invoice') return 'Held';
+  if (holdReason && (status === 'Payable' || status === 'Released')) return 'Held';
+  return status;
+}
+
 // ---------------------------------------------------------------------------
 // GET /me — producer identity + active plan summary (stub)
 // ---------------------------------------------------------------------------
@@ -185,6 +206,8 @@ export async function handleGetMyCommissionRecords(
           net_payable: r.netPayable,
           tier_rate: r.tierRate,
           status: r.status,
+          /** Producer-facing display status — always consistent with hold_reason (issue #222). */
+          producer_display_status: producerDisplayStatus(r.status, r.holdReason),
           hold_reason: r.holdReason,
           billing_phase_id: r.billingPhaseId,
           blocked_phase: blockedPhase,
@@ -285,6 +308,8 @@ export async function handleGetMyPayouts(
           net_payable: r.netPayable,
           tier_rate: r.tierRate,
           status: r.status,
+          /** Producer-facing display status — always consistent with hold_reason (issue #222). */
+          producer_display_status: producerDisplayStatus(r.status, r.holdReason),
           hold_reason: r.holdReason,
           billing_phase_id: r.billingPhaseId,
           explanation: r.explanation,
