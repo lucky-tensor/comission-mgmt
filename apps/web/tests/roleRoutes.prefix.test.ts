@@ -22,7 +22,6 @@ import {
   pathMatchesPrefix,
   roleLabel,
 } from '../src/lib/roleRoutes';
-import { splitNavItems } from '../src/components/NavShell';
 
 describe('normalizePath', () => {
   test('strips query strings and hashes', () => {
@@ -110,30 +109,5 @@ describe('roleLabel — human role labels', () => {
     expect(roleLabel('ExternalPartner')).toBe('External Partner');
     expect(roleLabel('HR')).toBe('People Ops');
     expect(roleLabel('Producer')).toBe('Producer');
-  });
-});
-
-describe('splitNavItems — overflow grouping past five items', () => {
-  const items = (n: number) => Array.from({ length: n }, (_, i) => `i${i}`);
-
-  test('items within the cap stay inline (no overflow)', () => {
-    for (const n of [0, 1, 4, 5]) {
-      const { visible, overflow } = splitNavItems(items(n));
-      expect(visible).toHaveLength(n);
-      expect(overflow).toHaveLength(0);
-    }
-  });
-
-  test('more than five items fold the trailing items into the overflow', () => {
-    // 6 items: 4 visible + a More toggle slot, 2 in the overflow.
-    const { visible, overflow } = splitNavItems(items(6));
-    expect(visible).toEqual(['i0', 'i1', 'i2', 'i3']);
-    expect(overflow).toEqual(['i4', 'i5']);
-  });
-
-  test('the cap is configurable', () => {
-    const { visible, overflow } = splitNavItems(items(4), 3);
-    expect(visible).toEqual(['i0', 'i1']);
-    expect(overflow).toEqual(['i2', 'i3']);
   });
 });

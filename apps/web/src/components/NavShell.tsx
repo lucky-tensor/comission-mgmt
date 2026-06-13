@@ -1,97 +1,79 @@
 /**
- * NavShell — application navigation shell.
+ * NavShell — application navigation shell with left sidebar.
  *
- * Renders the top navigation bar with only the routes permitted for the active
- * role (sourced from roleRoutes.ts) and wraps page content in one standard
- * content container.
+ * Implements the Atlas design system layout: left sidebar with nav items,
+ * top bar with page title and user info, and main content area.
  *
- * Rebuild (#203) per docs/ux-review.md "NavShell / menu-system assessment":
- *   - Nav items render as real <a href> anchors (middle-click / copy-link /
- *     hover-preview work); left-click is intercepted for SPA navigation.
- *   - Active + permitted matching is prefix-based (activeNavPath), so detail
- *     routes highlight their parent nav item.
- *   - More than five items collapse into a "More" overflow menu so the bar
- *     never overflows off-screen.
- *   - All styling comes from Tailwind utilities driven by the @theme in
- *     apps/web/src/index.css — no local hex.
- *   - The header shows the persona name and the human role label
- *     ("Jordan Lee · Finance Admin"), not the raw enum.
- *   - aria-current="page", the nav aria-label, and per-item test IDs are
- *     preserved.
+ * Layout is responsive but sidebar is always visible (no mobile collapse).
  *
- * Route gating: the nav only shows items in the role's `navItems` list — no
- * component re-implements role gating.
- *
- * Canonical docs: docs/prd.md §3 (User Roles); docs/ux-review.md
- * Issue: feat: web app shell — role-based routing and navigation (#100);
- *        feat: webapp — UX overhaul: NavShell rebuild (#203)
+ * Canonical docs: Atlas design system (packages/ui/design-system/atlas/);
+ *                 docs/web-app-ux.md (routing seam)
  */
 
 import type { AppRole } from 'core/auth';
-import { ROLE_ROUTES, activeNavPath, roleLabel, type NavItem } from '../lib/roleRoutes';
-import { useState, type ReactNode, type MouseEvent } from 'react';
+import {
+  ROLE_ROUTES,
+  activeNavPath,
+  roleLabel,
+  type NavItem,
+  type RoleRouteConfig,
+} from '../lib/roleRoutes';
+import { type ReactNode, type MouseEvent } from 'react';
 
 interface NavShellProps {
   role: AppRole;
   currentPath: string;
   onNavigate: (path: string) => void;
   onLogout: () => void;
-  /** Persona display name shown beside the role label; optional. */
   personaName?: string | null;
   children: ReactNode;
 }
 
-/** Items beyond this count collapse into an overflow ("More") menu. */
-export const MAX_VISIBLE_ITEMS = 5;
+/**
+ * Simple inline SVG icon component. Maps icon names to basic SVG paths.
+ * Uses a subset of Lucide icons for nav items.
+ */
+const ICON_SVGS: Record<string, string> = {
+  'layout-dashboard':
+    '<circle cx="6" cy="6" r="1"/><circle cx="18" cy="6" r="1"/><circle cx="6" cy="18" r="1"/><circle cx="18" cy="18" r="1"/>',
+  wallet: '<rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><path d="M1 8h22"/>',
+  'check-circle':
+    '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>',
+  users:
+    '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+  'trending-up':
+    '<polyline points="23 6 13.5 15.5 8.5 10.5 1 17"/><polyline points="17 6 23 6 23 12"/>',
+  'line-chart':
+    '<line x1="12" y1="2" x2="12" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/><polyline points="22 19 20 21 18 19"/>',
+  briefcase:
+    '<rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 3h-4a2 2 0 0 0-2 2v2H8V5a2 2 0 0 0-2-2H2v2h2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7h2V5a2 2 0 0 0-2-2z"/>',
+  'book-open':
+    '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>',
+};
+
+function Icon({ name, size = 18 }: { name: string; size?: number }) {
+  const path = ICON_SVGS[name] || ICON_SVGS['book-open'];
+
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="flex-shrink-0"
+    >
+      {path && <g dangerouslySetInnerHTML={{ __html: path }} />}
+    </svg>
+  );
+}
 
 /**
- * Split nav items into the inline row and the overflow ("More") menu. When the
- * total is within the cap everything stays inline; past it, the trailing items
- * (and one slot for the More toggle) fold into the overflow. Exported so the
- * overflow contract can be unit-tested without a six-item role in the route map.
+ * Render a single nav item as an intercepted anchor link.
  */
-export function splitNavItems<T>(
-  items: T[],
-  cap: number = MAX_VISIBLE_ITEMS,
-): {
-  visible: T[];
-  overflow: T[];
-} {
-  if (items.length <= cap) return { visible: items, overflow: [] };
-  return { visible: items.slice(0, cap - 1), overflow: items.slice(cap - 1) };
-}
-
-const NAV_CLASS = 'sticky top-0 z-nav flex items-center gap-2 h-13 px-6 bg-ink text-white';
-
-const BRAND_CLASS = 'font-bold text-base text-white mr-4 whitespace-nowrap';
-
-const NAV_ITEM_BASE = 'px-3 py-2 rounded-md text-sm whitespace-nowrap no-underline cursor-pointer';
-
-/** Tailwind classes for a nav item, by active state. */
-function navItemClass(active: boolean): string {
-  return [
-    NAV_ITEM_BASE,
-    active
-      ? 'font-semibold text-white bg-inverse-active'
-      : 'font-normal text-inverse-muted hover:text-white',
-  ].join(' ');
-}
-
-const LOGOUT_CLASS =
-  'px-3 py-2 rounded-md text-sm font-medium text-inverse-muted cursor-pointer ' +
-  'border border-white/10 bg-transparent hover:text-white';
-
-const ROLE_BADGE_CLASS =
-  'text-xs font-medium text-inverse-muted px-2.5 py-1 bg-inverse-soft rounded-xs whitespace-nowrap';
-
-const CONTENT_CLASS = 'mx-auto max-w-content p-6';
-
-/** Stable per-item test id derived from the route path. */
-function navTestId(path: string): string {
-  return `nav-item-${path.replace(/\//g, '-').replace(/^-/, '')}`;
-}
-
-/** Render one nav item as an intercepted anchor link. */
 function NavLink({
   item,
   active,
@@ -102,7 +84,6 @@ function NavLink({
   onNavigate: (path: string) => void;
 }) {
   function handleClick(e: MouseEvent<HTMLAnchorElement>) {
-    // Let the browser handle modified clicks (new tab, download, etc.).
     if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) {
       return;
     }
@@ -112,73 +93,132 @@ function NavLink({
 
   return (
     <a
-      key={item.path}
       href={item.path}
-      data-testid={navTestId(item.path)}
-      className={navItemClass(active)}
-      aria-current={active ? 'page' : undefined}
+      data-testid={`nav-item-${item.path.replace(/\//g, '-').replace(/^-/, '')}`}
       onClick={handleClick}
+      aria-current={active ? 'page' : undefined}
+      className={`flex items-center gap-3 px-2.5 py-2 rounded-sm no-underline cursor-pointer transition-colors duration-120 ${
+        active
+          ? 'bg-color-surface-hover text-color-ink font-medium'
+          : 'text-color-ink-muted hover:text-color-ink'
+      }`}
     >
-      {item.label}
+      <Icon name={item.icon} size={17} />
+      <span className="flex-1 text-sm">{item.label}</span>
     </a>
   );
 }
 
-/** Overflow menu housing nav items beyond the visible cap. */
-function OverflowMenu({
-  items,
+/**
+ * Left sidebar with branding, nav items, and user account info.
+ */
+function Sidebar({
+  config,
   activePath,
   onNavigate,
+  personaName,
+  roleText,
 }: {
-  items: NavItem[];
+  config: RoleRouteConfig;
   activePath: string | null;
   onNavigate: (path: string) => void;
+  personaName?: string | null;
+  roleText: string;
 }) {
-  const [open, setOpen] = useState(false);
-  const containsActive = items.some((i) => i.path === activePath);
-
   return (
-    <div className="relative" data-testid="nav-overflow">
-      <button
-        type="button"
-        data-testid="nav-overflow-toggle"
-        aria-haspopup="menu"
-        aria-expanded={open}
-        className={`${navItemClass(containsActive)} border-none bg-transparent`}
-        onClick={() => setOpen((o) => !o)}
-      >
-        More ▾
-      </button>
-      {open && (
-        <div
-          role="menu"
-          data-testid="nav-overflow-menu"
-          className="absolute top-full left-0 mt-1 flex min-w-menu flex-col rounded-md bg-ink p-1 shadow-md z-menu"
-        >
-          {items.map((item) => (
-            <a
+    <aside
+      data-testid="nav-sidebar"
+      className="flex flex-col h-screen w-44 flex-shrink-0 bg-color-surface border-r border-color-border p-3"
+    >
+      {/* Brand */}
+      <div className="flex items-center gap-2 px-2 pb-3 mb-2 border-b border-color-border">
+        <div className="flex-1">
+          <div className="font-semibold text-base text-color-ink">Commission Mgmt</div>
+          <div className="text-xs text-color-ink-subtle mt-0.5">{roleText}</div>
+        </div>
+      </div>
+
+      {/* Nav items */}
+      <nav className="flex-1 overflow-auto" aria-label="Sidebar navigation">
+        <div className="flex flex-col gap-1">
+          {config.navItems.map((item) => (
+            <NavLink
               key={item.path}
-              href={item.path}
-              data-testid={navTestId(item.path)}
-              role="menuitem"
-              className={`${navItemClass(item.path === activePath)} block`}
-              aria-current={item.path === activePath ? 'page' : undefined}
-              onClick={(e) => {
-                if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-                e.preventDefault();
-                setOpen(false);
-                onNavigate(item.path);
-              }}
-            >
-              {item.label}
-            </a>
+              item={item}
+              active={item.path === activePath}
+              onNavigate={onNavigate}
+            />
           ))}
         </div>
-      )}
-    </div>
+      </nav>
+
+      {/* User account info */}
+      <div className="border-t border-color-border pt-3">
+        <button
+          className="w-full flex items-center gap-2 px-2 py-2 rounded-sm border border-color-border bg-color-surface text-left cursor-pointer transition-colors duration-120 hover:bg-color-surface-hover"
+          onClick={() => {}}
+        >
+          <div className="w-8 h-8 rounded-sm bg-color-ink text-white flex items-center justify-center text-xs font-semibold flex-shrink-0">
+            {personaName
+              ?.split(' ')
+              .slice(0, 2)
+              .map((n) => n[0])
+              .join('')
+              .toUpperCase() || 'U'}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-xs font-medium text-color-ink truncate">
+              {personaName || roleText}
+            </div>
+            <div className="text-xs text-color-ink-subtle truncate">{roleText}</div>
+          </div>
+        </button>
+      </div>
+    </aside>
   );
 }
 
+/**
+ * Top bar with page title, user badge, and logout.
+ */
+function TopBar({
+  personaName,
+  roleText,
+  onLogout,
+}: {
+  personaName?: string | null;
+  roleText: string;
+  onLogout: () => void;
+}) {
+  return (
+    <header
+      data-testid="nav-topbar"
+      className="h-13 flex-shrink-0 border-b border-color-border bg-color-surface flex items-center px-6 gap-4"
+    >
+      <div className="flex-1" />
+      <div className="flex items-center gap-3">
+        <div
+          data-testid="nav-role-badge"
+          className="text-xs font-medium text-color-ink-muted px-2.5 py-1 bg-color-surface-muted rounded-xs whitespace-nowrap"
+        >
+          {personaName ? `${personaName} · ${roleText}` : roleText}
+        </div>
+        <button
+          type="button"
+          data-testid="nav-logout-button"
+          onClick={onLogout}
+          className="px-3 py-2 rounded-sm text-sm font-medium text-color-ink-muted border border-color-border cursor-pointer transition-colors duration-120 hover:text-color-ink"
+        >
+          Log out
+        </button>
+      </div>
+    </header>
+  );
+}
+
+/**
+ * Main layout container with sidebar and main content area.
+ */
 export function NavShell({
   role,
   currentPath,
@@ -188,46 +228,29 @@ export function NavShell({
   children,
 }: NavShellProps) {
   const config = ROLE_ROUTES[role];
-  const active = activeNavPath(role, currentPath);
-
-  // Split into a visible row and an overflow menu once past the cap.
-  const { visible, overflow } = splitNavItems(config.navItems);
-
+  const activePath = activeNavPath(role, currentPath);
   const roleText = roleLabel(role);
-  const badgeText = personaName ? `${personaName} · ${roleText}` : roleText;
 
   return (
-    <div data-testid="nav-shell">
-      <nav className={NAV_CLASS} data-testid="nav-bar" aria-label="Main navigation">
-        <span className={BRAND_CLASS}>Commission Management</span>
+    <div data-testid="nav-shell" className="flex h-screen bg-color-surface-muted overflow-hidden">
+      {/* Left sidebar */}
+      <Sidebar
+        config={config}
+        activePath={activePath}
+        onNavigate={onNavigate}
+        personaName={personaName}
+        roleText={roleText}
+      />
 
-        {visible.map((item) => (
-          <NavLink
-            key={item.path}
-            item={item}
-            active={item.path === active}
-            onNavigate={onNavigate}
-          />
-        ))}
-        {overflow.length > 0 && (
-          <OverflowMenu items={overflow} activePath={active} onNavigate={onNavigate} />
-        )}
+      {/* Main area: topbar + content */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <TopBar personaName={personaName} roleText={roleText} onLogout={onLogout} />
 
-        <div className="flex-1" />
-        <span className={ROLE_BADGE_CLASS} data-testid="nav-role-badge">
-          {badgeText}
-        </span>
-        <button
-          type="button"
-          className={LOGOUT_CLASS}
-          data-testid="nav-logout-button"
-          onClick={onLogout}
-        >
-          Log out
-        </button>
-      </nav>
-
-      <main className={CONTENT_CLASS}>{children}</main>
+        {/* Main content */}
+        <main className="flex-1 overflow-auto p-6">
+          <div className="max-w-screen-2xl mx-auto">{children}</div>
+        </main>
+      </div>
     </div>
   );
 }

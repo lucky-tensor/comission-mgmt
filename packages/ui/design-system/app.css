@@ -69,6 +69,12 @@
   --container-report: 960px;
   --container-wide: 1024px;
   --container-content: 1140px;
+
+  /* Layout dimensions for sidebar + topbar structure. */
+  --layout-sidebar: 176px;
+  --layout-topbar: 52px;
+  --layout-gutter: 20px;
+  --layout-page-max: 1200px;
 }
 
 @utility min-h-surface {

@@ -28,6 +28,8 @@ export interface NavItem {
   path: string;
   /** Human-readable label for the nav element. */
   label: string;
+  /** Lucide icon name for the nav item. */
+  icon: string;
 }
 
 export interface RoleRouteConfig {
@@ -66,8 +68,8 @@ export const ROLE_ROUTES: Record<AppRole, RoleRouteConfig> = {
     landing: ROUTES.PORTAL,
     permitted: new Set([ROUTES.PORTAL, ROUTES.DOCS]),
     navItems: [
-      { path: ROUTES.PORTAL, label: 'My Portal' },
-      { path: ROUTES.DOCS, label: 'Docs' },
+      { path: ROUTES.PORTAL, label: 'My Portal', icon: 'layout-dashboard' },
+      { path: ROUTES.DOCS, label: 'Docs', icon: 'book-open' },
     ],
   },
 
@@ -82,9 +84,9 @@ export const ROLE_ROUTES: Record<AppRole, RoleRouteConfig> = {
       ROUTES.DOCS,
     ]),
     navItems: [
-      { path: ROUTES.FINANCE, label: 'Finance Home' },
-      { path: ROUTES.RECONCILIATION, label: 'Reconciliation' },
-      { path: ROUTES.DOCS, label: 'Docs' },
+      { path: ROUTES.FINANCE, label: 'Finance Home', icon: 'wallet' },
+      { path: ROUTES.RECONCILIATION, label: 'Reconciliation', icon: 'check-circle' },
+      { path: ROUTES.DOCS, label: 'Docs', icon: 'book-open' },
     ],
   },
 
@@ -92,8 +94,8 @@ export const ROLE_ROUTES: Record<AppRole, RoleRouteConfig> = {
     landing: ROUTES.MANAGER,
     permitted: new Set([ROUTES.MANAGER, ROUTES.DOCS]),
     navItems: [
-      { path: ROUTES.MANAGER, label: 'Team View' },
-      { path: ROUTES.DOCS, label: 'Docs' },
+      { path: ROUTES.MANAGER, label: 'Team View', icon: 'users' },
+      { path: ROUTES.DOCS, label: 'Docs', icon: 'book-open' },
     ],
   },
 
@@ -107,10 +109,10 @@ export const ROLE_ROUTES: Record<AppRole, RoleRouteConfig> = {
       ROUTES.DOCS,
     ]),
     navItems: [
-      { path: ROUTES.EXECUTIVE, label: 'Executive Dashboard' },
-      { path: ROUTES.EXEC_PROFITABILITY, label: 'Profitability' },
-      { path: ROUTES.EXEC_TRENDS, label: 'Exception & Dispute Trends' },
-      { path: ROUTES.DOCS, label: 'Docs' },
+      { path: ROUTES.EXECUTIVE, label: 'Dashboard', icon: 'layout-dashboard' },
+      { path: ROUTES.EXEC_PROFITABILITY, label: 'Profitability', icon: 'trending-up' },
+      { path: ROUTES.EXEC_TRENDS, label: 'Trends', icon: 'line-chart' },
+      { path: ROUTES.DOCS, label: 'Docs', icon: 'book-open' },
     ],
   },
 
@@ -118,8 +120,8 @@ export const ROLE_ROUTES: Record<AppRole, RoleRouteConfig> = {
     landing: ROUTES.HR,
     permitted: new Set([ROUTES.HR, ROUTES.DOCS]),
     navItems: [
-      { path: ROUTES.HR, label: 'HR Home' },
-      { path: ROUTES.DOCS, label: 'Docs' },
+      { path: ROUTES.HR, label: 'HR Home', icon: 'briefcase' },
+      { path: ROUTES.DOCS, label: 'Docs', icon: 'book-open' },
     ],
   },
 
@@ -127,8 +129,8 @@ export const ROLE_ROUTES: Record<AppRole, RoleRouteConfig> = {
     landing: ROUTES.PARTNER,
     permitted: new Set([ROUTES.PARTNER, ROUTES.DOCS]),
     navItems: [
-      { path: ROUTES.PARTNER, label: 'My Placements' },
-      { path: ROUTES.DOCS, label: 'Docs' },
+      { path: ROUTES.PARTNER, label: 'My Placements', icon: 'briefcase' },
+      { path: ROUTES.DOCS, label: 'Docs', icon: 'book-open' },
     ],
   },
 };
