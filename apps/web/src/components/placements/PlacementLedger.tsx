@@ -111,7 +111,7 @@ function Modal({
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="w-full max-w-2xl max-h-[90vh] overflow-auto rounded-lg border border-border bg-surface shadow-lg"
+        className="w-full max-w-2xl max-h-dialog overflow-auto rounded-xl border border-border bg-surface shadow-lg"
       >
         <header className="flex items-start justify-between gap-4 border-b border-border p-5">
           <div>
@@ -255,7 +255,7 @@ export function PlacementLedger({
       {loading && <div className="text-sm text-ink-subtle py-8">Loading placements…</div>}
       {error && <div className="text-sm text-bad-fg py-4">{error}</div>}
       {!loading && !error && (
-        <div className="overflow-x-auto border border-border rounded-lg">
+        <div className="overflow-x-auto border border-border rounded-xl">
           <table className="w-full border-collapse text-sm">
             <thead className="bg-surface-sunken text-ink-subtle text-xs uppercase">
               <tr>
