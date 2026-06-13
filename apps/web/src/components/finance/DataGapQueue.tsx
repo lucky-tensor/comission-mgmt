@@ -89,18 +89,18 @@ function ResolveRow({ placement, onResolved }: ResolveRowProps) {
     <div data-testid={`gap-row-${placement.id}`} className="border-b border-border py-4">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <div className="font-semibold text-ink text-[0.9375rem]">
+          <div className="font-semibold text-ink text-base">
             {placement.job_title ?? 'Untitled placement'}
             {placement.is_confidential && (
               <span
                 data-testid="confidential-badge"
-                className="ml-2 text-xs bg-warn-bg text-warn-fg px-2 py-0.5 rounded-full"
+                className="ml-2 text-xs bg-warn-bg text-warn-fg px-2 py-0.5 rounded-xs"
               >
                 Confidential
               </span>
             )}
           </div>
-          <div className="text-[0.8125rem] text-ink-subtle mt-1">ID: {placement.id}</div>
+          <div className="text-sm text-ink-subtle mt-1">ID: {placement.id}</div>
           <div
             data-testid={`missing-fields-${placement.id}`}
             className="mt-2 flex flex-wrap gap-1.5"
@@ -109,7 +109,7 @@ function ResolveRow({ placement, onResolved }: ResolveRowProps) {
               <span
                 key={f}
                 data-testid={`missing-field-tag-${f}`}
-                className="text-xs bg-bad-bg text-bad-fg px-2 py-0.5 rounded border border-bad-fg/30"
+                className="text-xs bg-bad-bg text-bad-fg px-2 py-0.5 rounded-xs border border-bad-fg/30"
               >
                 {FIELD_LABELS[f] ?? f}
               </span>
@@ -122,7 +122,7 @@ function ResolveRow({ placement, onResolved }: ResolveRowProps) {
             data-testid={`resolve-btn-${placement.id}`}
             onClick={() => setOpen((o) => !o)}
             className={[
-              'shrink-0 text-[0.8125rem] px-3 py-1.5 rounded-md border-none cursor-pointer',
+              'shrink-0 text-sm px-3 py-1.5 rounded-md border-none cursor-pointer',
               open ? 'bg-surface-sunken text-ink-muted' : 'bg-ink text-white',
             ].join(' ')}
           >
@@ -134,13 +134,13 @@ function ResolveRow({ placement, onResolved }: ResolveRowProps) {
       {open && hasEditableFields && (
         <div
           data-testid={`resolve-form-${placement.id}`}
-          className="mt-3 bg-surface-muted border border-border rounded-lg p-4"
+          className="mt-3 bg-surface-muted border border-border rounded-md p-4"
         >
           {editableFields.map((field) => (
             <div key={field} className="mb-3">
               <label
                 htmlFor={`field-${placement.id}-${field}`}
-                className="block text-[0.8125rem] font-semibold text-ink-muted mb-1"
+                className="block text-sm font-semibold text-ink-muted mb-1"
               >
                 {FIELD_LABELS[field] ?? field}
               </label>
@@ -156,11 +156,7 @@ function ResolveRow({ placement, onResolved }: ResolveRowProps) {
           ))}
 
           {saveError && (
-            <div
-              data-testid="save-error"
-              role="alert"
-              className="text-bad-fg text-[0.8125rem] mb-3"
-            >
+            <div data-testid="save-error" role="alert" className="text-bad-fg text-sm mb-3">
               {saveError}
             </div>
           )}
@@ -182,7 +178,7 @@ function ResolveRow({ placement, onResolved }: ResolveRowProps) {
 // DataGapQueue — main component
 // ---------------------------------------------------------------------------
 
-export function DataGapQueue() {
+export function DataGapQueue({ embedded = false }: { embedded?: boolean }) {
   const queueState = useAsync<IncompletePlacement[]>(
     () => apiGet<IncompletePlacement[]>('/placements/incomplete'),
     [],
@@ -200,13 +196,17 @@ export function DataGapQueue() {
   return (
     <div
       data-testid="data-gap-queue"
-      className="min-h-[calc(100vh-3.25rem)] bg-surface-muted px-4 py-8"
+      data-embedded={embedded ? 'true' : 'false'}
+      className={embedded ? '' : 'min-h-surface bg-surface-muted px-4 py-8'}
     >
-      <div className="max-w-[880px] mx-auto">
+      <div className={embedded ? '' : 'max-w-narrow mx-auto'}>
         <header className="mb-6">
-          <h1 data-testid="data-gap-queue-heading" className="text-2xl font-bold text-ink m-0 mb-1">
+          <h2
+            data-testid="data-gap-queue-heading"
+            className={`${embedded ? 'text-xl' : 'text-2xl'} font-bold text-ink m-0 mb-1`}
+          >
             Data Gap Queue
-          </h1>
+          </h2>
           <p className="text-sm text-ink-subtle m-0">
             Placements missing required fields for commission processing. Resolve all gaps before
             starting a commission run.

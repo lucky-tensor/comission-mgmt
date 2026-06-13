@@ -44,7 +44,7 @@ export interface EntityPickerProps<T> {
   emptyMessage?: string;
 }
 
-const LABEL_CLASS = 'block text-[0.8125rem] font-semibold text-ink-muted mb-1.5';
+const LABEL_CLASS = 'block text-sm font-semibold text-ink-muted mb-1.5';
 
 const SELECT_CLASS =
   'w-full px-3 py-2 border border-border-strong rounded-md text-sm bg-surface text-ink';

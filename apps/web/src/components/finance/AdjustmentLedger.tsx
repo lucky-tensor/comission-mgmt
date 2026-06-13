@@ -91,7 +91,7 @@ export interface TriggerClawbackResult {
 // Styles — Tailwind class strings (theme tokens, no raw hex)
 // ---------------------------------------------------------------------------
 
-const TABLE_CLASS = 'w-full border-collapse text-[0.8125rem]';
+const TABLE_CLASS = 'w-full border-collapse text-sm';
 
 const TH_CLASS =
   'text-left px-3 py-2 bg-surface-sunken text-ink-muted font-semibold border-b-2 border-border';
@@ -101,7 +101,7 @@ const TD_CLASS = 'px-3 py-2.5 border-b border-surface-sunken text-ink-muted';
 const FIELD_CLASS =
   'w-full px-3 py-2 border border-border-strong rounded-md text-sm box-border mb-3';
 
-const LABEL_CLASS = 'block text-[0.8125rem] text-ink-muted mb-1';
+const LABEL_CLASS = 'block text-sm text-ink-muted mb-1';
 
 // ---------------------------------------------------------------------------
 // Sub-components
@@ -111,7 +111,7 @@ function EventSummaryBanner({ event }: { event: ClawbackEventSummary }) {
   return (
     <div
       data-testid="clawback-event-banner"
-      className="px-4 py-3.5 bg-warn-bg border border-warn-fg/30 rounded-lg text-sm text-warn-fg mb-4"
+      className="px-4 py-3.5 bg-warn-bg border border-warn-fg/30 rounded-md text-sm text-warn-fg mb-4"
     >
       <strong>Clawback triggered</strong> — {event.event_type}, rule: <strong>{event.rule}</strong>,
       occurred {formatDate(event.occurred_at)}, triggered by{' '}
@@ -239,7 +239,7 @@ export function TriggerForm({
 
   return (
     <PortalCard title="Post new adjustment">
-      <p className="text-[0.8125rem] text-ink-subtle mt-0 mb-4" data-testid="refund-credit-note">
+      <p className="text-sm text-ink-subtle mt-0 mb-4" data-testid="refund-credit-note">
         Clawback and holdback adjustments only. Refund and credit-memo entry requires backend
         support not yet available.
       </p>
@@ -275,11 +275,7 @@ export function TriggerForm({
           </select>
         </label>
         {error && (
-          <div
-            data-testid="trigger-error"
-            role="alert"
-            className="text-bad-fg text-[0.8125rem] mb-3"
-          >
+          <div data-testid="trigger-error" role="alert" className="text-bad-fg text-sm mb-3">
             {error}
           </div>
         )}

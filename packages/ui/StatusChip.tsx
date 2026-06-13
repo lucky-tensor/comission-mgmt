@@ -6,7 +6,7 @@
  * money is the positive state. This component fixes the semantics once:
  *
  *   green  = paid / complete       (the positive, money-in / done state)
- *   amber  = held / pending        (waiting, in-progress, needs attention)
+ *   gray   = held / pending        (Atlas reserves hue for success / danger)
  *   gray   = neutral / closed      (informational, terminal-but-neutral)
  *   red    = disputed / blocked    (error, contested, action-blocking)
  *
@@ -92,13 +92,13 @@ export function statusVariant(status: string): StatusVariant {
 
 const VARIANT_CLASS: Record<StatusVariant, string> = {
   green: 'bg-ok-bg text-ok-fg',
-  amber: 'bg-warn-bg text-warn-fg',
+  amber: 'bg-neutral-bg text-neutral-fg',
   gray: 'bg-neutral-bg text-neutral-fg',
   red: 'bg-bad-bg text-bad-fg',
 };
 
 const BASE_CLASS =
-  'inline-block px-2 py-0.5 rounded-full text-xs font-semibold leading-normal whitespace-nowrap';
+  'inline-block px-2 py-0.5 rounded-xs text-xs font-medium leading-normal whitespace-nowrap';
 
 export interface StatusChipProps {
   /**

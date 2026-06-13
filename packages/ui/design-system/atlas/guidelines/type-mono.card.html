@@ -1,0 +1,25 @@
+<!-- @dsCard group="Type" viewport="700x170" name="Geist Mono — data & IDs" subtitle="Monospace for IDs, metrics, code, timestamps" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin: 0; padding: 22px; background: var(--surface-card); font-family: var(--font-mono); }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 28px; }
+  .item { display: flex; flex-direction: column; gap: 2px; }
+  .item .v { font: var(--weight-medium) 15px/1.3 var(--font-mono); color: var(--text-primary); font-variant-numeric: tabular-nums; }
+  .item .l { font: var(--text-xs) var(--font-sans); color: var(--text-tertiary); }
+</style>
+</head>
+<body>
+  <div class="grid">
+    <div class="item"><span class="v">usr_8Kp2mQ9fX</span><span class="l">Record ID</span></div>
+    <div class="item"><span class="v">2026-06-11 14:02 UTC</span><span class="l">Timestamp</span></div>
+    <div class="item"><span class="v">$ 12,480.00</span><span class="l">Currency · tabular</span></div>
+    <div class="item"><span class="v">99.98% · 142ms</span><span class="l">Metrics</span></div>
+    <div class="item"><span class="v">GET /v1/users?page=2</span><span class="l">Endpoint</span></div>
+    <div class="item"><span class="v">#2f6bff</span><span class="l">Token value</span></div>
+  </div>
+</body>
+</html>

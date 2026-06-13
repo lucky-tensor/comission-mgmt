@@ -1,0 +1,26 @@
+<!-- @dsCard group="Spacing" viewport="700x170" name="Corner radii" subtitle="Restrained — xs for chips, md for cards, full for pills" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin: 0; padding: 22px; background: var(--surface-card); }
+  .row { display: flex; gap: 20px; align-items: flex-end; }
+  .item { display: flex; flex-direction: column; gap: 8px; align-items: center; }
+  .box { width: 72px; height: 56px; background: var(--surface-sunken); border: 1px solid var(--border-strong); }
+  .lab { font: var(--text-xs) var(--font-mono); color: var(--text-tertiary); }
+  .pill { width: 72px; height: 32px; background: var(--surface-sunken); border: 1px solid var(--border-strong); border-radius: var(--radius-full); }
+</style>
+</head>
+<body>
+  <div class="row">
+    <div class="item"><div class="box" style="border-radius:var(--radius-xs)"></div><span class="lab">xs · 4</span></div>
+    <div class="item"><div class="box" style="border-radius:var(--radius-sm)"></div><span class="lab">sm · 6</span></div>
+    <div class="item"><div class="box" style="border-radius:var(--radius-md)"></div><span class="lab">md · 8</span></div>
+    <div class="item"><div class="box" style="border-radius:var(--radius-lg)"></div><span class="lab">lg · 10</span></div>
+    <div class="item"><div class="box" style="border-radius:var(--radius-xl)"></div><span class="lab">xl · 14</span></div>
+    <div class="item"><div class="pill"></div><span class="lab">full</span></div>
+  </div>
+</body>
+</html>

@@ -34,7 +34,7 @@ interface DemoUser {
 // ---------------------------------------------------------------------------
 
 const INPUT_CLASS =
-  'w-full px-3.5 py-2.5 border border-border-strong rounded-lg text-sm outline-none ' +
+  'w-full px-3.5 py-2.5 border border-border-strong rounded-md text-sm outline-none ' +
   'box-border focus:border-accent';
 
 /** Tab button classes, by active state. */
@@ -50,7 +50,7 @@ function tabClass(active: boolean): string {
 /** Demo persona button classes, by loading state. */
 function demoButtonClass(loading: boolean): string {
   return [
-    'px-3 py-2 border border-border rounded-lg text-[0.8125rem] font-medium text-ink-muted transition-colors',
+    'px-3 py-2 border border-border rounded-md text-sm font-medium text-ink-muted transition-colors',
     loading
       ? 'bg-surface-sunken cursor-not-allowed'
       : 'bg-surface-muted cursor-pointer hover:bg-surface-sunken',
@@ -145,10 +145,8 @@ export default function Login({ onSuccess }: LoginProps) {
       className="min-h-screen bg-surface-muted flex flex-col justify-center items-center p-4"
       data-testid="login-container"
     >
-      <div className="bg-surface p-8 rounded-2xl shadow-sm border border-border w-full max-w-[420px]">
-        <h1 className="text-[1.75rem] font-bold text-ink text-center mb-1">
-          Commission Management
-        </h1>
+      <div className="bg-surface p-8 rounded-xl border border-border w-full max-w-auth">
+        <h1 className="text-2xl font-bold text-ink text-center mb-1">Commission Management</h1>
         <p className="text-sm text-ink-subtle text-center mb-6">Sign in to your account</p>
 
         {/* Tab bar */}
@@ -180,7 +178,7 @@ export default function Login({ onSuccess }: LoginProps) {
         {/* Error box */}
         {error && (
           <div
-            className="mb-4 bg-bad-bg border border-bad-fg/30 rounded-lg px-4 py-3 text-[0.8125rem] text-bad-fg"
+            className="mb-4 bg-bad-bg border border-bad-fg/30 rounded-md px-4 py-3 text-sm text-bad-fg"
             data-testid="login-error"
           >
             {error}
@@ -192,7 +190,7 @@ export default function Login({ onSuccess }: LoginProps) {
           <div>
             <div className="mb-4">
               <label
-                className="block text-[0.8125rem] font-medium text-ink-muted mb-1.5"
+                className="block text-sm font-medium text-ink-muted mb-1.5"
                 htmlFor="register-username"
               >
                 Email / Username
@@ -219,7 +217,7 @@ export default function Login({ onSuccess }: LoginProps) {
               <div data-testid="demo-create-section">
                 <div className="flex items-center gap-3 my-5">
                   <div className="flex-1 border-t border-border" />
-                  <span className="text-[0.6875rem] text-ink-faint uppercase tracking-wider font-medium">
+                  <span className="text-xs text-ink-faint uppercase tracking-wider font-medium">
                     or create a demo account
                   </span>
                   <div className="flex-1 border-t border-border" />
@@ -254,7 +252,7 @@ export default function Login({ onSuccess }: LoginProps) {
         {/* Sign In tab */}
         {tab === 'signin' && (
           <div>
-            <p className="text-[0.8125rem] text-ink-subtle mb-4">
+            <p className="text-sm text-ink-subtle mb-4">
               Use a passkey registered on this device. No username required.
             </p>
             <PasskeyLoginButton onSuccess={handleSuccess} onError={handleError} />

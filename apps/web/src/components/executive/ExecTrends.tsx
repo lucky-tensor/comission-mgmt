@@ -92,11 +92,11 @@ export type TrendsPhase =
 // Shared styles
 // ---------------------------------------------------------------------------
 
-const containerClass = 'min-h-[calc(100vh-3.25rem)] bg-surface-muted px-4 py-8';
+const containerClass = 'min-h-surface bg-surface-muted px-4 py-8';
 
-const innerClass = 'max-w-[960px] mx-auto';
+const innerClass = 'max-w-report mx-auto';
 
-const cardClass = 'bg-surface border border-border rounded-xl p-6 mb-6';
+const cardClass = 'bg-surface border border-border rounded-md p-6 mb-6';
 
 const headingClass = 'text-lg font-semibold text-ink mt-0 mb-4';
 
@@ -165,7 +165,7 @@ export function RangeForm({ onFetch, loading, fetchError }: RangeFormProps) {
           <div
             data-testid="trends-fetch-error"
             role="alert"
-            className="mt-3 p-3 bg-bad-bg border border-bad-fg/30 rounded-lg text-bad-fg text-sm"
+            className="mt-3 p-3 bg-bad-bg border border-bad-fg/30 rounded-md text-bad-fg text-sm"
           >
             {fetchError}
           </div>
@@ -193,10 +193,10 @@ function TrendBar({ rate, colorClass, testIdPrefix }: TrendBarProps) {
   return (
     <div
       data-testid={`${testIdPrefix}-bar`}
-      className="h-3 bg-surface-sunken rounded-full overflow-hidden flex-1 min-w-[80px]"
+      className="h-3 bg-surface-sunken rounded-xs overflow-hidden flex-1 min-w-20"
     >
       <div
-        className={`h-full ${colorClass} rounded-full transition-[width] duration-[250ms] ease`}
+        className={`h-full ${colorClass} rounded-xs transition-progress duration-atlas ease`}
         style={{ width: `${pct.toFixed(1)}%` }}
       />
     </div>
@@ -256,7 +256,7 @@ function TrendTable({ buckets }: TrendTableProps) {
                     />
                     <span
                       data-testid={`exception-rate-${bucket.period_start}`}
-                      className="min-w-[3rem] text-right text-ink-muted"
+                      className="min-w-12 text-right text-ink-muted"
                     >
                       {(bucket.exception_rate * 100).toFixed(1)}%
                     </span>
@@ -271,7 +271,7 @@ function TrendTable({ buckets }: TrendTableProps) {
                     />
                     <span
                       data-testid={`dispute-rate-${bucket.period_start}`}
-                      className="min-w-[3rem] text-right text-ink-muted"
+                      className="min-w-12 text-right text-ink-muted"
                     >
                       {(bucket.dispute_rate * 100).toFixed(1)}%
                     </span>

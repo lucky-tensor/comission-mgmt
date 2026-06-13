@@ -1,0 +1,15 @@
+/* ============================================================
+   Atlas — Radius tokens   ·   "Graphite & Ink"
+   Sharp, architectural corners. Atlas favors crisp edges over
+   softness — small radii on controls, hairline on chips, and a
+   true pill only for switches and avatars.
+   ============================================================ */
+:root {
+  --radius-none: 0;
+  --radius-xs: 2px;    /* badges, tags, small chips */
+  --radius-sm: 3px;    /* inputs, buttons */
+  --radius-md: 4px;    /* cards, menus, popovers */
+  --radius-lg: 6px;    /* dialogs, large panels */
+  --radius-xl: 8px;    /* hero / feature surfaces */
+  --radius-full: 999px;
+}

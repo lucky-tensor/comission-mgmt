@@ -22,30 +22,30 @@ interface DocsViewProps {
 // Styles — Tailwind class strings (theme tokens, no raw hex)
 // ---------------------------------------------------------------------------
 
-const pageClass = 'max-w-[860px] mx-auto px-6 pt-10 pb-16 text-ink leading-[1.7]';
+const pageClass = 'max-w-docs mx-auto px-6 pt-10 pb-16 text-ink leading-normal';
 
-const h1Class = 'text-[1.75rem] font-extrabold text-ink mb-1';
+const h1Class = 'text-2xl font-extrabold text-ink mb-1';
 
-const subtitleClass = 'text-[0.9375rem] text-ink-subtle mb-10';
+const subtitleClass = 'text-base text-ink-subtle mb-10';
 
 const h2Class = 'text-xl font-bold text-ink mt-10 mb-3 pb-1.5 border-b border-border';
 
 const h3Class = 'text-base font-bold text-ink-muted mt-5 mb-1.5';
 
-const pClass = 'text-[0.9375rem] text-ink-muted mb-3';
+const pClass = 'text-base text-ink-muted mb-3';
 
 const ulClass = 'pl-5 mb-3';
 
-const liClass = 'text-[0.9375rem] text-ink-muted mb-1';
+const liClass = 'text-base text-ink-muted mb-1';
 
 const termClass = 'font-semibold text-ink';
 
-const dtClass = 'font-bold text-ink text-[0.9375rem] mt-3';
+const dtClass = 'font-bold text-ink text-base mt-3';
 
-const ddClass = 'text-[0.9375rem] text-ink-muted ml-4 mb-1';
+const ddClass = 'text-base text-ink-muted ml-4 mb-1';
 
 const noticeClass =
-  'bg-surface-sunken border border-border rounded-lg px-[1.125rem] py-3.5 mb-6 text-sm text-ink-muted';
+  'bg-surface-sunken border border-border rounded-md px-5 py-3.5 mb-6 text-sm text-ink-muted';
 
 // ---------------------------------------------------------------------------
 // Section components

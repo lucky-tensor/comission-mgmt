@@ -3,7 +3,16 @@ import pluginJs from '@eslint/js';
 import tseslint from 'typescript-eslint';
 
 export default [
-  { ignores: ['**/dist/**', '**/coverage/**', '**/node_modules/**', '.agents/**', 'blueprint/**'] },
+  {
+    ignores: [
+      '**/dist/**',
+      '**/coverage/**',
+      '**/node_modules/**',
+      '.agents/**',
+      'blueprint/**',
+      'packages/ui/design-system/atlas/**',
+    ],
+  },
   { files: ['**/*.{js,mjs,cjs,ts,tsx}'] },
   { languageOptions: { globals: { ...globals.node, ...globals.browser, Bun: 'readonly' } } },
   pluginJs.configs.recommended,

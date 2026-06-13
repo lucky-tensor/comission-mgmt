@@ -1,0 +1,30 @@
+<!-- @dsCard group="Brand" viewport="700x220" name="Logo & wordmark" subtitle="The Atlas mark, lockup, and on-dark treatment" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin: 0; padding: 0; background: var(--surface-card); display: grid; grid-template-columns: 1fr 1fr; }
+  .panel { padding: 26px; display: flex; flex-direction: column; gap: 20px; justify-content: center; }
+  .dark { background: var(--gray-950); }
+  .lockup { display: inline-flex; align-items: center; gap: 11px; }
+  .lockup img { display: block; }
+  .wm { font: var(--weight-semibold) 23px/1 var(--font-sans); letter-spacing: -0.03em; color: var(--text-primary); }
+  .dark .wm { color: #fff; }
+  .cap { font: var(--text-xs) var(--font-mono); color: var(--text-tertiary); }
+  .dark .cap { color: var(--gray-500); }
+</style>
+</head>
+<body>
+  <div class="panel">
+    <div class="lockup"><img src="../assets/atlas-mark.svg" width="34" height="34" alt="Atlas"/><span class="wm">Atlas</span></div>
+    <div class="lockup"><img src="../assets/atlas-mark.svg" width="28" height="28" alt="Atlas"/></div>
+    <span class="cap">primary lockup · mark + wordmark</span>
+  </div>
+  <div class="panel dark">
+    <div class="lockup"><img src="../assets/atlas-mark.svg" width="34" height="34" alt="Atlas"/><span class="wm">Atlas</span></div>
+    <span class="cap">on ink · keep ≥ mark-height clear space</span>
+  </div>
+</body>
+</html>

@@ -224,11 +224,8 @@ export function PlanAcknowledgment() {
   const state = useAsync<AssignmentRow[]>(fetchAllAssignments, []);
 
   return (
-    <div
-      data-testid="plan-acknowledgment"
-      className="min-h-[calc(100vh-3.25rem)] bg-surface-muted px-4 py-8"
-    >
-      <div className="max-w-[960px] mx-auto">
+    <div data-testid="plan-acknowledgment" className="min-h-surface bg-surface-muted px-4 py-8">
+      <div className="max-w-report mx-auto">
         <header className="mb-8">
           <h1 data-testid="plan-acknowledgment-heading" className="text-2xl font-bold text-ink m-0">
             HR / People Ops — Plan Acknowledgment

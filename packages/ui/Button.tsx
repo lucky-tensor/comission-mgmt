@@ -6,9 +6,9 @@
  * "Log out" that read as an error. This component defines exactly three
  * styles, anchored to the design tokens, and every surface uses them:
  *
- *   primary     — the main affirmative action (blue fill)
- *   secondary   — supporting / neutral action (subtle fill)
- *   destructive — irreversible / negative action (red fill)
+ *   primary     — the main affirmative action (Atlas ink)
+ *   secondary   — supporting / neutral action (bordered paper)
+ *   destructive — irreversible / negative action (Atlas danger)
  *
  * Canonical docs: docs/ux-review.md §5 (Button variants)
  * Issue: feat: webapp — UX overhaul: design-system pass (#203)
@@ -23,12 +23,12 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const BASE_CLASS =
-  'inline-flex items-center justify-center px-4 py-2 rounded-md text-sm font-medium ' +
+  'inline-flex items-center justify-center h-8.5 px-3.5 rounded-sm text-base font-medium ' +
   'cursor-pointer transition-colors disabled:opacity-55 disabled:cursor-not-allowed';
 
 const VARIANT_CLASS: Record<ButtonVariant, string> = {
-  primary: 'bg-ink text-white border border-transparent hover:bg-ink-muted',
-  secondary: 'bg-surface-sunken text-ink border border-border-strong hover:bg-border',
+  primary: 'bg-accent text-white border border-accent hover:bg-accent-hover',
+  secondary: 'bg-surface text-ink border border-border-strong hover:bg-surface-sunken',
   destructive: 'bg-bad-fg text-white border border-transparent hover:opacity-90',
 };
 

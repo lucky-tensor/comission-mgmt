@@ -41,6 +41,26 @@ function render(props: Partial<Parameters<typeof NavShell>[0]> = {}) {
   );
 }
 
+function relativeLuminance(color: string): number {
+  const channels = color
+    .match(/\d+(?:\.\d+)?/g)
+    ?.slice(0, 3)
+    .map(Number);
+  if (!channels || channels.length !== 3) throw new Error(`Unsupported color: ${color}`);
+  return channels
+    .map((channel) => channel / 255)
+    .map((channel) =>
+      channel <= 0.03928 ? channel / 12.92 : Math.pow((channel + 0.055) / 1.055, 2.4),
+    )
+    .reduce((sum, channel, index) => sum + channel * [0.2126, 0.7152, 0.0722][index], 0);
+}
+
+function contrastRatio(foreground: string, background: string): number {
+  const lighter = Math.max(relativeLuminance(foreground), relativeLuminance(background));
+  const darker = Math.min(relativeLuminance(foreground), relativeLuminance(background));
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
 describe('NavShell — anchors and accessibility', () => {
   test('the nav exposes its aria-label', async () => {
     render({ role: 'Producer', currentPath: '/portal' });
@@ -70,6 +90,16 @@ describe('NavShell — anchors and accessibility', () => {
     const docs = page.getByTestId('nav-item-docs').element() as HTMLAnchorElement;
     expect(portal.getAttribute('aria-current')).toBe('page');
     expect(docs.getAttribute('aria-current')).toBeNull();
+  });
+
+  test('inactive Docs navigation remains readable on the inverse shell', async () => {
+    render({ role: 'FinanceAdmin', currentPath: '/finance' });
+    const nav = page.getByTestId('nav-bar').element() as HTMLElement;
+    const docs = page.getByTestId('nav-item-docs').element() as HTMLElement;
+    const navStyle = getComputedStyle(nav);
+    const docsStyle = getComputedStyle(docs);
+
+    expect(contrastRatio(docsStyle.color, navStyle.backgroundColor)).toBeGreaterThanOrEqual(4.5);
   });
 
   test('a child/detail route highlights its parent nav item', async () => {

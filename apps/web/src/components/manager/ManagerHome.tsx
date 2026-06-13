@@ -17,7 +17,7 @@ import { ManagerPortal as SplitEscalation } from './SplitEscalation';
 
 export function ManagerHome() {
   return (
-    <div data-testid="manager-home" className="max-w-[64rem] mx-auto p-6">
+    <div data-testid="manager-home" className="max-w-wide mx-auto p-6">
       <Tabs defaultTab="approvals">
         <Tabs.Tab id="approvals" label="Approvals">
           <div className="space-y-6">

@@ -38,7 +38,7 @@ const BTN_DISABLED_CLASS =
   'w-full px-4 py-2.5 rounded-md border border-border-strong bg-ink-subtle text-white ' +
   'text-sm font-medium cursor-not-allowed';
 
-const UNAVAILABLE_CLASS = 'text-[0.8125rem] text-ink-faint text-center p-2.5';
+const UNAVAILABLE_CLASS = 'text-sm text-ink-faint text-center p-2.5';
 
 // ---------------------------------------------------------------------------
 // Availability helper

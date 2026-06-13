@@ -52,6 +52,10 @@ describe('FinancePage composition', () => {
     for (const heading of PROCESSING_HEADINGS) {
       await expect.element(page.getByRole('heading', { name: heading })).toBeInTheDocument();
     }
+    await page.getByRole('tab', { name: 'Adjustments & Payroll' }).click();
+    await expect
+      .element(page.getByRole('heading', { name: 'Adjustments & Payroll Export' }))
+      .toBeInTheDocument();
   });
 
   test('renders the Adjustments & Payroll heading when that tab is active', async () => {
@@ -71,5 +75,25 @@ describe('FinancePage composition', () => {
     );
     // The leaked "Finance Admin" (viewer, not task) heading must be gone.
     expect(headings.filter((t) => t === 'Finance Admin')).toEqual([]);
+  });
+
+  test('composed sections render in embedded mode without standalone viewport chrome', async () => {
+    mounted = renderInBrowser(<FinancePage />);
+    const dataGap = page.getByTestId('data-gap-queue').element() as HTMLElement;
+    const commissionRuns = page.getByTestId('commission-run-review').element() as HTMLElement;
+
+    expect(dataGap.dataset.embedded).toBe('true');
+    expect(commissionRuns.dataset.embedded).toBe('true');
+    expect(dataGap.classList.contains('min-h-surface')).toBe(false);
+    expect(commissionRuns.classList.contains('min-h-surface')).toBe(false);
+  });
+
+  test('renders Atlas control and card radii', async () => {
+    mounted = renderInBrowser(<FinancePage />);
+    const input = mounted.container.querySelector('input') as HTMLInputElement;
+    const section = page.getByTestId('finance-section-runs').element() as HTMLElement;
+
+    expect(getComputedStyle(input).borderRadius).toBe('3px');
+    expect(getComputedStyle(section).borderRadius).toBe('4px');
   });
 });

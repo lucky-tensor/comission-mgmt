@@ -1,0 +1,28 @@
+/* ============================================================
+   Atlas — Elevation tokens
+   Atlas is a flat, border-first system. Shadows are reserved for
+   things that genuinely float above the page: menus, popovers,
+   dialogs, toasts. Soft, cool, low-spread.
+   ============================================================ */
+:root {
+  --shadow-none: none;
+
+  /* Resting raised surfaces (rarely needed — prefer borders) */
+  --shadow-xs: 0 1px 2px rgba(14, 16, 22, 0.05);
+
+  /* Dropdowns, menus, tooltips */
+  --shadow-sm: 0 2px 4px rgba(14, 16, 22, 0.06),
+               0 1px 2px rgba(14, 16, 22, 0.04);
+
+  /* Popovers, floating panels */
+  --shadow-md: 0 8px 16px -4px rgba(14, 16, 22, 0.10),
+               0 2px 6px -2px rgba(14, 16, 22, 0.06);
+
+  /* Dialogs, modals */
+  --shadow-lg: 0 20px 40px -12px rgba(14, 16, 22, 0.22),
+               0 6px 14px -6px rgba(14, 16, 22, 0.10);
+
+  /* Focus ring (use with --focus-ring color) */
+  --ring-focus: 0 0 0 3px rgba(53, 107, 240, 0.35);
+  --ring-danger: 0 0 0 3px rgba(229, 72, 77, 0.30);
+}

@@ -1,0 +1,24 @@
+<!-- @dsCard group="Spacing" viewport="700x190" name="Elevation" subtitle="Flat by default — shadows only for floating layers" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin: 0; padding: 28px 22px; background: var(--surface-page); }
+  .row { display: flex; gap: 22px; }
+  .item { display: flex; flex-direction: column; gap: 10px; align-items: center; }
+  .box { width: 96px; height: 60px; background: var(--surface-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); }
+  .lab { font: var(--text-xs) var(--font-mono); color: var(--text-tertiary); }
+</style>
+</head>
+<body>
+  <div class="row">
+    <div class="item"><div class="box" style="box-shadow:var(--shadow-xs)"></div><span class="lab">xs · raised</span></div>
+    <div class="item"><div class="box" style="box-shadow:var(--shadow-sm)"></div><span class="lab">sm · menu</span></div>
+    <div class="item"><div class="box" style="box-shadow:var(--shadow-md)"></div><span class="lab">md · popover</span></div>
+    <div class="item"><div class="box" style="box-shadow:var(--shadow-lg)"></div><span class="lab">lg · dialog</span></div>
+    <div class="item"><div class="box" style="box-shadow:var(--ring-focus);border-color:var(--focus-ring)"></div><span class="lab">focus ring</span></div>
+  </div>
+</body>
+</html>

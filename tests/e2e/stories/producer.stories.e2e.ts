@@ -151,6 +151,7 @@ describe('PR-3: Producer sees hold status and reason for held payouts', () => {
 
   test('payout table holdback column shows hold reason or Released for each payout row', async () => {
     mount.current = await loginAs('Producer');
+    // PayoutStatement with payout-table is on the default "Dashboard" tab.
     await expect.element(page.getByTestId('payout-table')).toBeInTheDocument();
     // The Holdback column header must be present — every payout row exposes hold status.
     await expect

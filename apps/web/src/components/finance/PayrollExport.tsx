@@ -91,7 +91,7 @@ export function PayrollExportView({
         ) : (
           <div
             data-testid="export-gated"
-            className="px-4 py-3 bg-warn-bg border border-warn-fg/30 rounded-lg text-sm text-warn-fg"
+            className="px-4 py-3 bg-warn-bg border border-warn-fg/30 rounded-md text-sm text-warn-fg"
           >
             <strong>Export unavailable.</strong>{' '}
             {gatingReason ?? 'This run must be Approved before a payroll export can be generated.'}
@@ -103,7 +103,7 @@ export function PayrollExportView({
           <div
             data-testid="generate-error"
             role="alert"
-            className="mt-3 px-4 py-3 bg-bad-bg border border-bad-fg/30 rounded-lg text-sm text-bad-fg"
+            className="mt-3 px-4 py-3 bg-bad-bg border border-bad-fg/30 rounded-md text-sm text-bad-fg"
           >
             {generateError}
           </div>
