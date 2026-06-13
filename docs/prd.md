@@ -119,7 +119,7 @@ The commission rules engine applies the plan associated with each contributor to
 
 Finance Admins review the commission run before it is finalized. Placements with missing data, disputed attribution, or flagged exceptions are surfaced in a review queue. Exceptions — custom splits, fee discounts, accelerated payouts, manual overrides, draw forgiveness, clawback waivers — are requested, documented with a reason, and approved or rejected with a full audit trail.
 
-Attribution disputes that cannot be resolved at the producer and manager level are escalated to a designated approver — manager, practice lead, or executive, per the customer's configured hierarchy. The escalation, the deciding actor, and the rationale are recorded in the audit trail. A disputed split blocks the affected placement from the commission run until it is resolved.
+Attribution disputes that cannot be resolved at the producer and manager level are escalated to a designated approver — manager, practice lead, or executive, per the customer's configured hierarchy. The escalation, the deciding actor, and the rationale are recorded in the audit trail. A disputed split blocks the affected placement from the commission run until it is resolved. On an escalated dispute, the approver may optionally request an AI-assisted arbitration recommendation to support — but never replace — the human decision (see §5.12).
 
 ### 5.5 Invoice and Collection Tracking
 
@@ -141,7 +141,7 @@ Finance Admins generate a reconciliation report that cross-checks billed and rec
 
 ### 5.9 Producer Payout Portal
 
-Producers access a personal view showing their credited placements, commission calculations, tier progress, holdback status, payment trigger, estimated payout cycle, and historical payouts. Each payout figure reflects the most recent placement and collection data and is stamped with the data it was derived from, so producers understand how current it is. Producers can submit questions or disputes from this view.
+Producers access a personal view showing their credited placements, commission calculations, tier progress, holdback status, payment trigger, estimated payout cycle, and historical payouts. Each payout figure reflects the most recent placement and collection data and is stamped with the data it was derived from, so producers understand how current it is. Producers can submit questions or disputes from this view. Producers can also run AI-assisted deal simulations from this view to forecast payout and dispute risk for an actual or hypothetical deal (see §5.12).
 
 ### 5.10 Onboarding and Data Import
 
@@ -150,6 +150,14 @@ Customers onboard through a guided import that maps existing applicant tracking,
 ### 5.11 External Partner Access
 
 External partners receive scoped, in-platform access limited to the deals where they hold a split agreement. They see the amounts owed to them, the payment trigger, and the payment status for those deals. Partners cannot view other contributors' credit, internal margin, draw balances, or any firm-wide data.
+
+### 5.12 AI-Assisted Arbitration and Deal Simulation
+
+The platform offers two AI-assisted capabilities layered on top of the workflows above. Both are advisory aids: they produce recommendations and forecasts for a human to act on, and neither can change a payout, finalize a dispute, or alter any record on its own.
+
+**AI-assisted dispute arbitration.** When an attribution dispute has been escalated for final approval (§5.4), the designated approver can optionally request an AI-generated arbitration recommendation for that dispute. The recommendation presents a suggested resolution, a plain-language rationale, any flagged edge cases, and a proposed payout adjustment. It is advisory only: the approver reviews it and either accepts it — recording their own required rationale, with the recommendation reference, the deciding actor, and the rationale all written to the audit trail — or rejects it and resolves the dispute on their own reasoning. The AI never resolves a dispute or moves money autonomously; every resolution remains a documented human decision. This capability is available only to dispute approvers (manager, practice lead, executive, per the configured hierarchy); producers do not see it.
+
+**Producer deal simulation.** From the producer payout portal (§5.9), a producer can run a simulation to forecast the outcome of a deal before committing to it. Two modes are supported: an *actual* simulation run against one of the producer's registered deals, and a *hypothetical* builder where the producer enters deal parameters (compensation amount, tier, bonus-season timing, accrual percent) to model a deal that does not yet exist. Each run returns a payout estimate, a dispute-risk indication, and a plain-language explanation of the forecast that is traceable to the producer's own plan version and fee-rate structure, consistent with the explainability requirement in §9. Simulation is strictly read-only forecasting: it never creates or modifies a placement, commission, or payout, and a producer sees only their own deals and plan terms. Simulation forecasts a deal under the producer's existing plan and is distinct from modeling plan-rule changes before rollout, which remains out of scope (§8).
 
 ---
 
@@ -230,7 +238,7 @@ The following are explicitly out of scope:
 - **Contract staffing gross profit engine** — timesheet-based calculations using bill rate, pay rate, hours, burden, and overtime adjustments are not supported. The platform calculates commissions for direct-hire and retained search placements; hybrid firms manage their direct-hire and retained desks on the platform.
 - **Multi-currency** — the platform operates in a single currency.
 - **Automated contract ingestion** — structured fee terms are entered manually or imported in a structured format. Automated parsing of unstructured contract documents is not included.
-- **Plan simulation** — modeling the impact of plan changes before rollout is not supported.
+- **Plan-change simulation** — modeling the firm-wide impact of changing a commission *plan's rules* before rollout is not supported. This is distinct from the producer deal simulation now in scope (§5.12), which forecasts the outcome of an individual deal under the producer's *existing* plan and does not model changes to the plan itself.
 - **Client-facing portal** — clients do not have access to any part of the platform.
 - **Direct payroll integration** — the platform does not maintain native two-way connections to payroll systems. Approved payout output is produced as a payroll-ready export for downstream submission.
 
