@@ -24,7 +24,7 @@
  * Injectable sql (for testing):
  *   All handler functions accept an optional SqlClient and optional auditSqlClient.
  *
- * Canonical docs: docs/prd.md §5.5, §7.2
+ * Canonical docs: docs/prd.md §5.5, §7 (Accounts Receivable and Invoice Data)
  * Issue: feat: invoice and collection tracking (#12)
  */
 
