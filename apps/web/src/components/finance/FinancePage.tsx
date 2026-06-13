@@ -4,15 +4,18 @@
  * UX overhaul (#203, docs/ux-review.md §2): consolidates separate routes
  * (/finance and /reconciliation) into one page with tabs:
  *
- *   1. Processing (default)
+ *   1. Cases
+ *      - PlacementLedger — cross-role placement management surface
+ *
+ *   2. Processing (default)
  *      - Data Gap Queue              — placements missing commission-required data
  *      - Commission Runs             — open / review / approve / finalize runs
  *      - Invoice & Collection Tracking — per-placement billing phases & invoices
  *
- *   2. Adjustments & Payroll
+ *   3. Adjustments & Payroll
  *      - Adjustments & Payroll Export  — adjustment ledger + payroll-ready export
  *
- *   3. Reconciliation
+ *   4. Reconciliation
  *      - Reconciliation Report
  *
  * Canonical docs: docs/prd.md §4 (Finance Admin); docs/ux-review.md §2
@@ -72,7 +75,7 @@ export function FinancePage({ role = 'FinanceAdmin' }: { role?: AppRole }) {
       </header>
 
       <Tabs defaultTab="processing">
-        <Tabs.Tab id="placements" label="Placements">
+        <Tabs.Tab id="cases" label="Cases">
           <PlacementLedger role={role} />
         </Tabs.Tab>
 
