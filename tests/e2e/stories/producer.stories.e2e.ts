@@ -19,7 +19,6 @@
 import { describe, test, expect } from 'vitest';
 import { page, userEvent } from '@vitest/browser/context';
 import { loginAs, useMount } from './helpers';
-import { DEMO_HETERO } from '../fixtures/ids';
 
 const mount = useMount();
 
