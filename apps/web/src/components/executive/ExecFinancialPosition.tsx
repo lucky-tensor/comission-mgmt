@@ -70,69 +70,23 @@ function today(): string {
 // View component (pure presentational — renders ExecAnalytics or state)
 // ---------------------------------------------------------------------------
 
-const containerStyle: React.CSSProperties = {
-  minHeight: 'calc(100vh - 3.25rem)',
-  background: '#f9fafb',
-  padding: '2rem',
-  fontFamily: 'system-ui, sans-serif',
-};
+const containerClass = 'min-h-surface bg-surface-muted p-8';
 
-const periodBarStyle: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: '0.75rem',
-  marginBottom: '1.5rem',
-  flexWrap: 'wrap',
-};
+const periodBarClass = 'flex items-center gap-3 mb-6 flex-wrap';
 
-const labelStyle: React.CSSProperties = {
-  fontSize: '0.875rem',
-  fontWeight: 600,
-  color: '#374151',
-};
+const labelClass = 'text-sm font-semibold text-ink-muted';
 
-const inputStyle: React.CSSProperties = {
-  fontSize: '0.875rem',
-  border: '1px solid #d1d5db',
-  borderRadius: '0.375rem',
-  padding: '0.375rem 0.5rem',
-  color: '#111827',
-};
+const inputClass = 'text-sm border border-border-strong rounded-md px-2 py-1.5 text-ink';
 
-const gridStyle: React.CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-  gap: '1rem',
-  marginTop: '0.5rem',
-};
+const gridClass = 'grid grid-cols-metrics gap-4 mt-2';
 
-const metricCardStyle: React.CSSProperties = {
-  background: '#ffffff',
-  border: '1px solid #e5e7eb',
-  borderRadius: '0.75rem',
-  padding: '1.25rem',
-};
+const metricCardClass = 'bg-surface border border-border rounded-md p-5';
 
-const metricLabelStyle: React.CSSProperties = {
-  fontSize: '0.75rem',
-  fontWeight: 600,
-  color: '#6b7280',
-  textTransform: 'uppercase',
-  letterSpacing: '0.05em',
-  marginBottom: '0.5rem',
-};
+const metricLabelClass = 'text-xs font-semibold text-ink-subtle uppercase tracking-wider mb-2';
 
-const metricValueStyle: React.CSSProperties = {
-  fontSize: '1.5rem',
-  fontWeight: 700,
-  color: '#111827',
-};
+const metricValueClass = 'text-2xl font-bold text-ink';
 
-const periodStampStyle: React.CSSProperties = {
-  fontSize: '0.75rem',
-  color: '#9ca3af',
-  marginTop: '1rem',
-};
+const periodStampClass = 'text-xs text-ink-faint mt-4';
 
 interface MetricTileProps {
   label: string;
@@ -142,9 +96,9 @@ interface MetricTileProps {
 
 function MetricTile({ label, value, testId }: MetricTileProps) {
   return (
-    <div style={metricCardStyle} data-testid={testId}>
-      <div style={metricLabelStyle}>{label}</div>
-      <div style={metricValueStyle} data-testid={`${testId}-value`}>
+    <div className={metricCardClass} data-testid={testId}>
+      <div className={metricLabelClass}>{label}</div>
+      <div className={metricValueClass} data-testid={`${testId}-value`}>
         {value}
       </div>
     </div>
@@ -171,17 +125,13 @@ export function ExecFinancialPositionView({
   error,
 }: ExecFinancialPositionViewProps) {
   return (
-    <div style={containerStyle} data-testid="exec-financial-position">
-      <h1
-        style={{ fontSize: '1.25rem', fontWeight: 700, color: '#111827', marginBottom: '1.5rem' }}
-      >
-        Firm Financial Position
-      </h1>
+    <div className={containerClass} data-testid="exec-financial-position">
+      <h1 className="text-xl font-bold text-ink mb-6">Firm Financial Position</h1>
 
       {/* Period selector */}
-      <div style={periodBarStyle}>
-        <span style={labelStyle}>Period:</span>
-        <label style={labelStyle} htmlFor="exec-period-start">
+      <div className={periodBarClass}>
+        <span className={labelClass}>Period:</span>
+        <label className={labelClass} htmlFor="exec-period-start">
           From
         </label>
         <input
@@ -190,9 +140,9 @@ export function ExecFinancialPositionView({
           type="date"
           value={periodStart}
           onChange={(e) => onPeriodStartChange(e.target.value)}
-          style={inputStyle}
+          className={inputClass}
         />
-        <label style={labelStyle} htmlFor="exec-period-end">
+        <label className={labelClass} htmlFor="exec-period-end">
           To
         </label>
         <input
@@ -201,7 +151,7 @@ export function ExecFinancialPositionView({
           type="date"
           value={periodEnd}
           onChange={(e) => onPeriodEndChange(e.target.value)}
-          style={inputStyle}
+          className={inputClass}
         />
       </div>
 
@@ -215,7 +165,7 @@ export function ExecFinancialPositionView({
       {/* Data */}
       {!loading && !error && analytics !== null && analytics.total_placements > 0 && (
         <PortalCard title="Headline Metrics">
-          <div style={gridStyle}>
+          <div className={gridClass}>
             <MetricTile
               label="Gross Fees Booked"
               value={formatCurrency(analytics.gross_fees_booked)}
@@ -242,7 +192,7 @@ export function ExecFinancialPositionView({
               testId="metric-clawback-exposure"
             />
           </div>
-          <p style={periodStampStyle} data-testid="period-stamp">
+          <p className={periodStampClass} data-testid="period-stamp">
             Period: {analytics.period.start} — {analytics.period.end}
           </p>
         </PortalCard>

@@ -11,7 +11,7 @@
  * - docs/prd.md §5.5  — Invoice and Collection Tracking
  * - docs/prd.md §6    — Invoice lifecycle: Issued → Partially Paid → Paid
  *                       Alternate: Issued → Disputed | Written Off / Credit Memo Applied
- * - docs/prd.md §7.2  — Accounts Receivable and Invoice Data integration
+ * - docs/prd.md §7    — Accounts Receivable and Invoice Data integration
  * - docs/architecture/phase-finance-close.md — scout decision record
  * - docs/architecture/phase-commission-engine.md §Seam 3 — gateOnCollection worker trigger
  *

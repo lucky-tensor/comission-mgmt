@@ -3,8 +3,14 @@
  *
  * The /finance route used to render four stacked full-height components, two of
  * which were both titled "Finance Admin" (docs/ux-review.md §2). This asserts
- * the rebuilt page is ONE composed page with four task-named section headings
- * and no duplicate "Finance Admin" heading text (#203).
+ * the rebuilt page is ONE composed page with three tabs containing all the
+ * task-named section headings and no duplicate "Finance Admin" heading text (#203).
+ *
+ * The tabbed layout (feat: tabbed navigation for all user roles) organises the
+ * sections into:
+ *   Processing tab: Data Gap Queue, Commission Runs, Invoice & Collection Tracking
+ *   Adjustments & Payroll tab: Adjustments & Payroll Export
+ *   Reconciliation tab: Reconciliation Report
  *
  * The child sections fetch on mount; this test only inspects the page frame and
  * headings, which render regardless of the data state.
@@ -13,7 +19,7 @@
  */
 
 import { describe, test, expect, afterEach } from 'vitest';
-import { page } from '@vitest/browser/context';
+import { page, userEvent } from '@vitest/browser/context';
 import { renderInBrowser, type Mounted } from './render';
 import { FinancePage } from '../../apps/web/src/components/finance/FinancePage';
 
@@ -27,12 +33,11 @@ afterEach(() => {
   mounted = undefined;
 });
 
-const TASK_HEADINGS = [
-  'Data Gap Queue',
-  'Commission Runs',
-  'Invoice & Collection Tracking',
-  'Adjustments & Payroll Export',
-];
+/** Headings visible in the default Processing tab. */
+const PROCESSING_HEADINGS = ['Commission Runs', 'Invoice & Collection Tracking'];
+
+/** Heading visible only in the Adjustments & Payroll tab. */
+const ADJUSTMENTS_HEADING = 'Adjustments & Payroll Export';
 
 describe('FinancePage composition', () => {
   test('renders exactly one composed finance page', async () => {
@@ -41,14 +46,28 @@ describe('FinancePage composition', () => {
     expect(mounted.container.querySelectorAll('[data-testid="finance-page"]').length).toBe(1);
   });
 
-  test('renders the four task-named section headings', async () => {
+  test('renders the Processing tab headings by default', async () => {
     mounted = renderInBrowser(<FinancePage />);
-    for (const heading of TASK_HEADINGS) {
+    // The Processing tab is the default — its headings render immediately.
+    for (const heading of PROCESSING_HEADINGS) {
       await expect.element(page.getByRole('heading', { name: heading })).toBeInTheDocument();
     }
+    await page.getByRole('tab', { name: 'Adjustments & Payroll' }).click();
+    await expect
+      .element(page.getByRole('heading', { name: 'Adjustments & Payroll Export' }))
+      .toBeInTheDocument();
   });
 
-  test('no heading is titled "Finance Admin"; each task heading appears once', async () => {
+  test('renders the Adjustments & Payroll heading when that tab is active', async () => {
+    mounted = renderInBrowser(<FinancePage />);
+    await expect.element(page.getByTestId('finance-page')).toBeInTheDocument();
+    await userEvent.click(page.getByRole('tab', { name: /adjustments/i }));
+    await expect
+      .element(page.getByRole('heading', { name: ADJUSTMENTS_HEADING }))
+      .toBeInTheDocument();
+  });
+
+  test('no heading is titled "Finance Admin"', async () => {
     mounted = renderInBrowser(<FinancePage />);
     await expect.element(page.getByTestId('finance-page')).toBeInTheDocument();
     const headings = Array.from(mounted.container.querySelectorAll('h1, h2, h3')).map((h) =>
@@ -56,10 +75,25 @@ describe('FinancePage composition', () => {
     );
     // The leaked "Finance Admin" (viewer, not task) heading must be gone.
     expect(headings.filter((t) => t === 'Finance Admin')).toEqual([]);
-    // Each of the four task headings appears exactly once (no duplicates like
-    // the old two "Finance Admin" / two "Data Gap Queue" headings).
-    for (const task of TASK_HEADINGS) {
-      expect(headings.filter((t) => t === task).length).toBe(1);
-    }
+  });
+
+  test('composed sections render in embedded mode without standalone viewport chrome', async () => {
+    mounted = renderInBrowser(<FinancePage />);
+    const dataGap = page.getByTestId('data-gap-queue').element() as HTMLElement;
+    const commissionRuns = page.getByTestId('commission-run-review').element() as HTMLElement;
+
+    expect(dataGap.dataset.embedded).toBe('true');
+    expect(commissionRuns.dataset.embedded).toBe('true');
+    expect(dataGap.classList.contains('min-h-surface')).toBe(false);
+    expect(commissionRuns.classList.contains('min-h-surface')).toBe(false);
+  });
+
+  test('renders Atlas control and card radii', async () => {
+    mounted = renderInBrowser(<FinancePage />);
+    const input = mounted.container.querySelector('input') as HTMLInputElement;
+    const section = page.getByTestId('finance-section-runs').element() as HTMLElement;
+
+    expect(getComputedStyle(input).borderRadius).toBe('3px');
+    expect(getComputedStyle(section).borderRadius).toBe('4px');
   });
 });

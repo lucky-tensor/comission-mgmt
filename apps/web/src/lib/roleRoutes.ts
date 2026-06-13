@@ -110,7 +110,6 @@ export const ROLE_ROUTES: Record<AppRole, RoleRouteConfig> = {
       { path: ROUTES.EXECUTIVE, label: 'Executive Dashboard' },
       { path: ROUTES.EXEC_PROFITABILITY, label: 'Profitability' },
       { path: ROUTES.EXEC_TRENDS, label: 'Exception & Dispute Trends' },
-      { path: ROUTES.FINANCE, label: 'Finance View' },
       { path: ROUTES.DOCS, label: 'Docs' },
     ],
   },

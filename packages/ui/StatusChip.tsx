@@ -6,7 +6,7 @@
  * money is the positive state. This component fixes the semantics once:
  *
  *   green  = paid / complete       (the positive, money-in / done state)
- *   amber  = held / pending        (waiting, in-progress, needs attention)
+ *   gray   = held / pending        (Atlas reserves hue for success / danger)
  *   gray   = neutral / closed      (informational, terminal-but-neutral)
  *   red    = disputed / blocked    (error, contested, action-blocking)
  *
@@ -18,8 +18,7 @@
  * Issue: feat: webapp — UX overhaul: design-system pass (#203)
  */
 
-import type { CSSProperties, ReactNode } from 'react';
-import { colors, radius } from './tokens';
+import type { ReactNode } from 'react';
 
 export type StatusVariant = 'green' | 'amber' | 'gray' | 'red';
 
@@ -91,12 +90,15 @@ export function statusVariant(status: string): StatusVariant {
   return 'gray';
 }
 
-const VARIANT_STYLE: Record<StatusVariant, CSSProperties> = {
-  green: { background: colors.greenBg, color: colors.greenFg },
-  amber: { background: colors.amberBg, color: colors.amberFg },
-  gray: { background: colors.grayBg, color: colors.grayFg },
-  red: { background: colors.redBg, color: colors.redFg },
+const VARIANT_CLASS: Record<StatusVariant, string> = {
+  green: 'bg-ok-bg text-ok-fg',
+  amber: 'bg-neutral-bg text-neutral-fg',
+  gray: 'bg-neutral-bg text-neutral-fg',
+  red: 'bg-bad-bg text-bad-fg',
 };
+
+const BASE_CLASS =
+  'inline-block px-2 py-0.5 rounded-xs text-xs font-medium leading-normal whitespace-nowrap';
 
 export interface StatusChipProps {
   /**
@@ -108,7 +110,7 @@ export interface StatusChipProps {
   variant?: StatusVariant;
   /** Visible label; defaults to the `status` string. */
   children?: ReactNode;
-  style?: CSSProperties;
+  className?: string;
   'data-testid'?: string;
 }
 
@@ -116,7 +118,7 @@ export function StatusChip({
   status,
   variant,
   children,
-  style,
+  className,
   'data-testid': testId,
 }: StatusChipProps) {
   const resolved: StatusVariant = variant ?? statusVariant(status ?? '');
@@ -124,17 +126,7 @@ export function StatusChip({
     <span
       data-testid={testId ?? 'status-chip'}
       data-variant={resolved}
-      style={{
-        display: 'inline-block',
-        padding: '0.125rem 0.5rem',
-        borderRadius: radius.pill,
-        fontSize: '0.75rem',
-        fontWeight: 600,
-        lineHeight: 1.5,
-        whiteSpace: 'nowrap',
-        ...VARIANT_STYLE[resolved],
-        ...style,
-      }}
+      className={[BASE_CLASS, VARIANT_CLASS[resolved], className].filter(Boolean).join(' ')}
     >
       {children ?? status ?? ''}
     </span>

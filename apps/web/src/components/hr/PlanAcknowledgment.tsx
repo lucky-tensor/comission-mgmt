@@ -38,6 +38,7 @@
  */
 
 import { useState } from 'react';
+import { Button, StatusChip } from 'ui';
 import { ApiError, apiGet, apiPost } from '../../lib/apiClient';
 import { useAsync } from '../../lib/useAsync';
 import { LoadingState, ErrorState, EmptyState, PortalCard } from '../portal/states';
@@ -98,49 +99,14 @@ function formatDate(iso: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// Styles
+// Styles — Tailwind class strings (theme tokens, no raw hex)
 // ---------------------------------------------------------------------------
 
-const tableStyle: React.CSSProperties = {
-  width: '100%',
-  borderCollapse: 'collapse',
-  fontSize: '0.875rem',
-};
+const TABLE_CLASS = 'w-full border-collapse text-sm';
 
-const thStyle: React.CSSProperties = {
-  textAlign: 'left',
-  padding: '0.5rem 0.75rem',
-  borderBottom: '2px solid #e5e7eb',
-  color: '#374151',
-  fontWeight: 600,
-};
+const TH_CLASS = 'text-left px-3 py-2 border-b-2 border-border text-ink-muted font-semibold';
 
-const tdStyle: React.CSSProperties = {
-  padding: '0.5rem 0.75rem',
-  borderBottom: '1px solid #f3f4f6',
-  color: '#111827',
-  verticalAlign: 'middle',
-};
-
-const acknowledgedBadgeStyle: React.CSSProperties = {
-  display: 'inline-block',
-  padding: '0.125rem 0.5rem',
-  borderRadius: '9999px',
-  fontSize: '0.75rem',
-  fontWeight: 500,
-  background: '#d1fae5',
-  color: '#065f46',
-};
-
-const pendingBadgeStyle: React.CSSProperties = {
-  display: 'inline-block',
-  padding: '0.125rem 0.5rem',
-  borderRadius: '9999px',
-  fontSize: '0.75rem',
-  fontWeight: 500,
-  background: '#fef3c7',
-  color: '#92400e',
-};
+const TD_CLASS = 'px-3 py-2 border-b border-surface-sunken text-ink align-middle';
 
 // ---------------------------------------------------------------------------
 // PlanAcknowledgmentView — presentational (HR table view)
@@ -181,43 +147,40 @@ export function PlanAcknowledgmentView({ state }: PlanAcknowledgmentViewProps) {
 
   return (
     <PortalCard title="Commission Plan Acknowledgment">
-      <table style={tableStyle} data-testid="acknowledgment-table">
+      <table className={TABLE_CLASS} data-testid="acknowledgment-table">
         <thead>
           <tr>
-            <th style={thStyle}>Plan</th>
-            <th style={thStyle}>Producer</th>
-            <th style={thStyle}>Version</th>
-            <th style={thStyle}>Assigned</th>
-            <th style={thStyle}>Status</th>
-            <th style={thStyle}>Acknowledged At</th>
+            <th className={TH_CLASS}>Plan</th>
+            <th className={TH_CLASS}>Producer</th>
+            <th className={TH_CLASS}>Version</th>
+            <th className={TH_CLASS}>Assigned</th>
+            <th className={TH_CLASS}>Status</th>
+            <th className={TH_CLASS}>Acknowledged At</th>
           </tr>
         </thead>
         <tbody>
           {state.data.map((row) => (
             <tr key={row.id} data-testid={`ack-row-${row.id}`}>
-              <td style={tdStyle}>{row.plan_name}</td>
-              <td style={tdStyle} data-testid={`producer-${row.id}`}>
+              <td className={TD_CLASS}>{row.plan_name}</td>
+              <td className={TD_CLASS} data-testid={`producer-${row.id}`}>
                 {row.producer_id}
               </td>
-              <td style={tdStyle} data-testid={`version-${row.id}`}>
+              <td className={TD_CLASS} data-testid={`version-${row.id}`}>
                 {row.plan_version_id.slice(0, 8)}…
               </td>
-              <td style={tdStyle}>{formatDate(row.assigned_at)}</td>
-              <td style={tdStyle}>
+              <td className={TD_CLASS}>{formatDate(row.assigned_at)}</td>
+              <td className={TD_CLASS}>
                 {row.acknowledged_at ? (
-                  <span
-                    style={acknowledgedBadgeStyle}
-                    data-testid={`status-acknowledged-${row.id}`}
-                  >
+                  <StatusChip variant="green" data-testid={`status-acknowledged-${row.id}`}>
                     Acknowledged
-                  </span>
+                  </StatusChip>
                 ) : (
-                  <span style={pendingBadgeStyle} data-testid={`status-pending-${row.id}`}>
+                  <StatusChip variant="amber" data-testid={`status-pending-${row.id}`}>
                     Pending
-                  </span>
+                  </StatusChip>
                 )}
               </td>
-              <td style={tdStyle} data-testid={`ack-at-${row.id}`}>
+              <td className={TD_CLASS} data-testid={`ack-at-${row.id}`}>
                 {row.acknowledged_at ? formatDate(row.acknowledged_at) : '—'}
               </td>
             </tr>
@@ -261,24 +224,13 @@ export function PlanAcknowledgment() {
   const state = useAsync<AssignmentRow[]>(fetchAllAssignments, []);
 
   return (
-    <div
-      data-testid="plan-acknowledgment"
-      style={{
-        minHeight: 'calc(100vh - 3.25rem)',
-        background: '#f9fafb',
-        fontFamily: 'system-ui, sans-serif',
-        padding: '2rem 1rem',
-      }}
-    >
-      <div style={{ maxWidth: '960px', margin: '0 auto' }}>
-        <header style={{ marginBottom: '2rem' }}>
-          <h1
-            data-testid="plan-acknowledgment-heading"
-            style={{ fontSize: '1.5rem', fontWeight: 700, color: '#111827', margin: 0 }}
-          >
+    <div data-testid="plan-acknowledgment" className="min-h-surface bg-surface-muted px-4 py-8">
+      <div className="max-w-report mx-auto">
+        <header className="mb-8">
+          <h1 data-testid="plan-acknowledgment-heading" className="text-2xl font-bold text-ink m-0">
             HR / People Ops — Plan Acknowledgment
           </h1>
-          <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: '0.25rem 0 0' }}>
+          <p className="text-sm text-ink-subtle mt-1 mb-0">
             Commission plan acknowledgment status per producer and plan version.
           </p>
         </header>
@@ -338,50 +290,28 @@ export function ProducerAcknowledgeAction({
 
   if (acknowledged) {
     return (
-      <div data-testid="acknowledge-confirmed" style={{ padding: '1rem' }}>
-        <span style={acknowledgedBadgeStyle}>
+      <div data-testid="acknowledge-confirmed" className="p-4">
+        <StatusChip variant="green">
           Plan acknowledged{ackAt ? ` on ${formatDate(ackAt)}` : ''}
-        </span>
+        </StatusChip>
       </div>
     );
   }
 
   return (
-    <div data-testid="acknowledge-action" style={{ padding: '1rem' }}>
+    <div data-testid="acknowledge-action" className="p-4">
       {error && (
         <div
           data-testid="acknowledge-error"
           role="alert"
-          style={{
-            marginBottom: '0.75rem',
-            padding: '0.5rem 0.75rem',
-            background: '#fef2f2',
-            border: '1px solid #fca5a5',
-            borderRadius: '0.375rem',
-            color: '#b91c1c',
-            fontSize: '0.875rem',
-          }}
+          className="mb-3 px-3 py-2 bg-bad-bg border border-bad-fg/30 rounded-md text-bad-fg text-sm"
         >
           {error}
         </div>
       )}
-      <button
-        data-testid="acknowledge-btn"
-        onClick={handleAcknowledge}
-        disabled={loading}
-        style={{
-          padding: '0.5rem 1rem',
-          background: loading ? '#9ca3af' : '#2563eb',
-          color: '#ffffff',
-          border: 'none',
-          borderRadius: '0.375rem',
-          fontSize: '0.875rem',
-          fontWeight: 500,
-          cursor: loading ? 'not-allowed' : 'pointer',
-        }}
-      >
+      <Button data-testid="acknowledge-btn" onClick={handleAcknowledge} disabled={loading}>
         {loading ? 'Acknowledging…' : 'Acknowledge Commission Plan'}
-      </button>
+      </Button>
     </div>
   );
 }
@@ -451,10 +381,10 @@ export function ProducerPlanAcknowledgment() {
   return (
     <PortalCard title="My Commission Plan">
       <div data-testid="producer-plan-acknowledgment">
-        <p style={{ fontSize: '0.875rem', color: '#374151', marginBottom: '0.75rem' }}>
+        <p className="text-sm text-ink-muted mb-3">
           <strong>Plan:</strong> {assignment.plan_name}
         </p>
-        <p style={{ fontSize: '0.875rem', color: '#374151', marginBottom: '0.75rem' }}>
+        <p className="text-sm text-ink-muted mb-3">
           <strong>Assigned:</strong> {formatDate(assignment.assigned_at)}
         </p>
         <ProducerAcknowledgeAction

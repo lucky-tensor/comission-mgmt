@@ -17,6 +17,8 @@
  * Issue: feat: External Partner UI — scoped payout view (#116)
  */
 
+import { StatusChip } from 'ui';
+import type { StatusVariant } from 'ui';
 import { apiGet, ApiError } from '../../lib/apiClient';
 import { useAsync } from '../../lib/useAsync';
 import { LoadingState, ErrorState, EmptyState, PortalCard } from '../portal/states';
@@ -66,56 +68,22 @@ function paymentTriggerLabel(placement: PartnerPlacement): string {
   return '—';
 }
 
-const rowStyle: React.CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: '1fr 1fr 1fr 1fr',
-  gap: '0.75rem',
-  padding: '0.875rem 0',
-  borderBottom: '1px solid #f3f4f6',
-  alignItems: 'center',
-  fontSize: '0.875rem',
-  color: '#374151',
-};
+const ROW_CLASS =
+  'grid grid-cols-4 gap-3 py-3.5 border-b border-surface-sunken items-center text-sm text-ink-muted';
 
-const headerRowStyle: React.CSSProperties = {
-  ...rowStyle,
-  fontWeight: 600,
-  color: '#6b7280',
-  fontSize: '0.75rem',
-  textTransform: 'uppercase' as const,
-  letterSpacing: '0.05em',
-  borderBottom: '1px solid #e5e7eb',
-};
+const HEADER_ROW_CLASS =
+  'grid grid-cols-4 gap-3 py-3.5 items-center text-xs font-semibold text-ink-subtle ' +
+  'uppercase tracking-wider border-b border-border';
 
-const statusBadgeStyle = (status: string): React.CSSProperties => {
-  const color =
-    status === 'Active' || status === 'Closed'
-      ? '#059669'
-      : status === 'GuaranteeExpired'
-        ? '#d97706'
-        : '#6b7280';
-  return {
-    display: 'inline-block',
-    padding: '0.2rem 0.5rem',
-    borderRadius: '9999px',
-    fontSize: '0.75rem',
-    fontWeight: 500,
-    background: color + '1a',
-    color,
-  };
-};
+/** Map a partner placement status to a status-chip variant (preserves prior semantics). */
+function placementStatusVariant(status: string): StatusVariant {
+  if (status === 'Active' || status === 'Closed') return 'green';
+  if (status === 'GuaranteeExpired') return 'amber';
+  return 'gray';
+}
 
-const confidentialBadgeStyle: React.CSSProperties = {
-  display: 'inline-block',
-  padding: '0.125rem 0.4rem',
-  borderRadius: '4px',
-  fontSize: '0.7rem',
-  fontWeight: 500,
-  background: '#fef9c3',
-  color: '#854d0e',
-  marginLeft: '0.4rem',
-  verticalAlign: 'middle',
-};
+const CONFIDENTIAL_BADGE_CLASS =
+  'inline-block px-1.5 py-0.5 rounded-xs text-xs font-medium bg-warn-bg text-warn-fg ml-1.5 align-middle';
 
 // ---------------------------------------------------------------------------
 // Sub-components
@@ -127,11 +95,14 @@ interface PlacementRowProps {
 
 function PlacementRow({ placement }: PlacementRowProps) {
   return (
-    <div style={rowStyle} data-testid={`partner-placement-row-${placement.id}`}>
+    <div className={ROW_CLASS} data-testid={`partner-placement-row-${placement.id}`}>
       <div>
         <span data-testid="partner-placement-job-title">{placement.job_title}</span>
         {placement.is_confidential && (
-          <span style={confidentialBadgeStyle} data-testid="partner-placement-confidential-badge">
+          <span
+            className={CONFIDENTIAL_BADGE_CLASS}
+            data-testid="partner-placement-confidential-badge"
+          >
             Confidential
           </span>
         )}
@@ -139,9 +110,12 @@ function PlacementRow({ placement }: PlacementRowProps) {
       <div data-testid="partner-placement-amount-owed">{formatCurrency(placement.fee_amount)}</div>
       <div data-testid="partner-placement-payment-trigger">{paymentTriggerLabel(placement)}</div>
       <div>
-        <span style={statusBadgeStyle(placement.status)} data-testid="partner-placement-status">
+        <StatusChip
+          variant={placementStatusVariant(placement.status)}
+          data-testid="partner-placement-status"
+        >
           {placement.status}
-        </span>
+        </StatusChip>
       </div>
     </div>
   );
@@ -168,7 +142,7 @@ export function PlacementsTable({ loading, error, data }: PlacementsTableProps) 
 
   return (
     <div data-testid="partner-placements-list">
-      <div style={headerRowStyle}>
+      <div className={HEADER_ROW_CLASS}>
         <div>Position</div>
         <div>Amount Owed</div>
         <div>Payment Trigger</div>
@@ -203,21 +177,11 @@ export function PartnerPayoutView({ onUnauthenticated }: PartnerPayoutViewProps)
   );
 
   return (
-    <div
-      data-testid="partner-payout-view"
-      style={{
-        minHeight: 'calc(100vh - 3.25rem)',
-        background: '#f9fafb',
-        fontFamily: 'system-ui, sans-serif',
-        padding: '2rem 1rem',
-      }}
-    >
-      <div style={{ maxWidth: '960px', margin: '0 auto' }}>
-        <header style={{ marginBottom: '2rem' }}>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#111827', margin: 0 }}>
-            My Placements
-          </h1>
-          <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: '0.25rem 0 0' }}>
+    <div data-testid="partner-payout-view" className="min-h-surface bg-surface-muted px-4 py-8">
+      <div className="max-w-report mx-auto">
+        <header className="mb-8">
+          <h1 className="text-2xl font-bold text-ink m-0">My Placements</h1>
+          <p className="text-sm text-ink-subtle mt-1 mb-0">
             Split agreements where you hold a payout interest. Amounts, payment triggers, and
             payment status for your deals only.
           </p>

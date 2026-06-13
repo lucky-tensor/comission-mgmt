@@ -8,16 +8,12 @@
  * Issue: feat: Producer Portal UI + headless-Chromium browser/E2E harness (#78)
  */
 
-const boxStyle: React.CSSProperties = {
-  padding: '1.25rem',
-  borderRadius: '0.5rem',
-  fontSize: '0.875rem',
-};
+const BOX_CLASS = 'p-5 rounded-md text-sm';
 
 /** Spinner-free loading placeholder. */
 export function LoadingState({ label }: { label: string }) {
   return (
-    <div data-testid="loading-state" style={{ ...boxStyle, color: '#6b7280' }}>
+    <div data-testid="loading-state" className={`${BOX_CLASS} text-ink-subtle`}>
       Loading {label}…
     </div>
   );
@@ -29,7 +25,7 @@ export function ErrorState({ message }: { message: string }) {
     <div
       data-testid="error-state"
       role="alert"
-      style={{ ...boxStyle, background: '#fef2f2', border: '1px solid #fca5a5', color: '#b91c1c' }}
+      className={`${BOX_CLASS} bg-bad-bg border border-bad-fg/30 text-bad-fg`}
     >
       {message}
     </div>
@@ -41,7 +37,7 @@ export function EmptyState({ message }: { message: string }) {
   return (
     <div
       data-testid="empty-state"
-      style={{ ...boxStyle, background: '#f9fafb', border: '1px dashed #d1d5db', color: '#6b7280' }}
+      className={`${BOX_CLASS} bg-surface-muted border border-dashed border-border-strong text-ink-subtle`}
     >
       {message}
     </div>
@@ -51,18 +47,8 @@ export function EmptyState({ message }: { message: string }) {
 /** Card wrapper with a heading used by every portal panel. */
 export function PortalCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section
-      style={{
-        background: '#ffffff',
-        border: '1px solid #e5e7eb',
-        borderRadius: '0.75rem',
-        padding: '1.5rem',
-        marginBottom: '1.5rem',
-      }}
-    >
-      <h2 style={{ fontSize: '1.125rem', fontWeight: 600, color: '#111827', marginTop: 0 }}>
-        {title}
-      </h2>
+    <section className="bg-surface border border-border rounded-md p-6 mb-6">
+      <h2 className="text-lg font-semibold text-ink mt-0">{title}</h2>
       {children}
     </section>
   );

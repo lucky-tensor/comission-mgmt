@@ -68,14 +68,15 @@ policy, deterministic CI gates), never by convention. The stack mirrors the refe
 | **`postgres` (npm)** | PostgreSQL client | IMPL-DATA-033 | Tagged-template parameterization by default; one client for three pools. |
 | **`@scure/bip39`** _(planned)_ | BIP-39 mnemonic for recovery shard | IMPL-AUTH-027 | **Not yet a dependency.** The passkey account-recovery flow (§5.3) is planned, not shipped; `@scure/bip39` will be added when it lands. |
 | **Vitest / Playwright / ESLint / Prettier** | Test + quality tooling | IMPL-TEST-001/002/021/022 | Vitest single driver; Playwright as headless-Chromium provider only. |
-| **React / Tailwind CSS** | UI framework + styling | IMPL-ARCH-003/004, IMPL-UX-008/009 | Design tokens are a DIY JSON file; component docs are static build output (no Storybook). |
+| **React / Tailwind CSS** | UI framework + styling | IMPL-ARCH-003/004, IMPL-UX-008/009 | Design tokens are a DIY CSS `@theme` (Tailwind v4) in `apps/web/src/index.css`; component docs are static build output (no Storybook). |
 
 **DIY (explicitly not bought), per the Buy-vs-DIY framework (ARCH-D-002, IMPL-ARCH-022/025):** the commission
 rules engine, split/attribution model, draw recovery, clawback/holdback logic, explainability generation,
 the append-only audit ledger, JWT sign/verify (ES256 via Web Crypto), field encryption (AES-256-GCM/HKDF
 via Web Crypto), rate limiting (token bucket), UUID v4 generation, CSV import/export and date utilities,
-and small UI components. Every dependency is recorded in `docs/dependencies.md` with Buy/DIY justification,
-locked versions, and a periodically audited transitive tree (ARCH-C-005/C-013, IMPL-ARCH-023).
+and small UI components. Buy/DIY decisions for all vendored dependencies are recorded in §3 (this section)
+and §5 of this document, per ARCH-C-005/C-013 and IMPL-ARCH-023. A separate dependency-registry file was
+considered but not created; the §3 vendor table is the authoritative record (see issue #240).
 
 *No vendor is currently `[unanchored]`.* Notification delivery (PRD §5.6) is in-platform only; if an external
 email/SMS provider is later required it will be `[unanchored]` until a rule motivates it.
@@ -234,7 +235,7 @@ changes a stated choice, §2–§4 and §6 already reflect it.
 | `blueprints/task-queue.yaml` | Single-table PG queue, atomic claim, idempotency, bounded retry+dead-letter, stale recovery, opaque payloads | LISTEN/NOTIFY, priority escalation (partial/optional) |
 | `blueprints/test.yaml` | Real-systems, k8s integration, headless Playwright, per-suite CI, golden fixtures; **_(planned)_** ledger replay/recovery suite | Digital-twin lifecycle partial (maps to DEMO_MODE isolation) |
 | `blueprints/ux.yaml` | Unified service layer, single design system, per-actor surfaces, single-path nav, progressive disclosure, headless verify | Agent-account UX rules partial (worker is the only automated actor) |
-| `blueprints/worker.yaml` | Read-only DB, write-through-API, atomic claim, delegated single-use tokens, dual attribution, distroless, network policy | Digital-twin (P-007/D-006), AI-vendor-API/CLI rules (no vendor calls in scope) |
+| `blueprints/worker.yaml` | Read-only DB, write-through-API, atomic claim, delegated single-use tokens, dual attribution, distroless, network policy; **AI-vendor-API rules** — `packages/db/src/claude-api-client.ts` stub shipped; active threats: `vendor-api-key-leak`, `vendor-cli-data-exfiltration`; wired in #186 (arbitration) and #187 (simulation) | Digital-twin (P-007/D-006); vendor CLI binary spawning (no CLI binary invocations in scope) |
 | `implementations/ts/arch-ts.yaml` | TS/Bun/React/Tailwind/REST stack, shared `packages/core` types, Buy/DIY, versioned contracts, canonical package layout (§5.2) | — |
 | `implementations/ts/auth-ts.yaml` | Passkeys (DIY server-side verify; `@simplewebauthn/browser` on the client), DIY ES256 JWT, HTTP-only cookies, JTI table, path-prefix RBAC matrix, agent tokens; **_(planned)_** `requireScope` helper + BIP-39 recovery shard (§5.3) | — |
 | `implementations/ts/data-ts.yaml` | PG16 from commit zero, property graph (§5.1), three roles/pools, `postgres` client/no-ORM, FieldEncryptor, audit-log-first (shipped #81), DB-level append-only triggers (#81), GCP KMS (§5.7); **_(planned)_** DP on analytics tier (§5.5) | Edge HMAC signing (IMPL-DATA-019) — server-emitted events |

@@ -58,19 +58,13 @@ export function InvoiceCollectionSection() {
       />
 
       {selectedId ? (
-        <div style={{ marginTop: '1.25rem' }}>
+        <div className="mt-5">
           <InvoiceCollection placementId={selectedId} />
         </div>
       ) : (
         <div
           data-testid="placement-prompt"
-          style={{
-            fontSize: '0.875rem',
-            color: '#9ca3af',
-            textAlign: 'center',
-            padding: '2rem',
-            fontStyle: 'italic',
-          }}
+          className="text-sm text-ink-faint text-center p-8 italic"
         >
           Select a placement above to view invoice and collection status.
         </div>

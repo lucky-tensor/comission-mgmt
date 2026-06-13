@@ -27,6 +27,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import { Button } from 'ui';
 import { apiGet } from '../../lib/apiClient';
 
 /**
@@ -91,69 +92,17 @@ export type TrendsPhase =
 // Shared styles
 // ---------------------------------------------------------------------------
 
-const containerStyle: React.CSSProperties = {
-  minHeight: 'calc(100vh - 3.25rem)',
-  background: '#f9fafb',
-  fontFamily: 'system-ui, sans-serif',
-  padding: '2rem 1rem',
-};
+const containerClass = 'min-h-surface bg-surface-muted px-4 py-8';
 
-const innerStyle: React.CSSProperties = {
-  maxWidth: '960px',
-  margin: '0 auto',
-};
+const innerClass = 'max-w-report mx-auto';
 
-const cardStyle: React.CSSProperties = {
-  background: '#ffffff',
-  border: '1px solid #e5e7eb',
-  borderRadius: '0.75rem',
-  padding: '1.5rem',
-  marginBottom: '1.5rem',
-};
+const cardClass = 'bg-surface border border-border rounded-md p-6 mb-6';
 
-const headingStyle: React.CSSProperties = {
-  fontSize: '1.125rem',
-  fontWeight: 600,
-  color: '#111827',
-  marginTop: 0,
-  marginBottom: '1rem',
-};
+const headingClass = 'text-lg font-semibold text-ink mt-0 mb-4';
 
-const btnStyle: React.CSSProperties = {
-  padding: '0.375rem 0.75rem',
-  borderRadius: '0.375rem',
-  border: 'none',
-  cursor: 'pointer',
-  fontSize: '0.8125rem',
-  fontWeight: 600,
-};
+const labelClass = 'block text-sm font-semibold mb-1';
 
-const primaryBtnStyle: React.CSSProperties = {
-  ...btnStyle,
-  background: '#2563eb',
-  color: '#ffffff',
-};
-
-const disabledBtnStyle: React.CSSProperties = {
-  ...btnStyle,
-  background: '#e5e7eb',
-  color: '#9ca3af',
-  cursor: 'not-allowed',
-};
-
-const labelStyle: React.CSSProperties = {
-  display: 'block',
-  fontSize: '0.875rem',
-  fontWeight: 600,
-  marginBottom: '0.25rem',
-};
-
-const inputStyle: React.CSSProperties = {
-  padding: '0.5rem',
-  border: '1px solid #d1d5db',
-  borderRadius: '0.375rem',
-  fontSize: '0.875rem',
-};
+const inputClass = 'p-2 border border-border-strong rounded-md text-sm';
 
 // ---------------------------------------------------------------------------
 // RangeForm — selects date range and fires onFetch
@@ -176,12 +125,12 @@ export function RangeForm({ onFetch, loading, fetchError }: RangeFormProps) {
   }
 
   return (
-    <div data-testid="trends-range-form" style={cardStyle}>
-      <h2 style={headingStyle}>Select range</h2>
+    <div data-testid="trends-range-form" className={cardClass}>
+      <h2 className={headingClass}>Select range</h2>
       <form onSubmit={handleSubmit}>
-        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+        <div className="flex gap-4 flex-wrap items-end">
           <div>
-            <label htmlFor="trends-range-start" style={labelStyle}>
+            <label htmlFor="trends-range-start" className={labelClass}>
               Start date
             </label>
             <input
@@ -191,11 +140,11 @@ export function RangeForm({ onFetch, loading, fetchError }: RangeFormProps) {
               value={rangeStart}
               onChange={(e) => setRangeStart(e.target.value)}
               required
-              style={inputStyle}
+              className={inputClass}
             />
           </div>
           <div>
-            <label htmlFor="trends-range-end" style={labelStyle}>
+            <label htmlFor="trends-range-end" className={labelClass}>
               End date
             </label>
             <input
@@ -205,31 +154,18 @@ export function RangeForm({ onFetch, loading, fetchError }: RangeFormProps) {
               value={rangeEnd}
               onChange={(e) => setRangeEnd(e.target.value)}
               required
-              style={inputStyle}
+              className={inputClass}
             />
           </div>
-          <button
-            type="submit"
-            data-testid="trends-fetch-button"
-            style={loading ? disabledBtnStyle : primaryBtnStyle}
-            disabled={loading}
-          >
+          <Button type="submit" data-testid="trends-fetch-button" disabled={loading}>
             {loading ? 'Loading…' : 'Load trends'}
-          </button>
+          </Button>
         </div>
         {fetchError && (
           <div
             data-testid="trends-fetch-error"
             role="alert"
-            style={{
-              marginTop: '0.75rem',
-              padding: '0.75rem',
-              background: '#fef2f2',
-              border: '1px solid #fca5a5',
-              borderRadius: '0.5rem',
-              color: '#b91c1c',
-              fontSize: '0.875rem',
-            }}
+            className="mt-3 p-3 bg-bad-bg border border-bad-fg/30 rounded-md text-bad-fg text-sm"
           >
             {fetchError}
           </div>
@@ -246,34 +182,22 @@ export function RangeForm({ onFetch, loading, fetchError }: RangeFormProps) {
 interface TrendBarProps {
   /** 0-1 decimal rate. */
   rate: number;
-  /** Hex colour for the bar fill. */
-  color: string;
+  /** Tailwind bg-* utility class for the bar fill. */
+  colorClass: string;
   /** data-testid prefix. */
   testIdPrefix: string;
 }
 
-function TrendBar({ rate, color, testIdPrefix }: TrendBarProps) {
+function TrendBar({ rate, colorClass, testIdPrefix }: TrendBarProps) {
   const pct = Math.min(100, Math.max(0, rate * 100));
   return (
     <div
       data-testid={`${testIdPrefix}-bar`}
-      style={{
-        height: '0.75rem',
-        background: '#f3f4f6',
-        borderRadius: '9999px',
-        overflow: 'hidden',
-        flex: 1,
-        minWidth: '80px',
-      }}
+      className="h-3 bg-surface-sunken rounded-xs overflow-hidden flex-1 min-w-20"
     >
       <div
-        style={{
-          height: '100%',
-          width: `${pct.toFixed(1)}%`,
-          background: color,
-          borderRadius: '9999px',
-          transition: 'width 0.25s ease',
-        }}
+        className={`h-full ${colorClass} rounded-xs transition-progress duration-atlas ease`}
+        style={{ width: `${pct.toFixed(1)}%` }}
       />
     </div>
   );
@@ -289,64 +213,26 @@ interface TrendTableProps {
 
 function TrendTable({ buckets }: TrendTableProps) {
   return (
-    <div data-testid="trends-table" style={cardStyle}>
-      <h2 style={headingStyle}>Exception &amp; dispute rate trends</h2>
+    <div data-testid="trends-table" className={cardClass}>
+      <h2 className={headingClass}>Exception &amp; dispute rate trends</h2>
       {buckets.length === 0 ? (
-        <div data-testid="trends-empty" style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+        <div data-testid="trends-empty" className="text-sm text-ink-subtle">
           No data available for the selected range.
         </div>
       ) : (
-        <table
-          style={{
-            width: '100%',
-            borderCollapse: 'collapse',
-            fontSize: '0.875rem',
-          }}
-        >
+        <table className="w-full border-collapse text-sm">
           <thead>
-            <tr style={{ borderBottom: '2px solid #e5e7eb' }}>
-              <th
-                style={{
-                  textAlign: 'left',
-                  padding: '0.5rem 0.75rem 0.5rem 0',
-                  fontWeight: 600,
-                  color: '#374151',
-                  whiteSpace: 'nowrap',
-                }}
-              >
+            <tr className="border-b-2 border-border">
+              <th className="text-left pt-2 pr-3 pb-2 pl-0 font-semibold text-ink-muted whitespace-nowrap">
                 Period
               </th>
-              <th
-                style={{
-                  textAlign: 'left',
-                  padding: '0.5rem 0.75rem',
-                  fontWeight: 600,
-                  color: '#374151',
-                  whiteSpace: 'nowrap',
-                }}
-              >
+              <th className="text-left p-2 px-3 font-semibold text-ink-muted whitespace-nowrap">
                 Exception rate
               </th>
-              <th
-                style={{
-                  textAlign: 'left',
-                  padding: '0.5rem 0.75rem',
-                  fontWeight: 600,
-                  color: '#374151',
-                  whiteSpace: 'nowrap',
-                }}
-              >
+              <th className="text-left p-2 px-3 font-semibold text-ink-muted whitespace-nowrap">
                 Dispute rate
               </th>
-              <th
-                style={{
-                  textAlign: 'right',
-                  padding: '0.5rem 0 0.5rem 0.75rem',
-                  fontWeight: 600,
-                  color: '#374151',
-                  whiteSpace: 'nowrap',
-                }}
-              >
+              <th className="text-right pt-2 pr-0 pb-2 pl-3 font-semibold text-ink-muted whitespace-nowrap">
                 Placements
               </th>
             </tr>
@@ -356,55 +242,42 @@ function TrendTable({ buckets }: TrendTableProps) {
               <tr
                 key={bucket.period_start}
                 data-testid={`trends-row-${bucket.period_start}`}
-                style={{ borderBottom: '1px solid #f3f4f6' }}
+                className="border-b border-surface-sunken"
               >
-                <td
-                  style={{
-                    padding: '0.75rem 0.75rem 0.75rem 0',
-                    color: '#111827',
-                    fontWeight: 500,
-                    whiteSpace: 'nowrap',
-                  }}
-                >
+                <td className="pt-3 pr-3 pb-3 pl-0 text-ink font-medium whitespace-nowrap">
                   {bucket.label}
                 </td>
-                <td style={{ padding: '0.75rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <td className="p-3">
+                  <div className="flex items-center gap-3">
                     <TrendBar
                       rate={bucket.exception_rate}
-                      color="#2563eb"
+                      colorClass="bg-accent"
                       testIdPrefix={`exception-${bucket.period_start}`}
                     />
                     <span
                       data-testid={`exception-rate-${bucket.period_start}`}
-                      style={{ minWidth: '3rem', textAlign: 'right', color: '#374151' }}
+                      className="min-w-12 text-right text-ink-muted"
                     >
                       {(bucket.exception_rate * 100).toFixed(1)}%
                     </span>
                   </div>
                 </td>
-                <td style={{ padding: '0.75rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <td className="p-3">
+                  <div className="flex items-center gap-3">
                     <TrendBar
                       rate={bucket.dispute_rate}
-                      color="#d97706"
+                      colorClass="bg-warn-fg"
                       testIdPrefix={`dispute-${bucket.period_start}`}
                     />
                     <span
                       data-testid={`dispute-rate-${bucket.period_start}`}
-                      style={{ minWidth: '3rem', textAlign: 'right', color: '#374151' }}
+                      className="min-w-12 text-right text-ink-muted"
                     >
                       {(bucket.dispute_rate * 100).toFixed(1)}%
                     </span>
                   </div>
                 </td>
-                <td
-                  style={{
-                    padding: '0.75rem 0 0.75rem 0.75rem',
-                    textAlign: 'right',
-                    color: '#374151',
-                  }}
-                >
+                <td className="pt-3 pr-0 pb-3 pl-3 text-right text-ink-muted">
                   {bucket.total_placements}
                 </td>
               </tr>
@@ -429,13 +302,11 @@ export interface ExecTrendsViewProps {
 
 export function ExecTrendsView({ phase, onFetch, loading, fetchError }: ExecTrendsViewProps) {
   return (
-    <div data-testid="exec-trends" style={containerStyle}>
-      <div style={innerStyle}>
-        <header style={{ marginBottom: '2rem' }}>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#111827', margin: 0 }}>
-            Exception &amp; Dispute Rate Trends
-          </h1>
-          <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: '0.25rem 0 0' }}>
+    <div data-testid="exec-trends" className={containerClass}>
+      <div className={innerClass}>
+        <header className="mb-8">
+          <h1 className="text-2xl font-bold text-ink m-0">Exception &amp; Dispute Rate Trends</h1>
+          <p className="text-sm text-ink-subtle mt-1 mb-0">
             View exception and dispute rates over time to evaluate whether commission plan rules are
             working. Select a date range to load monthly trend buckets.
           </p>
@@ -444,7 +315,7 @@ export function ExecTrendsView({ phase, onFetch, loading, fetchError }: ExecTren
         <RangeForm onFetch={onFetch} loading={loading} fetchError={fetchError} />
 
         {phase.kind === 'loading' && (
-          <div data-testid="trends-loading-state" style={{ ...cardStyle, color: '#6b7280' }}>
+          <div data-testid="trends-loading-state" className={`${cardClass} text-ink-subtle`}>
             Loading trends…
           </div>
         )}
@@ -453,12 +324,7 @@ export function ExecTrendsView({ phase, onFetch, loading, fetchError }: ExecTren
           <div
             data-testid="trends-error-state"
             role="alert"
-            style={{
-              ...cardStyle,
-              background: '#fef2f2',
-              border: '1px solid #fca5a5',
-              color: '#b91c1c',
-            }}
+            className={`${cardClass} bg-bad-bg border-bad-fg/30 text-bad-fg`}
           >
             {phase.message}
           </div>

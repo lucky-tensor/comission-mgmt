@@ -6,6 +6,7 @@
  * predicted outcomes without mutating production state.
  *
  * Phase: Arbitration & Simulation (dev-scout #188)
+ * Canonical docs: docs/prd.md §5.9, docs/prd.md §5.12
  * Canonical: docs/arbitration-simulation.md — Simulation agent execution flow, WORKER-P-007
  *
  * STUB IMPLEMENTATION: Compiles and accepts task payloads. Does not invoke Claude API

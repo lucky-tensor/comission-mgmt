@@ -1,0 +1,76 @@
+{
+  "ok": true,
+  "number": 222,
+  "title": "fix: producer portal payout explanations and status consistency",
+  "body": "## Phase\n\nUnplaced\n\n## Issue type\n\nfeature\n\n## Canonical docs\n\n- `docs/prd.md`\n- `docs/ux-review.md`\n\n## Motivation\n\nMy Portal currently presents implementation details and contradictory payout state. A producer can see a card labeled Payable with $0.00 net while the explanation says payment is pending client collection, followed by raw plan-version and placement UUIDs. That fails the PRD requirement that producers understand payout derivation without finance assistance and makes the demo data look untrustworthy.\n\n## Behaviour\n\nProducer payout cards show concise business-language derivations whose amounts, status chip, hold reason, and payment trigger agree. Collection- and guarantee-gated records are presented as held or pending, not payable or released. Raw placement and plan-version IDs remain available as secondary trace metadata but are absent from the primary explanation. Existing persisted explanations and newly calculated records receive the same producer-facing treatment, confidential-placement masking remains intact, and commission arithmetic and ledger history are unchanged.\n\n## Scope\n\nIn scope:\n- Define a shared producer-facing payout presentation formatter for explanation text and effective display status.\n- Remove raw plan-version and placement identifiers from primary explanation prose while retaining the existing metadata fields for traceability.\n- Make collection, guarantee, and billing-phase hold language agree with status, hold_reason, blocked_phase, and net_payable.\n- Update explanation golden fixtures and producer portal API/component tests for base-rate, tiered-rate, draw-offset, collection-held, guarantee-held, and legacy persisted explanations.\n- Correct and test the seeded retained-search card that currently demonstrates the contradiction.\n\nOut of scope:\n- Changing commission calculation formulas, rates, split attribution, draw recovery, or hold-release business rules.\n- Rewriting historical ledger rows or adding a database migration.\n- Redesigning the rest of My Portal or other role surfaces.\n- Removing placement_id or plan_version_id from authenticated API responses or audit records.\n\n## Acceptance criteria\n\n- [ ] packages/core/tests/explanation-engine.test.ts golden and edge-case tests assert producer explanation prose contains the applicable split, commission base, rate, gross amount, draw or hold reason, and net amount, and contains neither the placement ID nor plan-version ID.\n- [ ] tests/api/producer-portal/producer-portal.test.ts supplies a legacy record with status=Payable, net_payable=0, and a collection hold and asserts both /me endpoints return a held/pending producer display state, never Payable or Released, without issuing a mutation query.\n- [ ] tests/api/producer-portal/producer-portal.test.ts asserts placement_id and plan_version_id remain present as trace metadata while the returned producer explanation omits those raw identifier values.\n- [ ] tests/component/CreditedPlacements.test.tsx and tests/component/PayoutStatement.test.tsx assert held records render an amber held/pending status, $0.00 net, and matching collection or guarantee wording, while an unheld positive-net record renders Payable or Released wording.\n- [ ] tests/e2e/stories/producer.stories.e2e.ts asserts the seeded Chief Financial Officer retained-search card has mutually consistent status, net amount, and explanation and does not render a UUID inside the expanded explanation.\n- [ ] Producer portal API and component tests assert confidential placements continue to render Confidential and do not expose position or client-identifying text through the revised explanation.\n\n## Test plan\n\n- [ ] bun --bun vitest run packages/core/tests/explanation-engine.test.ts covers deterministic explanation content, legacy trace removal, hold scenarios, and zero-net draw recovery.\n- [ ] bun run test:producer-portal covers /me response invariants, trace metadata retention, no read-time ledger mutation, and confidential masking.\n- [ ] bun --bun vitest run --config vitest.browser.config.ts tests/component/CreditedPlacements.test.tsx tests/component/PayoutStatement.test.tsx covers rendered status, amounts, hold wording, and absence of UUID prose.\n- [ ] bun run test:browser -- tests/e2e/stories/producer.stories.e2e.ts covers the seeded retained-search regression in the real producer portal.\n- [ ] bun run typecheck verifies the shared producer presentation contract across core, server, and web.\n\n## Stage\n\n**Current:** Specified",
+  "url": "https://github.com/lucky-tensor/comission-mgmt/issues/222",
+  "phase": "Unplaced",
+  "phase_confidence": "low",
+  "phase_branch": null,
+  "issue_kind": "feature",
+  "integration_level": "feature",
+  "target_base": null,
+  "test_tier": "fast",
+  "expected_touchpoints": [
+    "packages/core/explanation-engine.ts",
+    "packages/core/producer-portal.ts",
+    "packages/core/tests/explanation-engine.test.ts",
+    "apps/server/src/api/me.ts",
+    "tests/api/producer-portal/producer-portal.test.ts",
+    "apps/web/src/components/portal/CreditedPlacements.tsx",
+    "apps/web/src/components/portal/PayoutStatement.tsx",
+    "tests/component/CreditedPlacements.test.tsx",
+    "tests/component/PayoutStatement.test.tsx",
+    "tests/fixtures/explanation_base_rate.txt",
+    "tests/fixtures/explanation_tiered.txt",
+    "tests/fixtures/explanation_desk_cost.txt",
+    "tests/fixtures/explanation_collection_held.txt",
+    "tests/fixtures/explanation_guarantee_held.txt",
+    "tests/e2e/stories/producer.stories.e2e.ts",
+    "scripts/phase2-seed.ts",
+    "scripts/shared-seed"
+  ],
+  "public_contracts": [
+    "GET /me/commission-records and GET /me/payouts retain placement_id and plan_version_id as trace metadata, but producer-facing explanation text no longer embeds those raw identifiers.",
+    "Producer portal response fields status, hold_reason, blocked_phase, and net_payable gain an enforced presentation invariant: a collection- or guarantee-held record cannot be presented as Payable or Released."
+  ],
+  "shared_state": [
+    "Persisted CommissionRecord.explanation remains deterministic calculation evidence, while the producer presentation model removes technical trace identifiers from primary prose.",
+    "Commission record lifecycle status and hold_reason are shared by invoice release, guarantee release, commission runs, analytics, and producer portal reads; normalization must be scoped to producer presentation and must not mutate ledger state."
+  ],
+  "migration_effects": [],
+  "config_effects": [],
+  "test_surfaces": [
+    "bun --bun vitest run packages/core/tests/explanation-engine.test.ts",
+    "bun run test:producer-portal",
+    "bun --bun vitest run --config vitest.browser.config.ts tests/component/CreditedPlacements.test.tsx tests/component/PayoutStatement.test.tsx",
+    "bun run test:browser -- tests/e2e/stories/producer.stories.e2e.ts",
+    "bun run typecheck"
+  ],
+  "coupling_risks": [
+    {
+      "surface": "Persisted explanation text",
+      "risk": "Changing only the explanation generator fixes new calculations but leaves existing and seeded records with raw UUID prose.",
+      "mitigation": "Apply the producer-facing formatter to both new and legacy explanation strings, and add an API fixture containing the legacy trace sentence."
+    },
+    {
+      "surface": "Commission lifecycle status",
+      "risk": "Rewriting ledger status during a portal read could hide an upstream lifecycle bug and affect finance or analytics semantics.",
+      "mitigation": "Introduce a read-only producer presentation status derived from status plus hold fields; assert that the API handler performs no database mutation."
+    },
+    {
+      "surface": "Demo seed lifecycle",
+      "risk": "Seed operations can release a hold without updating the explanation generated earlier, recreating contradictory demo cards.",
+      "mitigation": "Add a seeded producer story that asserts title, displayed status, net amount, and explanation agree for the retained-search scenario."
+    },
+    {
+      "surface": "Confidential placements",
+      "risk": "Richer explanation formatting could reintroduce masked position or client details.",
+      "mitigation": "Keep explanation inputs financial and role-neutral, and retain API/component coverage that confidential placements display only the Confidential label."
+    }
+  ],
+  "spec_quality": "complete",
+  "open_questions": [],
+  "dependencies": [],
+  "parallel_safe_candidate": false
+}

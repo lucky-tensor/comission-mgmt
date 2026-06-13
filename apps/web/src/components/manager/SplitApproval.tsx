@@ -27,6 +27,7 @@
  */
 
 import { useState } from 'react';
+import { Button } from 'ui';
 import { ApiError, apiDelete, apiGet, apiPost } from '../../lib/apiClient';
 import { useAsync } from '../../lib/useAsync';
 import { LoadingState, ErrorState, EmptyState } from '../portal/states';
@@ -72,48 +73,11 @@ export type SplitApprovalPhase =
 // Shared styles
 // ---------------------------------------------------------------------------
 
-const cardStyle: React.CSSProperties = {
-  background: '#ffffff',
-  border: '1px solid #e5e7eb',
-  borderRadius: '0.75rem',
-  padding: '1.5rem',
-  marginBottom: '1.5rem',
-};
+const CARD_CLASS = 'bg-surface border border-border rounded-md p-6 mb-6';
 
-const headingStyle: React.CSSProperties = {
-  fontSize: '1.125rem',
-  fontWeight: 600,
-  color: '#111827',
-  marginTop: 0,
-  marginBottom: '1rem',
-};
+const HEADING_CLASS = 'text-lg font-semibold text-ink mt-0 mb-4';
 
-const rowStyle: React.CSSProperties = {
-  borderBottom: '1px solid #f3f4f6',
-  padding: '0.875rem 0',
-};
-
-const btnBase: React.CSSProperties = {
-  fontSize: '0.8125rem',
-  fontWeight: 500,
-  padding: '0.375rem 0.75rem',
-  borderRadius: '0.375rem',
-  border: 'none',
-  cursor: 'pointer',
-};
-
-const approveBtn: React.CSSProperties = {
-  ...btnBase,
-  background: '#d1fae5',
-  color: '#065f46',
-};
-
-const rejectBtn: React.CSSProperties = {
-  ...btnBase,
-  background: '#fee2e2',
-  color: '#991b1b',
-  marginLeft: '0.5rem',
-};
+const ROW_CLASS = 'border-b border-surface-sunken py-3.5';
 
 // ---------------------------------------------------------------------------
 // ContributorTable — shows per-contributor split credit for an expanded deal
@@ -160,15 +124,15 @@ function ContributorRow({ contributor, onSave }: ContributorRowProps) {
 
   return (
     <tr data-testid={`contributor-row-${contributor.id}`}>
-      <td style={{ padding: '0.375rem 0.5rem', color: '#374151' }}>{contributor.producer_id}</td>
-      <td style={{ padding: '0.375rem 0.5rem', color: '#374151' }}>{contributor.role}</td>
+      <td className="px-2 py-1.5 text-ink-muted">{contributor.producer_id}</td>
+      <td className="px-2 py-1.5 text-ink-muted">{contributor.role}</td>
       <td
         data-testid={`split-pct-${contributor.id}`}
-        style={{ padding: '0.375rem 0.5rem', textAlign: 'right', color: '#374151' }}
+        className="px-2 py-1.5 text-right text-ink-muted"
       >
         {(contributor.split_pct * 100).toFixed(0)}%
       </td>
-      <td style={{ padding: '0.375rem 0.5rem', textAlign: 'right' }}>
+      <td className="px-2 py-1.5 text-right">
         <input
           data-testid={`split-input-${contributor.id}`}
           type="number"
@@ -176,29 +140,22 @@ function ContributorRow({ contributor, onSave }: ContributorRowProps) {
           max="100"
           value={splitPercent}
           onChange={(e) => setSplitPercent(e.target.value)}
-          style={{
-            width: '4.5rem',
-            fontSize: '0.8125rem',
-            padding: '0.25rem 0.375rem',
-            border: '1px solid #d1d5db',
-            borderRadius: '0.375rem',
-            textAlign: 'right',
-          }}
+          className="w-20 text-sm px-1.5 py-1 border border-border-strong rounded-md text-right"
         />
-        <button
+        <Button
           data-testid={`save-split-btn-${contributor.id}`}
           type="button"
           disabled={saving}
           onClick={handleSave}
-          style={{ ...btnBase, marginLeft: '0.375rem', background: '#eff6ff', color: '#1d4ed8' }}
+          className="ml-1.5 text-sm px-3 py-1.5"
         >
           Save
-        </button>
+        </Button>
         {error && (
           <div
             role="alert"
             data-testid={`split-update-error-${contributor.id}`}
-            style={{ marginTop: '0.25rem', color: '#b91c1c', fontSize: '0.75rem' }}
+            className="mt-1 text-bad-fg text-xs"
           >
             {error}
           </div>
@@ -225,20 +182,14 @@ function ContributorTable({ placementId, onLoad, onUpdateContributor }: Contribu
   return (
     <table
       data-testid={`contributors-table-${placementId}`}
-      style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8125rem' }}
+      className="w-full border-collapse text-sm"
     >
       <thead>
-        <tr style={{ color: '#6b7280', borderBottom: '1px solid #e5e7eb' }}>
-          <th style={{ textAlign: 'left', padding: '0.375rem 0.5rem', fontWeight: 500 }}>
-            Producer
-          </th>
-          <th style={{ textAlign: 'left', padding: '0.375rem 0.5rem', fontWeight: 500 }}>Role</th>
-          <th style={{ textAlign: 'right', padding: '0.375rem 0.5rem', fontWeight: 500 }}>
-            Split %
-          </th>
-          <th style={{ textAlign: 'right', padding: '0.375rem 0.5rem', fontWeight: 500 }}>
-            Modify
-          </th>
+        <tr className="text-ink-subtle border-b border-border">
+          <th className="text-left px-2 py-1.5 font-medium">Producer</th>
+          <th className="text-left px-2 py-1.5 font-medium">Role</th>
+          <th className="text-right px-2 py-1.5 font-medium">Split %</th>
+          <th className="text-right px-2 py-1.5 font-medium">Modify</th>
         </tr>
       </thead>
       <tbody>
@@ -311,52 +262,45 @@ function DealRow({
   }
 
   return (
-    <div data-testid={`deal-row-${item.placement_id}`} style={rowStyle}>
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'flex-start',
-          justifyContent: 'space-between',
-          gap: '1rem',
-        }}
-      >
+    <div data-testid={`deal-row-${item.placement_id}`} className={ROW_CLASS}>
+      <div className="flex items-start justify-between gap-4">
         <div>
-          <div style={{ fontWeight: 600, color: '#111827', fontSize: '0.9375rem' }}>
-            {item.job_title}
-          </div>
-          <div style={{ fontSize: '0.8125rem', color: '#6b7280', marginTop: '0.25rem' }}>
+          <div className="font-semibold text-ink text-base">{item.job_title}</div>
+          <div className="text-sm text-ink-subtle mt-1">
             Placement ID: {item.placement_id} · Submitted: {item.submitted_at}
           </div>
         </div>
-        <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
-          <button
+        <div className="flex gap-2 shrink-0">
+          <Button
+            variant="secondary"
             data-testid={`expand-btn-${item.placement_id}`}
-            style={{ ...btnBase, background: '#f3f4f6', color: '#374151' }}
+            className="text-sm px-3 py-1.5"
             onClick={() => setExpanded((e) => !e)}
           >
             {expanded ? 'Collapse' : 'Review splits'}
-          </button>
-          <button
+          </Button>
+          <Button
             data-testid={`approve-btn-${item.placement_id}`}
-            style={approveBtn}
+            className="text-sm px-3 py-1.5"
             disabled={acting}
             onClick={handleApprove}
           >
             Approve
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="destructive"
             data-testid={`reject-btn-${item.placement_id}`}
-            style={rejectBtn}
+            className="text-sm px-3 py-1.5"
             disabled={acting}
             onClick={() => setRejectMode((m) => !m)}
           >
             Reject
-          </button>
+          </Button>
         </div>
       </div>
 
       {expanded && (
-        <div style={{ marginTop: '0.75rem', paddingLeft: '0.5rem' }}>
+        <div className="mt-3 pl-2">
           <ContributorTable
             placementId={item.placement_id}
             onLoad={onLoadContributors}
@@ -368,39 +312,29 @@ function DealRow({
       {rejectMode && (
         <div
           data-testid={`reject-form-${item.placement_id}`}
-          style={{ marginTop: '0.75rem', display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}
+          className="mt-3 flex gap-2 items-start"
         >
           <textarea
             data-testid={`reject-reason-${item.placement_id}`}
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             placeholder="Reason for rejection…"
-            style={{
-              flex: 1,
-              fontSize: '0.8125rem',
-              padding: '0.375rem 0.5rem',
-              borderRadius: '0.375rem',
-              border: '1px solid #d1d5db',
-              resize: 'vertical',
-              minHeight: '3rem',
-            }}
+            className="flex-1 text-sm px-2 py-1.5 rounded-md border border-border-strong resize-y min-h-12"
           />
-          <button
+          <Button
+            variant="destructive"
             data-testid={`confirm-reject-btn-${item.placement_id}`}
-            style={rejectBtn}
+            className="text-sm px-3 py-1.5"
             disabled={acting || !reason.trim()}
             onClick={handleReject}
           >
             Confirm reject
-          </button>
+          </Button>
         </div>
       )}
 
       {actionError && (
-        <div
-          data-testid={`action-error-${item.placement_id}`}
-          style={{ marginTop: '0.5rem', color: '#b91c1c', fontSize: '0.8125rem' }}
-        >
+        <div data-testid={`action-error-${item.placement_id}`} className="mt-2 text-bad-fg text-sm">
           {actionError}
         </div>
       )}
@@ -434,8 +368,8 @@ export function SplitApprovalView({
   onApproved,
 }: SplitApprovalViewProps) {
   return (
-    <div data-testid="split-approval" style={cardStyle}>
-      <h2 style={headingStyle}>Pending Split Approvals</h2>
+    <div data-testid="split-approval" className={CARD_CLASS}>
+      <h2 className={HEADING_CLASS}>Pending Split Approvals</h2>
       {phase.kind === 'loading' && <LoadingState label="pending approvals" />}
       {phase.kind === 'error' && <ErrorState message={phase.message} />}
       {phase.kind === 'empty' && <EmptyState message="No deals are awaiting split approval." />}

@@ -18,6 +18,7 @@
  */
 
 import { useState } from 'react';
+import { Button } from 'ui';
 import { ApiError, apiGet, apiPatch } from '../../lib/apiClient';
 import { useAsync } from '../../lib/useAsync';
 import { LoadingState, ErrorState, EmptyState, PortalCard } from '../portal/states';
@@ -85,59 +86,30 @@ function ResolveRow({ placement, onResolved }: ResolveRowProps) {
   }
 
   return (
-    <div
-      data-testid={`gap-row-${placement.id}`}
-      style={{
-        borderBottom: '1px solid #e5e7eb',
-        padding: '1rem 0',
-      }}
-    >
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'flex-start',
-          justifyContent: 'space-between',
-          gap: '1rem',
-        }}
-      >
+    <div data-testid={`gap-row-${placement.id}`} className="border-b border-border py-4">
+      <div className="flex items-start justify-between gap-4">
         <div>
-          <div style={{ fontWeight: 600, color: '#111827', fontSize: '0.9375rem' }}>
+          <div className="font-semibold text-ink text-base">
             {placement.job_title ?? 'Untitled placement'}
             {placement.is_confidential && (
               <span
                 data-testid="confidential-badge"
-                style={{
-                  marginLeft: '0.5rem',
-                  fontSize: '0.75rem',
-                  background: '#fef3c7',
-                  color: '#92400e',
-                  padding: '0.125rem 0.5rem',
-                  borderRadius: '9999px',
-                }}
+                className="ml-2 text-xs bg-warn-bg text-warn-fg px-2 py-0.5 rounded-xs"
               >
                 Confidential
               </span>
             )}
           </div>
-          <div style={{ fontSize: '0.8125rem', color: '#6b7280', marginTop: '0.25rem' }}>
-            ID: {placement.id}
-          </div>
+          <div className="text-sm text-ink-subtle mt-1">ID: {placement.id}</div>
           <div
             data-testid={`missing-fields-${placement.id}`}
-            style={{ marginTop: '0.5rem', display: 'flex', flexWrap: 'wrap', gap: '0.375rem' }}
+            className="mt-2 flex flex-wrap gap-1.5"
           >
             {placement.missing_fields.map((f) => (
               <span
                 key={f}
                 data-testid={`missing-field-tag-${f}`}
-                style={{
-                  fontSize: '0.75rem',
-                  background: '#fee2e2',
-                  color: '#991b1b',
-                  padding: '0.125rem 0.5rem',
-                  borderRadius: '0.25rem',
-                  border: '1px solid #fca5a5',
-                }}
+                className="text-xs bg-bad-bg text-bad-fg px-2 py-0.5 rounded-xs border border-bad-fg/30"
               >
                 {FIELD_LABELS[f] ?? f}
               </span>
@@ -149,16 +121,10 @@ function ResolveRow({ placement, onResolved }: ResolveRowProps) {
           <button
             data-testid={`resolve-btn-${placement.id}`}
             onClick={() => setOpen((o) => !o)}
-            style={{
-              flexShrink: 0,
-              fontSize: '0.8125rem',
-              padding: '0.375rem 0.75rem',
-              background: open ? '#f3f4f6' : '#2563eb',
-              color: open ? '#374151' : '#ffffff',
-              border: 'none',
-              borderRadius: '0.375rem',
-              cursor: 'pointer',
-            }}
+            className={[
+              'shrink-0 text-sm px-3 py-1.5 rounded-md border-none cursor-pointer',
+              open ? 'bg-surface-sunken text-ink-muted' : 'bg-ink text-white',
+            ].join(' ')}
           >
             {open ? 'Cancel' : 'Resolve'}
           </button>
@@ -168,25 +134,13 @@ function ResolveRow({ placement, onResolved }: ResolveRowProps) {
       {open && hasEditableFields && (
         <div
           data-testid={`resolve-form-${placement.id}`}
-          style={{
-            marginTop: '0.75rem',
-            background: '#f9fafb',
-            border: '1px solid #e5e7eb',
-            borderRadius: '0.5rem',
-            padding: '1rem',
-          }}
+          className="mt-3 bg-surface-muted border border-border rounded-md p-4"
         >
           {editableFields.map((field) => (
-            <div key={field} style={{ marginBottom: '0.75rem' }}>
+            <div key={field} className="mb-3">
               <label
                 htmlFor={`field-${placement.id}-${field}`}
-                style={{
-                  display: 'block',
-                  fontSize: '0.8125rem',
-                  fontWeight: 600,
-                  color: '#374151',
-                  marginBottom: '0.25rem',
-                }}
+                className="block text-sm font-semibold text-ink-muted mb-1"
               >
                 {FIELD_LABELS[field] ?? field}
               </label>
@@ -196,45 +150,24 @@ function ResolveRow({ placement, onResolved }: ResolveRowProps) {
                 type={field === 'start_date' ? 'date' : 'text'}
                 value={values[field] ?? ''}
                 onChange={(e) => setValues((v) => ({ ...v, [field]: e.target.value }))}
-                style={{
-                  width: '100%',
-                  boxSizing: 'border-box',
-                  padding: '0.375rem 0.625rem',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '0.375rem',
-                  fontSize: '0.875rem',
-                }}
+                className="w-full box-border px-2.5 py-1.5 border border-border-strong rounded-md text-sm"
               />
             </div>
           ))}
 
           {saveError && (
-            <div
-              data-testid="save-error"
-              role="alert"
-              style={{ color: '#b91c1c', fontSize: '0.8125rem', marginBottom: '0.75rem' }}
-            >
+            <div data-testid="save-error" role="alert" className="text-bad-fg text-sm mb-3">
               {saveError}
             </div>
           )}
 
-          <button
+          <Button
             data-testid={`save-btn-${placement.id}`}
             onClick={handleResolve}
             disabled={saving}
-            style={{
-              padding: '0.4375rem 1rem',
-              background: saving ? '#93c5fd' : '#2563eb',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: '0.375rem',
-              cursor: saving ? 'not-allowed' : 'pointer',
-              fontSize: '0.875rem',
-              fontWeight: 600,
-            }}
           >
             {saving ? 'Saving…' : 'Save'}
-          </button>
+          </Button>
         </div>
       )}
     </div>
@@ -245,7 +178,7 @@ function ResolveRow({ placement, onResolved }: ResolveRowProps) {
 // DataGapQueue — main component
 // ---------------------------------------------------------------------------
 
-export function DataGapQueue() {
+export function DataGapQueue({ embedded = false }: { embedded?: boolean }) {
   const queueState = useAsync<IncompletePlacement[]>(
     () => apiGet<IncompletePlacement[]>('/placements/incomplete'),
     [],
@@ -263,22 +196,18 @@ export function DataGapQueue() {
   return (
     <div
       data-testid="data-gap-queue"
-      style={{
-        minHeight: 'calc(100vh - 3.25rem)',
-        background: '#f9fafb',
-        fontFamily: 'system-ui, sans-serif',
-        padding: '2rem 1rem',
-      }}
+      data-embedded={embedded ? 'true' : 'false'}
+      className={embedded ? '' : 'min-h-surface bg-surface-muted px-4 py-8'}
     >
-      <div style={{ maxWidth: '880px', margin: '0 auto' }}>
-        <header style={{ marginBottom: '1.5rem' }}>
-          <h1
+      <div className={embedded ? '' : 'max-w-narrow mx-auto'}>
+        <header className="mb-6">
+          <h2
             data-testid="data-gap-queue-heading"
-            style={{ fontSize: '1.5rem', fontWeight: 700, color: '#111827', margin: '0 0 0.25rem' }}
+            className={`${embedded ? 'text-xl' : 'text-2xl'} font-bold text-ink m-0 mb-1`}
           >
             Data Gap Queue
-          </h1>
-          <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: 0 }}>
+          </h2>
+          <p className="text-sm text-ink-subtle m-0">
             Placements missing required fields for commission processing. Resolve all gaps before
             starting a commission run.
           </p>

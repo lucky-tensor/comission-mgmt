@@ -29,6 +29,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import { Button } from 'ui';
 import { ApiError, apiGet, apiPost } from '../../lib/apiClient';
 import { formatDate } from '../../lib/format';
 
@@ -90,47 +91,12 @@ export interface ReconciliationReportData {
 }
 
 // ---------------------------------------------------------------------------
-// Shared style tokens
+// Shared style tokens — Tailwind class strings (theme tokens, no raw hex)
 // ---------------------------------------------------------------------------
 
-const cardStyle: React.CSSProperties = {
-  background: '#ffffff',
-  border: '1px solid #e5e7eb',
-  borderRadius: '0.75rem',
-  padding: '1.5rem',
-  marginBottom: '1.5rem',
-  fontFamily: 'system-ui, sans-serif',
-};
+const CARD_CLASS = 'bg-surface border border-border rounded-md p-6 mb-6';
 
-const headingStyle: React.CSSProperties = {
-  fontSize: '1.125rem',
-  fontWeight: 600,
-  color: '#111827',
-  marginTop: 0,
-  marginBottom: '1rem',
-};
-
-const btnStyle: React.CSSProperties = {
-  padding: '0.375rem 0.75rem',
-  borderRadius: '0.375rem',
-  border: 'none',
-  cursor: 'pointer',
-  fontSize: '0.8125rem',
-  fontWeight: 600,
-};
-
-const primaryBtnStyle: React.CSSProperties = {
-  ...btnStyle,
-  background: '#2563eb',
-  color: '#ffffff',
-};
-
-const disabledBtnStyle: React.CSSProperties = {
-  ...btnStyle,
-  background: '#e5e7eb',
-  color: '#9ca3af',
-  cursor: 'not-allowed',
-};
+const HEADING_CLASS = 'text-lg font-semibold text-ink mt-0 mb-4';
 
 // ---------------------------------------------------------------------------
 // PeriodForm — inputs for period_start / period_end
@@ -153,20 +119,12 @@ export function PeriodForm({ onFetch, fetching, error }: PeriodFormProps) {
   }
 
   return (
-    <div data-testid="period-form" style={cardStyle}>
-      <h2 style={headingStyle}>Run reconciliation report</h2>
+    <div data-testid="period-form" className={CARD_CLASS}>
+      <h2 className={HEADING_CLASS}>Run reconciliation report</h2>
       <form onSubmit={handleSubmit}>
-        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+        <div className="flex gap-4 flex-wrap items-end">
           <div>
-            <label
-              htmlFor="recon-period-start"
-              style={{
-                display: 'block',
-                fontSize: '0.875rem',
-                fontWeight: 600,
-                marginBottom: '0.25rem',
-              }}
-            >
+            <label htmlFor="recon-period-start" className="block text-sm font-semibold mb-1">
               Period start
             </label>
             <input
@@ -176,24 +134,11 @@ export function PeriodForm({ onFetch, fetching, error }: PeriodFormProps) {
               value={periodStart}
               onChange={(e) => setPeriodStart(e.target.value)}
               required
-              style={{
-                padding: '0.5rem',
-                border: '1px solid #d1d5db',
-                borderRadius: '0.375rem',
-                fontSize: '0.875rem',
-              }}
+              className="p-2 border border-border-strong rounded-md text-sm"
             />
           </div>
           <div>
-            <label
-              htmlFor="recon-period-end"
-              style={{
-                display: 'block',
-                fontSize: '0.875rem',
-                fontWeight: 600,
-                marginBottom: '0.25rem',
-              }}
-            >
+            <label htmlFor="recon-period-end" className="block text-sm font-semibold mb-1">
               Period end
             </label>
             <input
@@ -203,36 +148,18 @@ export function PeriodForm({ onFetch, fetching, error }: PeriodFormProps) {
               value={periodEnd}
               onChange={(e) => setPeriodEnd(e.target.value)}
               required
-              style={{
-                padding: '0.5rem',
-                border: '1px solid #d1d5db',
-                borderRadius: '0.375rem',
-                fontSize: '0.875rem',
-              }}
+              className="p-2 border border-border-strong rounded-md text-sm"
             />
           </div>
-          <button
-            type="submit"
-            data-testid="recon-fetch-button"
-            style={fetching ? disabledBtnStyle : primaryBtnStyle}
-            disabled={fetching}
-          >
+          <Button type="submit" data-testid="recon-fetch-button" disabled={fetching}>
             {fetching ? 'Loading…' : 'Run report'}
-          </button>
+          </Button>
         </div>
         {error && (
           <div
             data-testid="recon-fetch-error"
             role="alert"
-            style={{
-              marginTop: '0.75rem',
-              padding: '0.75rem',
-              background: '#fef2f2',
-              border: '1px solid #fca5a5',
-              borderRadius: '0.5rem',
-              color: '#b91c1c',
-              fontSize: '0.875rem',
-            }}
+            className="mt-3 p-3 bg-bad-bg border border-bad-fg/30 rounded-md text-bad-fg text-sm"
           >
             {error}
           </div>
@@ -248,12 +175,29 @@ export function PeriodForm({ onFetch, fetching, error }: PeriodFormProps) {
 
 const BUCKET_META: Record<
   ReconciliationDiscrepancy['discrepancy_type'],
-  { label: string; color: string; bg: string }
+  { label: string; chip: string; border: string }
 > = {
-  ledger_only: { label: 'Ledger only', color: '#1e40af', bg: '#dbeafe' },
-  system_only: { label: 'System only', color: '#7c3aed', bg: '#ede9fe' },
-  amount_mismatch: { label: 'Amount mismatch', color: '#b45309', bg: '#fef3c7' },
-  date_gap: { label: 'Timing gap', color: '#6b7280', bg: '#f3f4f6' },
+  // Blue/purple buckets are neutralized to the slate palette per the reskin spec.
+  ledger_only: {
+    label: 'Ledger only',
+    chip: 'bg-surface-sunken text-ink-muted',
+    border: 'border-l-border-strong',
+  },
+  system_only: {
+    label: 'System only',
+    chip: 'bg-surface-sunken text-ink-muted',
+    border: 'border-l-border-strong',
+  },
+  amount_mismatch: {
+    label: 'Amount mismatch',
+    chip: 'bg-warn-bg text-warn-fg',
+    border: 'border-l-warn-fg/40',
+  },
+  date_gap: {
+    label: 'Timing gap',
+    chip: 'bg-neutral-bg text-neutral-fg',
+    border: 'border-l-border-strong',
+  },
 };
 
 export interface AcknowledgeFormProps {
@@ -282,35 +226,17 @@ function AcknowledgeForm({
   return (
     <div>
       {!open && (
-        <button
-          data-testid={`acknowledge-btn-${discrepancyId}`}
-          onClick={() => setOpen(true)}
-          style={primaryBtnStyle}
-        >
+        <Button data-testid={`acknowledge-btn-${discrepancyId}`} onClick={() => setOpen(true)}>
           Acknowledge
-        </button>
+        </Button>
       )}
       {open && (
         <div
           data-testid={`acknowledge-form-${discrepancyId}`}
-          style={{
-            marginTop: '0.5rem',
-            background: '#f9fafb',
-            border: '1px solid #e5e7eb',
-            borderRadius: '0.5rem',
-            padding: '0.75rem',
-          }}
+          className="mt-2 bg-surface-muted border border-border rounded-md p-3"
         >
           <form onSubmit={(e) => void handleSubmit(e)}>
-            <label
-              htmlFor={`note-${discrepancyId}`}
-              style={{
-                display: 'block',
-                fontSize: '0.8125rem',
-                fontWeight: 600,
-                marginBottom: '0.25rem',
-              }}
-            >
+            <label htmlFor={`note-${discrepancyId}`} className="block text-sm font-semibold mb-1">
               Acknowledgement note
             </label>
             <textarea
@@ -320,44 +246,35 @@ function AcknowledgeForm({
               onChange={(e) => setNote(e.target.value)}
               rows={2}
               required
-              style={{
-                width: '100%',
-                boxSizing: 'border-box',
-                padding: '0.375rem 0.5rem',
-                border: '1px solid #d1d5db',
-                borderRadius: '0.375rem',
-                fontSize: '0.8125rem',
-                marginBottom: '0.5rem',
-              }}
+              className="w-full box-border px-2 py-1.5 border border-border-strong rounded-md text-sm mb-2"
             />
             {acknowledgeError && (
               <div
                 data-testid={`acknowledge-error-${discrepancyId}`}
                 role="alert"
-                style={{ color: '#b91c1c', fontSize: '0.8125rem', marginBottom: '0.5rem' }}
+                className="text-bad-fg text-sm mb-2"
               >
                 {acknowledgeError}
               </div>
             )}
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <button
+            <div className="flex gap-2">
+              <Button
                 type="submit"
                 data-testid={`acknowledge-save-${discrepancyId}`}
-                style={acknowledging ? disabledBtnStyle : primaryBtnStyle}
                 disabled={acknowledging}
               >
                 {acknowledging ? 'Saving…' : 'Save'}
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                variant="secondary"
                 onClick={() => {
                   setOpen(false);
                   setNote('');
                 }}
-                style={{ ...btnStyle, background: '#f3f4f6', color: '#374151' }}
               >
                 Cancel
-              </button>
+              </Button>
             </div>
           </form>
         </div>
@@ -383,113 +300,74 @@ function DiscrepancyRow({
   return (
     <div
       data-testid={`discrepancy-row-${discrepancy.id}`}
-      style={{
-        borderBottom: '1px solid #f3f4f6',
-        padding: '0.875rem 0',
-      }}
+      className="border-b border-surface-sunken py-3.5"
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div style={{ flex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+      <div className="flex justify-between items-start">
+        <div className="flex-1">
+          <div className="flex items-center gap-2 flex-wrap">
             <span
               data-testid={`discrepancy-type-badge-${discrepancy.id}`}
-              style={{
-                fontSize: '0.6875rem',
-                fontWeight: 600,
-                padding: '0.125rem 0.5rem',
-                borderRadius: '9999px',
-                background: meta.bg,
-                color: meta.color,
-              }}
+              className={`text-xs font-semibold px-2 py-0.5 rounded-xs ${meta.chip}`}
             >
               {meta.label}
             </span>
             {discrepancy.invoice_number && (
-              <span style={{ fontSize: '0.8125rem', color: '#374151', fontFamily: 'monospace' }}>
-                {discrepancy.invoice_number}
-              </span>
+              <span className="text-sm text-ink-muted font-mono">{discrepancy.invoice_number}</span>
             )}
             {discrepancy.acknowledged && (
               <span
                 data-testid={`acknowledged-badge-${discrepancy.id}`}
-                style={{
-                  fontSize: '0.6875rem',
-                  fontWeight: 600,
-                  padding: '0.125rem 0.5rem',
-                  borderRadius: '9999px',
-                  background: '#dcfce7',
-                  color: '#166534',
-                }}
+                className="text-xs font-semibold px-2 py-0.5 rounded-xs bg-ok-bg text-ok-fg"
               >
                 Acknowledged
               </span>
             )}
           </div>
-          <div
-            style={{
-              marginTop: '0.375rem',
-              fontSize: '0.8125rem',
-              color: '#6b7280',
-              display: 'flex',
-              gap: '1.5rem',
-              flexWrap: 'wrap',
-            }}
-          >
+          <div className="mt-1.5 text-sm text-ink-subtle flex gap-6 flex-wrap">
             {discrepancy.ledger_amount_billed != null && (
               <span>
-                Ledger:{' '}
-                <strong style={{ color: '#111827' }}>{discrepancy.ledger_amount_billed}</strong>
+                Ledger: <strong className="text-ink">{discrepancy.ledger_amount_billed}</strong>
               </span>
             )}
             {discrepancy.ar_amount_billed != null && (
               <span>
-                AR: <strong style={{ color: '#111827' }}>{discrepancy.ar_amount_billed}</strong>
+                AR: <strong className="text-ink">{discrepancy.ar_amount_billed}</strong>
               </span>
             )}
             {discrepancy.date_gap_days != null && (
               <span>
-                Date gap:{' '}
-                <strong style={{ color: '#111827' }}>{discrepancy.date_gap_days} days</strong>
+                Date gap: <strong className="text-ink">{discrepancy.date_gap_days} days</strong>
               </span>
             )}
             {discrepancy.ledger_issued_at && (
               <span>
                 Ledger date:{' '}
-                <strong style={{ color: '#111827' }}>
-                  {formatDate(discrepancy.ledger_issued_at)}
-                </strong>
+                <strong className="text-ink">{formatDate(discrepancy.ledger_issued_at)}</strong>
               </span>
             )}
             {discrepancy.ar_billed_date && (
               <span>
                 AR date:{' '}
-                <strong style={{ color: '#111827' }}>
-                  {formatDate(discrepancy.ar_billed_date)}
-                </strong>
+                <strong className="text-ink">{formatDate(discrepancy.ar_billed_date)}</strong>
               </span>
             )}
           </div>
           {discrepancy.acknowledged && discrepancy.acknowledged_note && (
             <div
               data-testid={`acknowledged-note-${discrepancy.id}`}
-              style={{
-                marginTop: '0.375rem',
-                fontSize: '0.8125rem',
-                color: '#374151',
-                fontStyle: 'italic',
-              }}
+              className="mt-1.5 text-sm text-ink-muted italic"
             >
               Note: {discrepancy.acknowledged_note}
             </div>
           )}
           {discrepancy.acknowledged && discrepancy.acknowledged_at && (
-            <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.125rem' }}>
+            <div className="text-xs text-ink-subtle mt-0.5">
               Acknowledged {formatDate(discrepancy.acknowledged_at)}
             </div>
           )}
         </div>
         {!discrepancy.acknowledged && (
-          <div style={{ marginLeft: '1rem', flexShrink: 0 }}>
+          <div className="ml-4 shrink-0">
             <AcknowledgeForm
               discrepancyId={discrepancy.id}
               onAcknowledge={onAcknowledge}
@@ -521,41 +399,15 @@ function BucketCard({
   const meta = BUCKET_META[type];
   const typeTestId = type.replace(/_/g, '-');
   return (
-    <div
-      data-testid={`bucket-${typeTestId}`}
-      style={{
-        ...cardStyle,
-        borderLeft: `3px solid ${meta.color}`,
-      }}
-    >
-      <h3
-        style={{
-          fontSize: '1rem',
-          fontWeight: 600,
-          color: '#111827',
-          marginTop: 0,
-          marginBottom: '0.75rem',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.5rem',
-        }}
-      >
+    <div data-testid={`bucket-${typeTestId}`} className={`${CARD_CLASS} border-l-2 ${meta.border}`}>
+      <h3 className="text-base font-semibold text-ink mt-0 mb-3 flex items-center gap-2">
         {meta.label}
-        <span
-          style={{
-            fontSize: '0.75rem',
-            fontWeight: 600,
-            padding: '0.125rem 0.5rem',
-            borderRadius: '9999px',
-            background: meta.bg,
-            color: meta.color,
-          }}
-        >
+        <span className={`text-xs font-semibold px-2 py-0.5 rounded-xs ${meta.chip}`}>
           {discrepancies.length}
         </span>
       </h3>
       {discrepancies.length === 0 ? (
-        <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>None for this period.</div>
+        <div className="text-sm text-ink-subtle">None for this period.</div>
       ) : (
         <div data-testid={`bucket-${typeTestId}-list`}>
           {discrepancies.map((d) => (
@@ -584,6 +436,7 @@ export type ReportPhase =
   | { kind: 'data'; report: ReconciliationReportData };
 
 export interface ReconciliationReportViewProps {
+  embedded?: boolean;
   phase: ReportPhase;
   onFetch: (periodStart: string, periodEnd: string) => Promise<void>;
   onAcknowledge: (id: string, note: string) => Promise<void>;
@@ -595,6 +448,7 @@ export interface ReconciliationReportViewProps {
 }
 
 export function ReconciliationReportView({
+  embedded = false,
   phase,
   onFetch,
   onAcknowledge,
@@ -607,19 +461,15 @@ export function ReconciliationReportView({
   return (
     <div
       data-testid="reconciliation-report"
-      style={{
-        minHeight: 'calc(100vh - 3.25rem)',
-        background: '#f9fafb',
-        fontFamily: 'system-ui, sans-serif',
-        padding: '2rem 1rem',
-      }}
+      data-embedded={embedded ? 'true' : 'false'}
+      className={embedded ? '' : 'min-h-surface bg-surface-muted px-4 py-8'}
     >
-      <div style={{ maxWidth: '960px', margin: '0 auto' }}>
-        <header style={{ marginBottom: '2rem' }}>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#111827', margin: 0 }}>
+      <div className={embedded ? '' : 'max-w-report mx-auto'}>
+        <header className="mb-8">
+          <h2 className={`${embedded ? 'text-xl' : 'text-2xl'} font-bold text-ink m-0`}>
             Financial Reconciliation Report
-          </h1>
-          <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: '0.25rem 0 0' }}>
+          </h2>
+          <p className="text-sm text-ink-subtle mt-1 mb-0">
             Compare the commission ledger against the financial system of record. Acknowledge all
             discrepancies to unblock run finalization.
           </p>
@@ -628,7 +478,7 @@ export function ReconciliationReportView({
         <PeriodForm onFetch={onFetch} fetching={fetching} error={fetchError} />
 
         {phase.kind === 'loading' && (
-          <div data-testid="recon-loading-state" style={{ ...cardStyle, color: '#6b7280' }}>
+          <div data-testid="recon-loading-state" className={`${CARD_CLASS} text-ink-subtle`}>
             Loading reconciliation report…
           </div>
         )}
@@ -637,12 +487,7 @@ export function ReconciliationReportView({
           <div
             data-testid="recon-error-state"
             role="alert"
-            style={{
-              ...cardStyle,
-              background: '#fef2f2',
-              border: '1px solid #fca5a5',
-              color: '#b91c1c',
-            }}
+            className="bg-bad-bg border border-bad-fg/30 rounded-md p-6 mb-6 text-bad-fg"
           >
             {phase.message}
           </div>
@@ -651,11 +496,11 @@ export function ReconciliationReportView({
         {phase.kind === 'data' && (
           <>
             {/* Summary banner */}
-            <div data-testid="recon-summary" style={cardStyle}>
-              <h2 style={headingStyle}>
+            <div data-testid="recon-summary" className={CARD_CLASS}>
+              <h2 className={HEADING_CLASS}>
                 Period: {phase.report.period_start} — {phase.report.period_end}
               </h2>
-              <dl style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap', margin: '0 0 1rem' }}>
+              <dl className="flex gap-8 flex-wrap m-0 mb-4">
                 {[
                   ['Ledger invoices', String(phase.report.summary.total_ledger_invoices)],
                   ['AR records', String(phase.report.summary.total_ar_records)],
@@ -663,33 +508,17 @@ export function ReconciliationReportView({
                   ['Discrepancies', String(phase.report.summary.discrepancies)],
                   ['Unacknowledged', String(unacknowledgedCount)],
                 ].map(([label, value]) => (
-                  <div
-                    key={label}
-                    style={{ display: 'flex', flexDirection: 'column', gap: '0.125rem' }}
-                  >
-                    <dt
-                      style={{
-                        fontSize: '0.6875rem',
-                        color: '#6b7280',
-                        fontWeight: 600,
-                        textTransform: 'uppercase',
-                      }}
-                    >
-                      {label}
-                    </dt>
+                  <div key={label} className="flex flex-col gap-0.5">
+                    <dt className="text-xs text-ink-subtle font-semibold uppercase">{label}</dt>
                     <dd
                       data-testid={
                         label === 'Unacknowledged' ? 'recon-unacknowledged-count' : undefined
                       }
-                      style={{
-                        fontSize: '1rem',
-                        fontWeight: 700,
-                        color:
-                          label === 'Unacknowledged' && unacknowledgedCount > 0
-                            ? '#b91c1c'
-                            : '#111827',
-                        margin: 0,
-                      }}
+                      className={`text-base font-bold m-0 ${
+                        label === 'Unacknowledged' && unacknowledgedCount > 0
+                          ? 'text-bad-fg'
+                          : 'text-ink'
+                      }`}
                     >
                       {value}
                     </dd>
@@ -702,15 +531,7 @@ export function ReconciliationReportView({
                 <div
                   data-testid="recon-all-clear"
                   role="status"
-                  style={{
-                    padding: '0.75rem 1rem',
-                    background: '#ecfdf5',
-                    border: '1px solid #6ee7b7',
-                    borderRadius: '0.5rem',
-                    color: '#065f46',
-                    fontSize: '0.875rem',
-                    fontWeight: 600,
-                  }}
+                  className="px-4 py-3 bg-ok-bg border border-ok-fg/30 rounded-md text-ok-fg text-sm font-semibold"
                 >
                   All discrepancies acknowledged — run finalization is unblocked.
                 </div>
@@ -721,15 +542,7 @@ export function ReconciliationReportView({
                 <div
                   data-testid="recon-clean"
                   role="status"
-                  style={{
-                    padding: '0.75rem 1rem',
-                    background: '#ecfdf5',
-                    border: '1px solid #6ee7b7',
-                    borderRadius: '0.5rem',
-                    color: '#065f46',
-                    fontSize: '0.875rem',
-                    fontWeight: 600,
-                  }}
+                  className="px-4 py-3 bg-ok-bg border border-ok-fg/30 rounded-md text-ok-fg text-sm font-semibold"
                 >
                   No discrepancies found — ledger and financial system are in agreement.
                 </div>
@@ -769,7 +582,7 @@ export function ReconciliationReportView({
  * Passes explicit state to ReconciliationReportView so every UI state is
  * exercisable via component tests with in-test data.
  */
-export function ReconciliationReport() {
+export function ReconciliationReport({ embedded = false }: { embedded?: boolean }) {
   const [phase, setPhase] = useState<ReportPhase>({ kind: 'idle' });
   const [fetching, setFetching] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -849,6 +662,7 @@ export function ReconciliationReport() {
 
   return (
     <ReconciliationReportView
+      embedded={embedded}
       phase={phase}
       onFetch={handleFetch}
       onAcknowledge={handleAcknowledge}

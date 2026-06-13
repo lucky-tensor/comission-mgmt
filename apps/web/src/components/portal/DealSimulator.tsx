@@ -18,7 +18,7 @@
  * self-contained and exposes explicit loading/error/empty/result states so the
  * flow is testable in a real browser.
  *
- * Canonical docs: docs/prd.md §5.9, §9; docs/arbitration-simulation.md
+ * Canonical docs: docs/prd.md §5.9, §5.12, §9; docs/arbitration-simulation.md
  * Issue: feat: webapp — UI surfaces for AI dispute arbitration + deal simulation (#199)
  */
 
@@ -34,40 +34,21 @@ import { apiGet, apiPost } from '../../lib/apiClient';
 import { useAsync } from '../../lib/useAsync';
 import { formatCurrency } from '../../lib/format';
 import { PortalCard, EmptyState, LoadingState, ErrorState } from './states';
+import { Button } from 'ui';
 
 type Tab = 'actual' | 'hypothetical';
 
-const fieldStyle: React.CSSProperties = {
-  width: '100%',
-  padding: '0.625rem 0.75rem',
-  border: '1px solid #d1d5db',
-  borderRadius: '0.5rem',
-  fontSize: '0.875rem',
-  boxSizing: 'border-box',
-  marginBottom: '0.875rem',
-};
+const FIELD_CLASS =
+  'w-full px-3 py-2.5 border border-border-strong rounded-md text-sm box-border mb-3.5';
 
-const tabButtonStyle = (active: boolean): React.CSSProperties => ({
-  padding: '0.5rem 1rem',
-  border: 'none',
-  borderBottom: active ? '2px solid #2563eb' : '2px solid transparent',
-  background: 'none',
-  color: active ? '#1d4ed8' : '#6b7280',
-  fontSize: '0.875rem',
-  fontWeight: 600,
-  cursor: 'pointer',
-});
-
-const submitButtonStyle = (busy: boolean): React.CSSProperties => ({
-  padding: '0.5rem 1.25rem',
-  background: busy ? '#93c5fd' : '#2563eb',
-  color: '#ffffff',
-  border: 'none',
-  borderRadius: '0.5rem',
-  cursor: busy ? 'not-allowed' : 'pointer',
-  fontSize: '0.875rem',
-  fontWeight: 600,
-});
+function tabButtonClass(active: boolean): string {
+  return [
+    'px-4 py-2 border-none bg-none text-sm font-semibold cursor-pointer',
+    active
+      ? 'border-b-2 border-accent text-accent'
+      : 'border-b-2 border-transparent text-ink-subtle',
+  ].join(' ');
+}
 
 // ---------------------------------------------------------------------------
 // SimulationResultCard — payout / dispute-risk / reasoning
@@ -77,43 +58,29 @@ function SimulationResultCard({ forecast }: { forecast: DealSimulationForecast }
   return (
     <div
       data-testid="simulation-result"
-      style={{
-        marginTop: '1rem',
-        padding: '1.25rem',
-        background: '#eff6ff',
-        border: '1px solid #bfdbfe',
-        borderRadius: '0.5rem',
-      }}
+      className="mt-4 p-5 bg-surface-sunken border border-border rounded-md"
     >
-      <div style={{ display: 'flex', gap: '2rem', marginBottom: '0.75rem' }}>
+      <div className="flex gap-8 mb-3">
         <div>
-          <div style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 600 }}>
-            Payout estimate
-          </div>
-          <div
-            data-testid="simulation-payout"
-            style={{ fontSize: '1.25rem', fontWeight: 700, color: '#111827' }}
-          >
+          <div className="text-xs text-ink-subtle font-semibold">Payout estimate</div>
+          <div data-testid="simulation-payout" className="text-xl font-bold text-ink">
             {formatCurrency(forecast.payout_estimate)}
           </div>
         </div>
         <div>
-          <div style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 600 }}>Dispute risk</div>
-          <div
-            data-testid="simulation-dispute-risk"
-            style={{ fontSize: '1.25rem', fontWeight: 700, color: '#111827' }}
-          >
+          <div className="text-xs text-ink-subtle font-semibold">Dispute risk</div>
+          <div data-testid="simulation-dispute-risk" className="text-xl font-bold text-ink">
             {forecast.dispute_risk}
           </div>
         </div>
       </div>
       <div>
-        <div style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 600 }}>
+        <div className="text-xs text-ink-subtle font-semibold">
           Reasoning (traceable to your plan version and fee-rate structure)
         </div>
         <p
           data-testid="simulation-reasoning"
-          style={{ fontSize: '0.875rem', color: '#374151', margin: '0.25rem 0 0', lineHeight: 1.5 }}
+          className="text-sm text-ink-muted mt-1 mb-0 leading-normal"
         >
           {forecast.reasoning}
         </p>
@@ -173,24 +140,16 @@ function ActualDealsTab() {
         <div
           key={dealId}
           data-testid={`actual-deal-${dealId}`}
-          style={{
-            borderBottom: '1px solid #e5e7eb',
-            padding: '0.75rem 0',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            gap: '1rem',
-          }}
+          className="border-b border-border py-3 flex justify-between items-center gap-4"
         >
-          <div style={{ fontSize: '0.875rem', color: '#111827' }}>Deal {dealId}</div>
-          <button
+          <div className="text-sm text-ink">Deal {dealId}</div>
+          <Button
             data-testid={`simulate-btn-${dealId}`}
             onClick={() => simulate(dealId)}
             disabled={busyDeal !== null}
-            style={submitButtonStyle(busyDeal === dealId)}
           >
             {busyDeal === dealId ? 'Simulating…' : 'Simulate'}
-          </button>
+          </Button>
         </div>
       ))}
 
@@ -248,23 +207,23 @@ function HypotheticalBuilderTab() {
 
   return (
     <form data-testid="hypothetical-form" onSubmit={handleSubmit}>
-      <label style={{ display: 'block', fontSize: '0.8125rem', color: '#374151' }}>
+      <label className="block text-sm text-ink-muted">
         Compensation amount
         <input
           data-testid="hypothetical-amount"
           type="number"
           step="any"
-          style={fieldStyle}
+          className={FIELD_CLASS}
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
           placeholder="e.g. 50000"
         />
       </label>
-      <label style={{ display: 'block', fontSize: '0.8125rem', color: '#374151' }}>
+      <label className="block text-sm text-ink-muted">
         Tier
         <select
           data-testid="hypothetical-tier"
-          style={fieldStyle}
+          className={FIELD_CLASS}
           value={tier}
           onChange={(e) => setTier(e.target.value)}
         >
@@ -273,28 +232,19 @@ function HypotheticalBuilderTab() {
           <option value="principal">Principal</option>
         </select>
       </label>
-      <label style={{ display: 'block', fontSize: '0.8125rem', color: '#374151' }}>
+      <label className="block text-sm text-ink-muted">
         Accrual percent
         <input
           data-testid="hypothetical-accrual"
           type="number"
           step="any"
-          style={fieldStyle}
+          className={FIELD_CLASS}
           value={accrualPercent}
           onChange={(e) => setAccrualPercent(e.target.value)}
           placeholder="e.g. 5"
         />
       </label>
-      <label
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.5rem',
-          fontSize: '0.8125rem',
-          color: '#374151',
-          marginBottom: '0.875rem',
-        }}
-      >
+      <label className="flex items-center gap-2 text-sm text-ink-muted mb-3.5">
         <input
           data-testid="hypothetical-bonus"
           type="checkbox"
@@ -306,14 +256,9 @@ function HypotheticalBuilderTab() {
 
       {error && <ErrorState message={error} />}
 
-      <button
-        type="submit"
-        data-testid="hypothetical-submit"
-        disabled={submitting}
-        style={submitButtonStyle(submitting)}
-      >
+      <Button type="submit" data-testid="hypothetical-submit" disabled={submitting}>
         {submitting ? 'Simulating…' : 'Run simulation'}
-      </button>
+      </Button>
 
       {result && <SimulationResultCard forecast={result} />}
     </form>
@@ -329,26 +274,18 @@ export function DealSimulator() {
 
   return (
     <PortalCard title="Deal simulator">
-      <div
-        data-testid="simulator-tabs"
-        style={{
-          display: 'flex',
-          gap: '0.5rem',
-          borderBottom: '1px solid #e5e7eb',
-          marginBottom: '1rem',
-        }}
-      >
+      <div data-testid="simulator-tabs" className="flex gap-2 border-b border-border mb-4">
         <button
           data-testid="tab-actual"
           onClick={() => setTab('actual')}
-          style={tabButtonStyle(tab === 'actual')}
+          className={tabButtonClass(tab === 'actual')}
         >
           Actual Deals
         </button>
         <button
           data-testid="tab-hypothetical"
           onClick={() => setTab('hypothetical')}
-          style={tabButtonStyle(tab === 'hypothetical')}
+          className={tabButtonClass(tab === 'hypothetical')}
         >
           Hypothetical Builder
         </button>

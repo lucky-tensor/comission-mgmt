@@ -1,0 +1,33 @@
+<!-- @dsCard group="Colors" viewport="700x180" name="Status colors" subtitle="Three tones only: success, danger, neutral — no amber, no blue" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin: 0; padding: 18px; background: var(--surface-card); }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .col { border: 1px solid var(--border-default); border-radius: var(--radius-sm); overflow: hidden; }
+  .solid { height: 56px; display: flex; align-items: center; padding: 0 12px; font: var(--weight-semibold) var(--text-sm) var(--font-sans); color: #fff; }
+  .soft { padding: 10px 12px; display: flex; align-items: center; gap: 8px; font: var(--weight-medium) var(--text-xs) var(--font-sans); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .mono { font: 10px var(--font-mono); color: var(--text-tertiary); margin-top: 2px; }
+</style>
+</head>
+<body>
+<div class="grid">
+  <div class="col">
+    <div class="solid" style="background:var(--green-600)">Success</div>
+    <div class="soft" style="background:var(--status-success-soft);color:var(--green-700)"><span class="dot" style="background:var(--green-500)"></span>Active · enabled · paid</div>
+  </div>
+  <div class="col">
+    <div class="solid" style="background:var(--gray-600)">Neutral</div>
+    <div class="soft" style="background:var(--gray-100);color:var(--gray-700)"><span class="dot" style="background:var(--gray-500)"></span>Pending · paused · idle</div>
+  </div>
+  <div class="col">
+    <div class="solid" style="background:var(--red-600)">Danger</div>
+    <div class="soft" style="background:var(--status-danger-soft);color:var(--red-700)"><span class="dot" style="background:var(--red-500)"></span>Failed · suspended</div>
+  </div>
+</div>
+</body>
+</html>

@@ -20,6 +20,7 @@
  */
 
 import { useState } from 'react';
+import { Button } from 'ui';
 import { apiGet, apiPost } from '../../lib/apiClient';
 import { useAsync, type AsyncState } from '../../lib/useAsync';
 import { formatCurrency, formatDate } from '../../lib/format';
@@ -87,46 +88,20 @@ export interface TriggerClawbackResult {
 }
 
 // ---------------------------------------------------------------------------
-// Styles
+// Styles — Tailwind class strings (theme tokens, no raw hex)
 // ---------------------------------------------------------------------------
 
-const tableStyle: React.CSSProperties = {
-  width: '100%',
-  borderCollapse: 'collapse',
-  fontSize: '0.8125rem',
-};
+const TABLE_CLASS = 'w-full border-collapse text-sm';
 
-const thStyle: React.CSSProperties = {
-  textAlign: 'left',
-  padding: '0.5rem 0.75rem',
-  background: '#f3f4f6',
-  color: '#374151',
-  fontWeight: 600,
-  borderBottom: '2px solid #e5e7eb',
-};
+const TH_CLASS =
+  'text-left px-3 py-2 bg-surface-sunken text-ink-muted font-semibold border-b-2 border-border';
 
-const tdStyle: React.CSSProperties = {
-  padding: '0.625rem 0.75rem',
-  borderBottom: '1px solid #f3f4f6',
-  color: '#374151',
-};
+const TD_CLASS = 'px-3 py-2.5 border-b border-surface-sunken text-ink-muted';
 
-const fieldStyle: React.CSSProperties = {
-  width: '100%',
-  padding: '0.5rem 0.75rem',
-  border: '1px solid #d1d5db',
-  borderRadius: '0.375rem',
-  fontSize: '0.875rem',
-  boxSizing: 'border-box',
-  marginBottom: '0.75rem',
-};
+const FIELD_CLASS =
+  'w-full px-3 py-2 border border-border-strong rounded-md text-sm box-border mb-3';
 
-const labelStyle: React.CSSProperties = {
-  display: 'block',
-  fontSize: '0.8125rem',
-  color: '#374151',
-  marginBottom: '0.25rem',
-};
+const LABEL_CLASS = 'block text-sm text-ink-muted mb-1';
 
 // ---------------------------------------------------------------------------
 // Sub-components
@@ -136,19 +111,11 @@ function EventSummaryBanner({ event }: { event: ClawbackEventSummary }) {
   return (
     <div
       data-testid="clawback-event-banner"
-      style={{
-        padding: '0.875rem 1rem',
-        background: '#fefce8',
-        border: '1px solid #fde047',
-        borderRadius: '0.5rem',
-        fontSize: '0.875rem',
-        color: '#713f12',
-        marginBottom: '1rem',
-      }}
+      className="px-4 py-3.5 bg-warn-bg border border-warn-fg/30 rounded-md text-sm text-warn-fg mb-4"
     >
       <strong>Clawback triggered</strong> — {event.event_type}, rule: <strong>{event.rule}</strong>,
       occurred {formatDate(event.occurred_at)}, triggered by{' '}
-      <code style={{ fontSize: '0.75rem' }}>{event.triggered_by}</code>
+      <code className="text-xs">{event.triggered_by}</code>
     </div>
   );
 }
@@ -156,32 +123,32 @@ function EventSummaryBanner({ event }: { event: ClawbackEventSummary }) {
 /** Read-only table of all adjustment entries — no edit or delete affordances. */
 function AdjustmentTable({ adjustments }: { adjustments: AdjustmentEntry[] }) {
   return (
-    <table style={tableStyle} data-testid="adjustment-table">
+    <table className={TABLE_CLASS} data-testid="adjustment-table">
       <thead>
         <tr>
-          <th style={thStyle}>Commission Record</th>
-          <th style={thStyle}>Amount</th>
-          <th style={thStyle}>Reason</th>
-          <th style={thStyle}>Actor</th>
-          <th style={thStyle}>Date</th>
-          <th style={thStyle}>Recovered</th>
+          <th className={TH_CLASS}>Commission Record</th>
+          <th className={TH_CLASS}>Amount</th>
+          <th className={TH_CLASS}>Reason</th>
+          <th className={TH_CLASS}>Actor</th>
+          <th className={TH_CLASS}>Date</th>
+          <th className={TH_CLASS}>Recovered</th>
         </tr>
       </thead>
       <tbody>
         {adjustments.map((a) => (
           <tr key={a.id} data-testid="adjustment-row">
-            <td style={tdStyle}>
-              <code style={{ fontSize: '0.75rem' }}>{a.commission_record_id.slice(0, 8)}…</code>
+            <td className={TD_CLASS}>
+              <code className="text-xs">{a.commission_record_id.slice(0, 8)}…</code>
             </td>
-            <td style={{ ...tdStyle, color: '#b91c1c', fontWeight: 600 }}>
+            <td className={`${TD_CLASS} text-bad-fg font-semibold`}>
               {formatCurrency(a.amount_delta)}
             </td>
-            <td style={tdStyle}>{a.reason_code}</td>
-            <td style={tdStyle}>
-              <code style={{ fontSize: '0.75rem' }}>{a.adjusted_by.slice(0, 8)}…</code>
+            <td className={TD_CLASS}>{a.reason_code}</td>
+            <td className={TD_CLASS}>
+              <code className="text-xs">{a.adjusted_by.slice(0, 8)}…</code>
             </td>
-            <td style={tdStyle}>{formatDate(a.adjusted_at)}</td>
-            <td style={tdStyle}>{a.recovered ? 'Yes' : 'No'}</td>
+            <td className={TD_CLASS}>{formatDate(a.adjusted_at)}</td>
+            <td className={TD_CLASS}>{a.recovered ? 'Yes' : 'No'}</td>
           </tr>
         ))}
       </tbody>
@@ -194,26 +161,26 @@ function RecoveryScheduleTable({ schedules }: { schedules: RecoveryScheduleEntry
   if (schedules.length === 0) return null;
   return (
     <PortalCard title="Recovery schedule">
-      <table style={tableStyle} data-testid="recovery-schedule-table">
+      <table className={TABLE_CLASS} data-testid="recovery-schedule-table">
         <thead>
           <tr>
-            <th style={thStyle}>Commission Record</th>
-            <th style={thStyle}>Total</th>
-            <th style={thStyle}>Installments</th>
-            <th style={thStyle}>Per Installment</th>
-            <th style={thStyle}>Created</th>
+            <th className={TH_CLASS}>Commission Record</th>
+            <th className={TH_CLASS}>Total</th>
+            <th className={TH_CLASS}>Installments</th>
+            <th className={TH_CLASS}>Per Installment</th>
+            <th className={TH_CLASS}>Created</th>
           </tr>
         </thead>
         <tbody>
           {schedules.map((s) => (
             <tr key={s.id} data-testid="recovery-schedule-row">
-              <td style={tdStyle}>
-                <code style={{ fontSize: '0.75rem' }}>{s.commission_record_id.slice(0, 8)}…</code>
+              <td className={TD_CLASS}>
+                <code className="text-xs">{s.commission_record_id.slice(0, 8)}…</code>
               </td>
-              <td style={tdStyle}>{formatCurrency(s.clawback_amount)}</td>
-              <td style={tdStyle}>{s.installment_count}</td>
-              <td style={tdStyle}>{formatCurrency(s.installment_amount)}</td>
-              <td style={tdStyle}>{formatDate(s.created_at)}</td>
+              <td className={TD_CLASS}>{formatCurrency(s.clawback_amount)}</td>
+              <td className={TD_CLASS}>{s.installment_count}</td>
+              <td className={TD_CLASS}>{formatCurrency(s.installment_amount)}</td>
+              <td className={TD_CLASS}>{formatDate(s.created_at)}</td>
             </tr>
           ))}
         </tbody>
@@ -272,19 +239,16 @@ export function TriggerForm({
 
   return (
     <PortalCard title="Post new adjustment">
-      <p
-        style={{ fontSize: '0.8125rem', color: '#6b7280', marginTop: 0, marginBottom: '1rem' }}
-        data-testid="refund-credit-note"
-      >
+      <p className="text-sm text-ink-subtle mt-0 mb-4" data-testid="refund-credit-note">
         Clawback and holdback adjustments only. Refund and credit-memo entry requires backend
         support not yet available.
       </p>
       <form data-testid="trigger-form" onSubmit={handleSubmit}>
-        <label style={labelStyle}>
+        <label className={LABEL_CLASS}>
           Event type (required)
           <select
             data-testid="trigger-event-type"
-            style={fieldStyle}
+            className={FIELD_CLASS}
             value={eventType}
             onChange={(e) => setEventType(e.target.value as ClawbackEventType)}
           >
@@ -295,11 +259,11 @@ export function TriggerForm({
             ))}
           </select>
         </label>
-        <label style={labelStyle}>
+        <label className={LABEL_CLASS}>
           Reason / rule (required)
           <select
             data-testid="trigger-rule"
-            style={fieldStyle}
+            className={FIELD_CLASS}
             value={rule}
             onChange={(e) => setRule(e.target.value as ClawbackRule)}
           >
@@ -311,31 +275,18 @@ export function TriggerForm({
           </select>
         </label>
         {error && (
-          <div
-            data-testid="trigger-error"
-            role="alert"
-            style={{ color: '#b91c1c', fontSize: '0.8125rem', marginBottom: '0.75rem' }}
-          >
+          <div data-testid="trigger-error" role="alert" className="text-bad-fg text-sm mb-3">
             {error}
           </div>
         )}
-        <button
+        <Button
           type="submit"
+          variant="destructive"
           data-testid="trigger-submit"
           disabled={submitting}
-          style={{
-            padding: '0.625rem 1.25rem',
-            background: submitting ? '#9ca3af' : '#991b1b',
-            color: '#fff',
-            border: 'none',
-            borderRadius: '0.5rem',
-            fontSize: '0.875rem',
-            fontWeight: 500,
-            cursor: submitting ? 'not-allowed' : 'pointer',
-          }}
         >
           {submitting ? 'Posting…' : 'Post adjustment'}
-        </button>
+        </Button>
       </form>
     </PortalCard>
   );

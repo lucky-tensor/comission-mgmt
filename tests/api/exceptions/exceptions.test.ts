@@ -321,7 +321,9 @@ describe('POST /exceptions — create exception request (AC#1)', () => {
   });
 
   test('Producer can submit an exception request', async () => {
-    const placementId = await createPlacement(testSql, producerClaimsA);
+    // Placement creation requires FinanceAdmin; use adminClaimsA for setup,
+    // then submit the exception as the producer (same org).
+    const placementId = await createPlacement(testSql, adminClaimsA);
     const req = makeRequest({
       path: '/exceptions',
       method: 'POST',

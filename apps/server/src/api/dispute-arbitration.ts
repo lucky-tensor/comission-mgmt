@@ -7,7 +7,7 @@
  * can be documented and tested before the live enqueue/result flow is wired.
  * reviewed_at: 2026-06-09
  *
- * Canonical docs: docs/arbitration-simulation.md, docs/architecture.md
+ * Canonical docs: docs/prd.md §5.4, docs/prd.md §5.12, docs/arbitration-simulation.md, docs/architecture.md
  *
  * Route surface reserved for the future feature:
  *   POST /disputes/:id/arbitrate

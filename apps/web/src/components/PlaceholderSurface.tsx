@@ -18,47 +18,15 @@ interface PlaceholderSurfaceProps {
   testId: string;
 }
 
-const containerStyle: React.CSSProperties = {
-  minHeight: 'calc(100vh - 3.25rem)',
-  background: '#f9fafb',
-  display: 'flex',
-  flexDirection: 'column',
-  justifyContent: 'center',
-  alignItems: 'center',
-  fontFamily: 'system-ui, sans-serif',
-  padding: '2rem',
-};
-
-const cardStyle: React.CSSProperties = {
-  background: '#ffffff',
-  padding: '2.5rem',
-  borderRadius: '1rem',
-  boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
-  border: '1px solid #e5e7eb',
-  textAlign: 'center',
-  maxWidth: '480px',
-  width: '100%',
-};
-
-const headingStyle: React.CSSProperties = {
-  fontSize: '1.25rem',
-  fontWeight: 700,
-  color: '#111827',
-  margin: '0 0 0.75rem',
-};
-
-const bodyStyle: React.CSSProperties = {
-  fontSize: '0.875rem',
-  color: '#6b7280',
-  margin: 0,
-};
-
 export function PlaceholderSurface({ title, description, testId }: PlaceholderSurfaceProps) {
   return (
-    <div style={containerStyle} data-testid={testId}>
-      <div style={cardStyle}>
-        <h1 style={headingStyle}>{title}</h1>
-        <p style={bodyStyle}>{description}</p>
+    <div
+      className="min-h-surface bg-surface-muted flex flex-col justify-center items-center p-8"
+      data-testid={testId}
+    >
+      <div className="bg-surface p-10 rounded-xl border border-border text-center max-w-empty w-full">
+        <h1 className="text-xl font-bold text-ink mb-3">{title}</h1>
+        <p className="text-sm text-ink-subtle m-0">{description}</p>
       </div>
     </div>
   );

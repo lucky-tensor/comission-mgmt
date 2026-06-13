@@ -25,6 +25,7 @@
  */
 
 import { useState } from 'react';
+import { Button, StatusChip, type StatusVariant } from 'ui';
 import { apiGet, apiPost } from '../../lib/apiClient';
 import { useAsync } from '../../lib/useAsync';
 import { PortalCard, LoadingState, ErrorState, EmptyState } from '../portal/states';
@@ -64,46 +65,17 @@ export interface EscalatedDispute {
 // Field / button styles (shared inline to avoid a CSS dependency)
 // ---------------------------------------------------------------------------
 
-const fieldStyle: React.CSSProperties = {
-  width: '100%',
-  padding: '0.625rem 0.75rem',
-  border: '1px solid #d1d5db',
-  borderRadius: '0.5rem',
-  fontSize: '0.875rem',
-  boxSizing: 'border-box',
-  marginBottom: '0.875rem',
-};
+const FIELD_CLASS =
+  'w-full px-3 py-2.5 border border-border-strong rounded-md text-sm box-border mb-3.5';
 
-const labelStyle: React.CSSProperties = {
-  display: 'block',
-  fontSize: '0.8125rem',
-  color: '#374151',
-  marginBottom: '0.25rem',
-};
+const LABEL_CLASS = 'block text-sm text-ink-muted mb-1';
 
-const tableStyle: React.CSSProperties = {
-  width: '100%',
-  borderCollapse: 'collapse',
-  fontSize: '0.875rem',
-};
+const TABLE_CLASS = 'w-full border-collapse text-sm';
 
-const thStyle: React.CSSProperties = {
-  textAlign: 'left',
-  padding: '0.5rem 0.75rem',
-  borderBottom: '2px solid #e5e7eb',
-  color: '#6b7280',
-  fontWeight: 500,
-  fontSize: '0.75rem',
-  textTransform: 'uppercase' as const,
-  letterSpacing: '0.05em',
-};
+const TH_CLASS =
+  'text-left px-3 py-2 border-b-2 border-border text-ink-subtle font-medium text-xs uppercase tracking-wider';
 
-const tdStyle: React.CSSProperties = {
-  padding: '0.625rem 0.75rem',
-  borderBottom: '1px solid #f3f4f6',
-  color: '#111827',
-  verticalAlign: 'top',
-};
+const TD_CLASS = 'px-3 py-2.5 border-b border-surface-sunken text-ink align-top';
 
 // ---------------------------------------------------------------------------
 // EscalationForm
@@ -146,26 +118,13 @@ export function EscalationForm({
         <div
           data-testid="escalation-confirmation"
           role="status"
-          style={{
-            padding: '1.25rem',
-            background: '#ecfdf5',
-            border: '1px solid #6ee7b7',
-            borderRadius: '0.5rem',
-            color: '#065f46',
-            fontSize: '0.875rem',
-          }}
+          className="p-5 bg-ok-bg border border-ok-fg/30 rounded-md text-ok-fg text-sm"
         >
           Escalation submitted — dispute state:{' '}
           <strong data-testid="escalation-state">{result.state}</strong>. The designated tiebreaker
           will be notified to review.
         </div>
-        <p
-          style={{
-            marginTop: '0.75rem',
-            fontSize: '0.8125rem',
-            color: '#6b7280',
-          }}
-        >
+        <p className="mt-3 text-sm text-ink-subtle">
           <em>
             Note: a distinct &quot;escalate to named tiebreaker&quot; endpoint is not yet available
             on the backend. The rationale has been recorded via the existing dispute-resolution
@@ -197,11 +156,11 @@ export function EscalationForm({
   return (
     <PortalCard title="Escalate a contested split">
       <form data-testid="escalation-form" onSubmit={handleSubmit}>
-        <label style={labelStyle}>
+        <label className={LABEL_CLASS}>
           Disputed split
           <select
             data-testid="escalation-dispute-select"
-            style={fieldStyle}
+            className={FIELD_CLASS}
             value={disputeId}
             onChange={(e) => setDisputeId(e.target.value)}
           >
@@ -212,42 +171,24 @@ export function EscalationForm({
             ))}
           </select>
         </label>
-        <label style={labelStyle}>
+        <label className={LABEL_CLASS}>
           Rationale
           <textarea
             data-testid="escalation-rationale"
-            style={{ ...fieldStyle, minHeight: '5rem', resize: 'vertical' }}
+            className={`${FIELD_CLASS} min-h-20 resize-y`}
             value={rationale}
             onChange={(e) => setRationale(e.target.value)}
             placeholder="Explain why this split cannot be resolved at the manager level and requires tiebreaker review…"
           />
         </label>
         {error && (
-          <div
-            data-testid="escalation-error"
-            role="alert"
-            style={{ color: '#b91c1c', fontSize: '0.8125rem', marginBottom: '0.75rem' }}
-          >
+          <div data-testid="escalation-error" role="alert" className="text-bad-fg text-sm mb-3">
             {error}
           </div>
         )}
-        <button
-          type="submit"
-          data-testid="escalation-submit"
-          disabled={submitting}
-          style={{
-            padding: '0.625rem 1.25rem',
-            background: submitting ? '#9ca3af' : '#7c3aed',
-            color: '#fff',
-            border: 'none',
-            borderRadius: '0.5rem',
-            fontSize: '0.875rem',
-            fontWeight: 500,
-            cursor: submitting ? 'not-allowed' : 'pointer',
-          }}
-        >
+        <Button type="submit" data-testid="escalation-submit" disabled={submitting}>
           {submitting ? 'Escalating…' : 'Escalate to tiebreaker'}
-        </button>
+        </Button>
       </form>
     </PortalCard>
   );
@@ -257,35 +198,12 @@ export function EscalationForm({
 // EscalationList
 // ---------------------------------------------------------------------------
 
-/** State badge colours for dispute states. */
-function stateBadge(state: string): React.CSSProperties {
-  if (state === 'Resolved')
-    return {
-      background: '#dcfce7',
-      color: '#166534',
-      padding: '0.125rem 0.5rem',
-      borderRadius: '9999px',
-      fontSize: '0.75rem',
-      fontWeight: 500,
-    };
-  if (state === 'UnderReview')
-    return {
-      background: '#fef9c3',
-      color: '#854d0e',
-      padding: '0.125rem 0.5rem',
-      borderRadius: '9999px',
-      fontSize: '0.75rem',
-      fontWeight: 500,
-    };
-  // Submitted / default
-  return {
-    background: '#ede9fe',
-    color: '#5b21b6',
-    padding: '0.125rem 0.5rem',
-    borderRadius: '9999px',
-    fontSize: '0.75rem',
-    fontWeight: 500,
-  };
+/** State badge variant for dispute states. */
+function stateBadgeVariant(state: string): StatusVariant {
+  if (state === 'Resolved') return 'green';
+  if (state === 'UnderReview') return 'amber';
+  // Submitted / default — purple tint neutralized to gray per design system.
+  return 'gray';
 }
 
 /**
@@ -311,28 +229,28 @@ export function EscalationList({
       ) : !data || data.length === 0 ? (
         <EmptyState message="No escalations found for your team." />
       ) : (
-        <table style={tableStyle} data-testid="escalation-list">
+        <table className={TABLE_CLASS} data-testid="escalation-list">
           <thead>
             <tr>
-              <th style={thStyle}>Placement</th>
-              <th style={thStyle}>Description</th>
-              <th style={thStyle}>Status</th>
-              <th style={thStyle}>Created</th>
+              <th className={TH_CLASS}>Placement</th>
+              <th className={TH_CLASS}>Description</th>
+              <th className={TH_CLASS}>Status</th>
+              <th className={TH_CLASS}>Created</th>
             </tr>
           </thead>
           <tbody>
             {data.map((d) => (
               <tr key={d.id}>
-                <td style={tdStyle} data-testid="escalation-placement">
+                <td className={TD_CLASS} data-testid="escalation-placement">
                   {d.placement_id}
                 </td>
-                <td style={tdStyle}>{d.description}</td>
-                <td style={tdStyle}>
-                  <span data-testid="escalation-status" style={stateBadge(d.state)}>
+                <td className={TD_CLASS}>{d.description}</td>
+                <td className={TD_CLASS}>
+                  <StatusChip data-testid="escalation-status" variant={stateBadgeVariant(d.state)}>
                     {d.state}
-                  </span>
+                  </StatusChip>
                 </td>
-                <td style={tdStyle}>{new Date(d.created_at).toLocaleDateString('en-US')}</td>
+                <td className={TD_CLASS}>{new Date(d.created_at).toLocaleDateString('en-US')}</td>
               </tr>
             ))}
           </tbody>
@@ -370,20 +288,11 @@ export function ManagerPortal({
   const { data: disputes, loading, error } = useAsync(onLoad, []);
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        background: '#f9fafb',
-        fontFamily: 'system-ui, sans-serif',
-        padding: '2rem 1rem',
-      }}
-    >
-      <div style={{ maxWidth: '880px', margin: '0 auto' }}>
-        <header style={{ marginBottom: '2rem' }}>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#111827', margin: 0 }}>
-            Manager — Cross-Team Split Escalation
-          </h1>
-          <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: '0.25rem 0 0' }}>
+    <div className="min-h-screen bg-surface-muted px-4 py-8">
+      <div className="max-w-narrow mx-auto">
+        <header className="mb-8">
+          <h1 className="text-2xl font-bold text-ink m-0">Manager — Cross-Team Split Escalation</h1>
+          <p className="text-sm text-ink-subtle mt-1 mb-0">
             Escalate contested splits to the designated tiebreaker and track status.
           </p>
         </header>

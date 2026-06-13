@@ -12,7 +12,8 @@
  *     routes highlight their parent nav item.
  *   - More than five items collapse into a "More" overflow menu so the bar
  *     never overflows off-screen.
- *   - All styling comes from the ui package design tokens — no local hex.
+ *   - All styling comes from Tailwind utilities driven by the @theme in
+ *     apps/web/src/index.css — no local hex.
  *   - The header shows the persona name and the human role label
  *     ("Jordan Lee · Finance Admin"), not the raw enum.
  *   - aria-current="page", the nav aria-label, and per-item test IDs are
@@ -28,8 +29,7 @@
 
 import type { AppRole } from 'core/auth';
 import { ROLE_ROUTES, activeNavPath, roleLabel, type NavItem } from '../lib/roleRoutes';
-import { colors, radius, font, layout } from 'ui';
-import { useState, type ReactNode, type CSSProperties, type MouseEvent } from 'react';
+import { useState, type ReactNode, type MouseEvent } from 'react';
 
 interface NavShellProps {
   role: AppRole;
@@ -61,71 +61,30 @@ export function splitNavItems<T>(
   return { visible: items.slice(0, cap - 1), overflow: items.slice(cap - 1) };
 }
 
-const navStyle: CSSProperties = {
-  background: colors.navBg,
-  color: colors.navFg,
-  padding: '0 1.5rem',
-  display: 'flex',
-  alignItems: 'center',
-  gap: '0.5rem',
-  height: '3.25rem',
-  fontFamily: font.family,
-  position: 'sticky',
-  top: 0,
-  zIndex: 100,
-};
+const NAV_CLASS = 'sticky top-0 z-nav flex items-center gap-2 h-13 px-6 bg-ink text-white';
 
-const brandStyle: CSSProperties = {
-  fontWeight: 700,
-  fontSize: '0.9375rem',
-  color: colors.navFg,
-  marginRight: '1rem',
-  whiteSpace: 'nowrap',
-};
+const BRAND_CLASS = 'font-bold text-base text-white mr-4 whitespace-nowrap';
 
-function navItemStyle(active: boolean): CSSProperties {
-  return {
-    padding: '0.4375rem 0.75rem',
-    borderRadius: radius.sm,
-    fontSize: '0.875rem',
-    fontWeight: active ? 600 : 400,
-    color: active ? colors.navFg : colors.navFgMuted,
-    background: active ? colors.navActiveBg : 'transparent',
-    textDecoration: 'none',
-    whiteSpace: 'nowrap',
-    cursor: 'pointer',
-  };
+const NAV_ITEM_BASE = 'px-3 py-2 rounded-md text-sm whitespace-nowrap no-underline cursor-pointer';
+
+/** Tailwind classes for a nav item, by active state. */
+function navItemClass(active: boolean): string {
+  return [
+    NAV_ITEM_BASE,
+    active
+      ? 'font-semibold text-white bg-inverse-active'
+      : 'font-normal text-inverse-muted hover:text-white',
+  ].join(' ');
 }
 
-const spacerStyle: CSSProperties = { flex: 1 };
+const LOGOUT_CLASS =
+  'px-3 py-2 rounded-md text-sm font-medium text-inverse-muted cursor-pointer ' +
+  'border border-white/10 bg-transparent hover:text-white';
 
-const logoutButtonStyle: CSSProperties = {
-  padding: '0.4375rem 0.75rem',
-  borderRadius: radius.sm,
-  fontSize: '0.8125rem',
-  fontWeight: 500,
-  color: colors.navFgMuted,
-  cursor: 'pointer',
-  border: `1px solid ${colors.navActiveBg}`,
-  background: 'transparent',
-};
+const ROLE_BADGE_CLASS =
+  'text-xs font-medium text-inverse-muted px-2.5 py-1 bg-inverse-soft rounded-xs whitespace-nowrap';
 
-const roleBadgeStyle: CSSProperties = {
-  fontSize: '0.75rem',
-  fontWeight: 500,
-  color: colors.navFgMuted,
-  padding: '0.25rem 0.625rem',
-  background: 'rgba(255,255,255,0.06)',
-  borderRadius: radius.pill,
-  whiteSpace: 'nowrap',
-};
-
-const contentStyle: CSSProperties = {
-  maxWidth: layout.containerMaxWidth,
-  margin: '0 auto',
-  padding: layout.containerPadding,
-  fontFamily: font.family,
-};
+const CONTENT_CLASS = 'mx-auto max-w-content p-6';
 
 /** Stable per-item test id derived from the route path. */
 function navTestId(path: string): string {
@@ -156,7 +115,7 @@ function NavLink({
       key={item.path}
       href={item.path}
       data-testid={navTestId(item.path)}
-      style={navItemStyle(active)}
+      className={navItemClass(active)}
       aria-current={active ? 'page' : undefined}
       onClick={handleClick}
     >
@@ -179,13 +138,13 @@ function OverflowMenu({
   const containsActive = items.some((i) => i.path === activePath);
 
   return (
-    <div style={{ position: 'relative' }} data-testid="nav-overflow">
+    <div className="relative" data-testid="nav-overflow">
       <button
         type="button"
         data-testid="nav-overflow-toggle"
         aria-haspopup="menu"
         aria-expanded={open}
-        style={{ ...navItemStyle(containsActive), border: 'none', background: 'transparent' }}
+        className={`${navItemClass(containsActive)} border-none bg-transparent`}
         onClick={() => setOpen((o) => !o)}
       >
         More ▾
@@ -194,20 +153,7 @@ function OverflowMenu({
         <div
           role="menu"
           data-testid="nav-overflow-menu"
-          style={{
-            position: 'absolute',
-            top: '100%',
-            left: 0,
-            marginTop: '0.25rem',
-            background: colors.navBg,
-            borderRadius: radius.md,
-            padding: '0.25rem',
-            minWidth: '11rem',
-            display: 'flex',
-            flexDirection: 'column',
-            boxShadow: '0 6px 20px rgba(0,0,0,0.35)',
-            zIndex: 200,
-          }}
+          className="absolute top-full left-0 mt-1 flex min-w-menu flex-col rounded-md bg-ink p-1 shadow-md z-menu"
         >
           {items.map((item) => (
             <a
@@ -215,7 +161,7 @@ function OverflowMenu({
               href={item.path}
               data-testid={navTestId(item.path)}
               role="menuitem"
-              style={{ ...navItemStyle(item.path === activePath), display: 'block' }}
+              className={`${navItemClass(item.path === activePath)} block`}
               aria-current={item.path === activePath ? 'page' : undefined}
               onClick={(e) => {
                 if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
@@ -252,8 +198,8 @@ export function NavShell({
 
   return (
     <div data-testid="nav-shell">
-      <nav style={navStyle} data-testid="nav-bar" aria-label="Main navigation">
-        <span style={brandStyle}>Commission Management</span>
+      <nav className={NAV_CLASS} data-testid="nav-bar" aria-label="Main navigation">
+        <span className={BRAND_CLASS}>Commission Management</span>
 
         {visible.map((item) => (
           <NavLink
@@ -267,13 +213,13 @@ export function NavShell({
           <OverflowMenu items={overflow} activePath={active} onNavigate={onNavigate} />
         )}
 
-        <div style={spacerStyle} />
-        <span style={roleBadgeStyle} data-testid="nav-role-badge">
+        <div className="flex-1" />
+        <span className={ROLE_BADGE_CLASS} data-testid="nav-role-badge">
           {badgeText}
         </span>
         <button
           type="button"
-          style={logoutButtonStyle}
+          className={LOGOUT_CLASS}
           data-testid="nav-logout-button"
           onClick={onLogout}
         >
@@ -281,7 +227,7 @@ export function NavShell({
         </button>
       </nav>
 
-      <main style={contentStyle}>{children}</main>
+      <main className={CONTENT_CLASS}>{children}</main>
     </div>
   );
 }

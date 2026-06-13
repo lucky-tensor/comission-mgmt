@@ -44,6 +44,7 @@ import {
   handleCreatePlacement,
   handleImportPlacements,
   handleListPlacements,
+  handleListPlacementLedger,
   handleGetPlacement,
   handleListIncompletePlacements,
   handleUpdatePlacement,
@@ -318,6 +319,9 @@ export async function fetchHandler(req: Request): Promise<Response> {
   }
   if (req.method === 'GET' && pathname === '/placements/incomplete') {
     return handleListIncompletePlacements(req, authResult.claims);
+  }
+  if (req.method === 'GET' && pathname === '/placements/ledger') {
+    return handleListPlacementLedger(authResult.claims);
   }
   if (req.method === 'POST' && pathname === '/placements') {
     return handleCreatePlacement(req, authResult.claims);

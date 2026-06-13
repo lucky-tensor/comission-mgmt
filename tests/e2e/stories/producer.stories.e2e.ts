@@ -69,6 +69,8 @@ describe('PR-1: Producer sees credited placement detail', () => {
 
   test('credited placements list renders', async () => {
     mount.current = await loginAs('Producer');
+    // CreditedPlacements is in the Placements tab (tabbed navigation).
+    await userEvent.click(page.getByRole('tab', { name: /placements/i }));
     await expect.element(page.getByTestId('placements-list')).toBeInTheDocument();
   });
 });
@@ -113,6 +115,8 @@ describe('PR-2: Producer sees tier progress', () => {
 describe('PR-3: Producer sees hold status and reason for held payouts', () => {
   test('placements list renders with at least one commission record', async () => {
     mount.current = await loginAs('Producer');
+    // CreditedPlacements is in the Placements tab (tabbed navigation).
+    await userEvent.click(page.getByRole('tab', { name: /placements/i }));
     await expect.element(page.getByTestId('placements-list')).toBeInTheDocument();
     const items = page.getByTestId('placements-list').getByRole('listitem');
     expect((await items.elements()).length).toBeGreaterThan(0);
@@ -120,6 +124,8 @@ describe('PR-3: Producer sees hold status and reason for held payouts', () => {
 
   test('placements list shows a record with a recognisable status badge', async () => {
     mount.current = await loginAs('Producer');
+    // CreditedPlacements is in the Placements tab (tabbed navigation).
+    await userEvent.click(page.getByRole('tab', { name: /placements/i }));
     await expect.element(page.getByTestId('placements-list')).toBeInTheDocument();
     // Records show their status text (e.g. Accrued, Held, Payable, Released).
     const statusValues = ['Accrued', 'Held', 'Payable', 'Released'];
@@ -136,6 +142,8 @@ describe('PR-3: Producer sees hold status and reason for held payouts', () => {
 
   test('placements list shows an explanation text for each record', async () => {
     mount.current = await loginAs('Producer');
+    // CreditedPlacements is in the Placements tab (tabbed navigation).
+    await userEvent.click(page.getByRole('tab', { name: /placements/i }));
     await expect.element(page.getByTestId('placements-list')).toBeInTheDocument();
     // Every record renders a plain-language explanation from the explanation engine.
     await expect.element(page.getByTestId('placements-list')).toHaveTextContent('Your');
@@ -143,6 +151,7 @@ describe('PR-3: Producer sees hold status and reason for held payouts', () => {
 
   test('payout table holdback column shows hold reason or Released for each payout row', async () => {
     mount.current = await loginAs('Producer');
+    // PayoutStatement with payout-table is on the default "Dashboard" tab.
     await expect.element(page.getByTestId('payout-table')).toBeInTheDocument();
     // The Holdback column header must be present — every payout row exposes hold status.
     await expect
@@ -162,6 +171,8 @@ describe('PR-3: Producer sees hold status and reason for held payouts', () => {
 describe('PR-5: Retained-search CFO card has consistent status, amount, and explanation (issue #222)', () => {
   test('CFO retained-search card: placements list has a row with the CFO title', async () => {
     mount.current = await loginAs('Producer');
+    // CreditedPlacements is in the Placements tab (tabbed navigation).
+    await userEvent.click(page.getByRole('tab', { name: /placements/i }));
     await expect.element(page.getByTestId('placements-list')).toBeInTheDocument();
     // The seeded CFO retained-search placement must appear somewhere on the portal
     const listText = (await page.getByTestId('placements-list').element())?.textContent ?? '';
@@ -170,6 +181,8 @@ describe('PR-5: Retained-search CFO card has consistent status, amount, and expl
 
   test('CFO retained-search retainer phase: expanded explanation contains no UUID', async () => {
     mount.current = await loginAs('Producer');
+    // CreditedPlacements is in the Placements tab (tabbed navigation).
+    await userEvent.click(page.getByRole('tab', { name: /placements/i }));
     await expect.element(page.getByTestId('placements-list')).toBeInTheDocument();
 
     // Open the first "How was this calculated?" detail on any CFO row.
@@ -201,6 +214,8 @@ describe('PR-5: Retained-search CFO card has consistent status, amount, and expl
 
   test('CFO retained-search delivery phase: held card shows amber/held status, not Payable', async () => {
     mount.current = await loginAs('Producer');
+    // CreditedPlacements is in the Placements tab (tabbed navigation).
+    await userEvent.click(page.getByRole('tab', { name: /placements/i }));
     await expect.element(page.getByTestId('placements-list')).toBeInTheDocument();
 
     const listEl = await page.getByTestId('placements-list').element();
@@ -233,11 +248,15 @@ describe('PR-5: Retained-search CFO card has consistent status, amount, and expl
 describe('PR-4: Producer submits a dispute', () => {
   test('dispute form renders on /portal', async () => {
     mount.current = await loginAs('Producer');
+    // DisputeForm is in the Placements tab (tabbed navigation).
+    await userEvent.click(page.getByRole('tab', { name: /placements/i }));
     await expect.element(page.getByTestId('dispute-form')).toBeInTheDocument();
   });
 
   test('dispute-record select contains at least one commission record option', async () => {
     mount.current = await loginAs('Producer');
+    // DisputeForm is in the Placements tab (tabbed navigation).
+    await userEvent.click(page.getByRole('tab', { name: /placements/i }));
     await expect.element(page.getByTestId('dispute-form')).toBeInTheDocument();
     const select = page.getByTestId('dispute-record');
     await expect.element(select).toBeInTheDocument();
@@ -247,6 +266,8 @@ describe('PR-4: Producer submits a dispute', () => {
 
   test('filling the form and submitting shows the confirmation', async () => {
     mount.current = await loginAs('Producer');
+    // DisputeForm is in the Placements tab (tabbed navigation).
+    await userEvent.click(page.getByRole('tab', { name: /placements/i }));
     await expect.element(page.getByTestId('dispute-form')).toBeInTheDocument();
     // Select the first commission record.
     const select = page.getByTestId('dispute-record');

@@ -25,7 +25,7 @@
  *
  * Injectable sql (for testing): all handler functions accept optional SqlClient args.
  *
- * Canonical docs: docs/prd.md §5.4, §7.5
+ * Canonical docs: docs/prd.md §5.4
  * Issue: feat: exception request and approval workflow (#14)
  */
 

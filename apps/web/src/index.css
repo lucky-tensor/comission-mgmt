@@ -1,0 +1,7 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/geist';
+@import '@fontsource-variable/geist-mono';
+@import 'ui/design-system/app.css';
+
+/* The shared ui package lives outside this app's root; scan it for class names. */
+@source '../../../packages/ui';

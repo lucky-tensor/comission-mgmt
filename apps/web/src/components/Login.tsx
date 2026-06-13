@@ -6,11 +6,14 @@
  * Sign In tab:  PasskeyLoginButton (WebAuthn assertion using discoverable credentials).
  * Demo section: one-click persona buttons + free-form Create input (DEMO_MODE only).
  *
+ * Styling: Tailwind utilities driven by the @theme in apps/web/src/index.css.
+ *
  * Canonical docs: docs/prd.md
  * Issue: feat: sign-in page and WebAuthn passkey UX with demo bypass
  */
 
 import { useState, useEffect } from 'react';
+import { Button } from 'ui';
 import { RegisterPasskeyButton, PasskeyLoginButton } from './PasskeyButton';
 
 // ---------------------------------------------------------------------------
@@ -27,183 +30,32 @@ interface DemoUser {
 }
 
 // ---------------------------------------------------------------------------
-// Style helpers (inline — no Tailwind dependency)
+// Style helpers — Tailwind class strings (theme tokens, no raw hex)
 // ---------------------------------------------------------------------------
 
-const containerStyle: React.CSSProperties = {
-  minHeight: '100vh',
-  background: '#f9fafb',
-  display: 'flex',
-  flexDirection: 'column',
-  justifyContent: 'center',
-  alignItems: 'center',
-  fontFamily: 'system-ui, sans-serif',
-  padding: '1rem',
-};
+const INPUT_CLASS =
+  'w-full px-3.5 py-2.5 border border-border-strong rounded-md text-sm outline-none ' +
+  'box-border focus:border-accent';
 
-const cardStyle: React.CSSProperties = {
-  background: '#ffffff',
-  padding: '2rem',
-  borderRadius: '1rem',
-  boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
-  border: '1px solid #e5e7eb',
-  width: '100%',
-  maxWidth: '420px',
-};
-
-const headingStyle: React.CSSProperties = {
-  fontSize: '1.75rem',
-  fontWeight: 700,
-  color: '#111827',
-  textAlign: 'center',
-  marginBottom: '0.25rem',
-};
-
-const subheadingStyle: React.CSSProperties = {
-  fontSize: '0.875rem',
-  color: '#6b7280',
-  textAlign: 'center',
-  marginBottom: '1.5rem',
-};
-
-const tabRowStyle: React.CSSProperties = {
-  display: 'flex',
-  borderBottom: '1px solid #e5e7eb',
-  marginBottom: '1.5rem',
-};
-
-function tabStyle(active: boolean): React.CSSProperties {
-  return {
-    flex: 1,
-    padding: '0.625rem',
-    background: 'none',
-    border: 'none',
-    borderBottom: active ? '2px solid #111827' : '2px solid transparent',
-    fontWeight: active ? 600 : 400,
-    color: active ? '#111827' : '#6b7280',
-    cursor: 'pointer',
-    fontSize: '0.875rem',
-    transition: 'color 0.15s',
-  };
+/** Tab button classes, by active state. */
+function tabClass(active: boolean): string {
+  return [
+    'flex-1 p-2.5 bg-transparent border-none cursor-pointer text-sm transition-colors',
+    active
+      ? 'border-b-2 border-ink font-semibold text-ink'
+      : 'border-b-2 border-transparent font-normal text-ink-subtle',
+  ].join(' ');
 }
 
-const inputWrapStyle: React.CSSProperties = {
-  marginBottom: '1rem',
-};
-
-const labelStyle: React.CSSProperties = {
-  display: 'block',
-  fontSize: '0.8125rem',
-  fontWeight: 500,
-  color: '#374151',
-  marginBottom: '0.375rem',
-};
-
-const inputStyle: React.CSSProperties = {
-  width: '100%',
-  padding: '0.625rem 0.875rem',
-  border: '1px solid #d1d5db',
-  borderRadius: '0.5rem',
-  fontSize: '0.875rem',
-  outline: 'none',
-  boxSizing: 'border-box',
-};
-
-const errorBoxStyle: React.CSSProperties = {
-  marginBottom: '1rem',
-  background: '#fef2f2',
-  border: '1px solid #fca5a5',
-  borderRadius: '0.5rem',
-  padding: '0.75rem 1rem',
-  fontSize: '0.8125rem',
-  color: '#b91c1c',
-};
-
-const dividerStyle: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: '0.75rem',
-  margin: '1.25rem 0',
-};
-
-const dividerLineStyle: React.CSSProperties = {
-  flex: 1,
-  borderTop: '1px solid #e5e7eb',
-};
-
-const dividerTextStyle: React.CSSProperties = {
-  fontSize: '0.6875rem',
-  color: '#9ca3af',
-  textTransform: 'uppercase',
-  letterSpacing: '0.05em',
-  fontWeight: 500,
-};
-
-const demoSectionStyle: React.CSSProperties = {
-  marginTop: '1.5rem',
-  paddingTop: '1.5rem',
-  borderTop: '1px solid #e5e7eb',
-};
-
-const demoHeadingStyle: React.CSSProperties = {
-  fontSize: '0.75rem',
-  color: '#9ca3af',
-  textAlign: 'center',
-  marginBottom: '0.75rem',
-  textTransform: 'uppercase',
-  letterSpacing: '0.05em',
-};
-
-const demoGridStyle: React.CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(2, 1fr)',
-  gap: '0.5rem',
-  marginBottom: '1rem',
-};
-
-function demoButtonStyle(loading: boolean): React.CSSProperties {
-  return {
-    padding: '0.5rem 0.75rem',
-    background: loading ? '#f3f4f6' : '#f9fafb',
-    border: '1px solid #e5e7eb',
-    borderRadius: '0.5rem',
-    cursor: loading ? 'not-allowed' : 'pointer',
-    fontSize: '0.8125rem',
-    fontWeight: 500,
-    color: '#374151',
-    transition: 'background 0.15s',
-  };
+/** Demo persona button classes, by loading state. */
+function demoButtonClass(loading: boolean): string {
+  return [
+    'px-3 py-2 border border-border rounded-md text-sm font-medium text-ink-muted transition-colors',
+    loading
+      ? 'bg-surface-sunken cursor-not-allowed'
+      : 'bg-surface-muted cursor-pointer hover:bg-surface-sunken',
+  ].join(' ');
 }
-
-const createRowStyle: React.CSSProperties = {
-  display: 'flex',
-  gap: '0.5rem',
-  marginTop: '0.75rem',
-};
-
-const createInputStyle: React.CSSProperties = {
-  ...inputStyle,
-  flex: 1,
-  marginBottom: 0,
-};
-
-const createBtnStyle: React.CSSProperties = {
-  padding: '0.625rem 1rem',
-  background: '#374151',
-  color: '#ffffff',
-  border: 'none',
-  borderRadius: '0.5rem',
-  fontSize: '0.8125rem',
-  fontWeight: 500,
-  cursor: 'pointer',
-  whiteSpace: 'nowrap',
-};
-
-const createBtnDisabledStyle: React.CSSProperties = {
-  ...createBtnStyle,
-  background: '#9ca3af',
-  cursor: 'not-allowed',
-};
 
 // ---------------------------------------------------------------------------
 // Component
@@ -289,17 +141,20 @@ export default function Login({ onSuccess }: LoginProps) {
   }
 
   return (
-    <div style={containerStyle} data-testid="login-container">
-      <div style={cardStyle}>
-        <h1 style={headingStyle}>Commission Management</h1>
-        <p style={subheadingStyle}>Sign in to your account</p>
+    <div
+      className="min-h-screen bg-surface-muted flex flex-col justify-center items-center p-4"
+      data-testid="login-container"
+    >
+      <div className="bg-surface p-8 rounded-xl border border-border w-full max-w-auth">
+        <h1 className="text-2xl font-bold text-ink text-center mb-1">Commission Management</h1>
+        <p className="text-sm text-ink-subtle text-center mb-6">Sign in to your account</p>
 
         {/* Tab bar */}
-        <div style={tabRowStyle}>
+        <div className="flex border-b border-border mb-6">
           <button
             type="button"
             data-testid="tab-register"
-            style={tabStyle(tab === 'register')}
+            className={tabClass(tab === 'register')}
             onClick={() => {
               setTab('register');
               setError('');
@@ -310,7 +165,7 @@ export default function Login({ onSuccess }: LoginProps) {
           <button
             type="button"
             data-testid="tab-signin"
-            style={tabStyle(tab === 'signin')}
+            className={tabClass(tab === 'signin')}
             onClick={() => {
               setTab('signin');
               setError('');
@@ -322,7 +177,10 @@ export default function Login({ onSuccess }: LoginProps) {
 
         {/* Error box */}
         {error && (
-          <div style={errorBoxStyle} data-testid="login-error">
+          <div
+            className="mb-4 bg-bad-bg border border-bad-fg/30 rounded-md px-4 py-3 text-sm text-bad-fg"
+            data-testid="login-error"
+          >
             {error}
           </div>
         )}
@@ -330,14 +188,17 @@ export default function Login({ onSuccess }: LoginProps) {
         {/* Register tab */}
         {tab === 'register' && (
           <div>
-            <div style={inputWrapStyle}>
-              <label style={labelStyle} htmlFor="register-username">
+            <div className="mb-4">
+              <label
+                className="block text-sm font-medium text-ink-muted mb-1.5"
+                htmlFor="register-username"
+              >
                 Email / Username
               </label>
               <input
                 id="register-username"
                 type="text"
-                style={inputStyle}
+                className={INPUT_CLASS}
                 placeholder="you@example.com"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
@@ -354,16 +215,18 @@ export default function Login({ onSuccess }: LoginProps) {
                 sign-in view (docs/ux-review.md §5). Only available in demo mode. */}
             {demoUsers.length > 0 && (
               <div data-testid="demo-create-section">
-                <div style={dividerStyle}>
-                  <div style={dividerLineStyle} />
-                  <span style={dividerTextStyle}>or create a demo account</span>
-                  <div style={dividerLineStyle} />
+                <div className="flex items-center gap-3 my-5">
+                  <div className="flex-1 border-t border-border" />
+                  <span className="text-xs text-ink-faint uppercase tracking-wider font-medium">
+                    or create a demo account
+                  </span>
+                  <div className="flex-1 border-t border-border" />
                 </div>
-                <div style={createRowStyle}>
+                <div className="flex gap-2 mt-3">
                   <input
                     type="text"
                     data-testid="demo-create-input"
-                    style={createInputStyle}
+                    className={`${INPUT_CLASS} flex-1 mb-0`}
                     placeholder="username or email"
                     value={createUsername}
                     onChange={(e) => setCreateUsername(e.target.value)}
@@ -371,15 +234,15 @@ export default function Login({ onSuccess }: LoginProps) {
                       if (e.key === 'Enter') handleDemoCreate();
                     }}
                   />
-                  <button
+                  <Button
                     type="button"
                     data-testid="demo-create-button"
-                    style={demoLoading ? createBtnDisabledStyle : createBtnStyle}
+                    className="whitespace-nowrap"
                     disabled={demoLoading || !createUsername.trim()}
                     onClick={handleDemoCreate}
                   >
                     Create
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}
@@ -389,7 +252,7 @@ export default function Login({ onSuccess }: LoginProps) {
         {/* Sign In tab */}
         {tab === 'signin' && (
           <div>
-            <p style={{ fontSize: '0.8125rem', color: '#6b7280', marginBottom: '1rem' }}>
+            <p className="text-sm text-ink-subtle mb-4">
               Use a passkey registered on this device. No username required.
             </p>
             <PasskeyLoginButton onSuccess={handleSuccess} onError={handleError} />
@@ -399,15 +262,17 @@ export default function Login({ onSuccess }: LoginProps) {
         {/* Demo section — one-click persona grid, visible when demo users are
             available. The create-account control lives behind the Register tab. */}
         {demoUsers.length > 0 && (
-          <div style={demoSectionStyle} data-testid="demo-section">
-            <p style={demoHeadingStyle}>Demo — one-click sign in</p>
-            <div style={demoGridStyle}>
+          <div className="mt-6 pt-6 border-t border-border" data-testid="demo-section">
+            <p className="text-xs text-ink-faint text-center mb-3 uppercase tracking-wider">
+              Demo — one-click sign in
+            </p>
+            <div className="grid grid-cols-2 gap-2 mb-4">
               {demoUsers.map((user) => (
                 <button
                   key={user.id}
                   type="button"
                   data-testid={`demo-user-${user.id}`}
-                  style={demoButtonStyle(demoLoading)}
+                  className={demoButtonClass(demoLoading)}
                   disabled={demoLoading}
                   onClick={() => handleDemoSignIn(user.id)}
                 >
