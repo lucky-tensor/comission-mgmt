@@ -111,6 +111,20 @@ export interface Placement {
   updatedAt: Date;
 }
 
+export interface PlacementLedgerContributor {
+  id: string;
+  producerId: string;
+  displayName: string;
+  role: string;
+  splitPct: number;
+}
+
+export interface PlacementLedgerMetadata {
+  managedPlacementIds: Set<string>;
+  contributorsByPlacement: Map<string, PlacementLedgerContributor[]>;
+  billingStatusesByPlacement: Map<string, string[]>;
+}
+
 // ---------------------------------------------------------------------------
 // Encryptor singleton (lazy-initialised)
 // ---------------------------------------------------------------------------
@@ -223,6 +237,78 @@ export async function listPlacements(sql: Sql, orgId: string): Promise<Placement
   return Promise.all(
     (rows as unknown as PlacementRawRow[]).map((row) => decryptPlacementRow(enc, row)),
   );
+}
+
+/**
+ * Loads the non-encrypted relationship data needed by the placement ledger.
+ * Manager visibility is represented by ManagerOverride contributor assignments.
+ */
+export async function getPlacementLedgerMetadata(
+  sql: Sql,
+  orgId: string,
+  managerId?: string,
+): Promise<PlacementLedgerMetadata> {
+  const contributorRows = await sql.unsafe(
+    `
+    SELECT c.id, c.placement_id, c.producer_id, c.role_code, c.split_pct,
+           COALESCE(u.display_name, u.email, c.producer_id::text) AS display_name
+    FROM contributors c
+    LEFT JOIN users u ON u.id = c.producer_id
+    WHERE c.org_id = $1
+    ORDER BY c.placement_id, c.created_at
+    `,
+    [orgId],
+  );
+
+  const invoiceRows = await sql.unsafe(
+    `
+    SELECT placement_id, status
+    FROM invoices
+    WHERE org_id = $1
+    ORDER BY issued_at DESC
+    `,
+    [orgId],
+  );
+
+  const contributorsByPlacement = new Map<string, PlacementLedgerContributor[]>();
+  const managedPlacementIds = new Set<string>();
+  for (const raw of contributorRows as unknown as Array<{
+    id: string;
+    placement_id: string;
+    producer_id: string;
+    role_code: string;
+    split_pct: string | number;
+    display_name: string;
+  }>) {
+    const contributors = contributorsByPlacement.get(raw.placement_id) ?? [];
+    contributors.push({
+      id: raw.id,
+      producerId: raw.producer_id,
+      displayName: raw.display_name,
+      role: raw.role_code,
+      splitPct: Number(raw.split_pct),
+    });
+    contributorsByPlacement.set(raw.placement_id, contributors);
+    if (managerId && raw.producer_id === managerId && raw.role_code === 'ManagerOverride') {
+      managedPlacementIds.add(raw.placement_id);
+    }
+  }
+
+  const billingStatusesByPlacement = new Map<string, string[]>();
+  for (const raw of invoiceRows as unknown as Array<{
+    placement_id: string;
+    status: string;
+  }>) {
+    const statuses = billingStatusesByPlacement.get(raw.placement_id) ?? [];
+    if (!statuses.includes(raw.status)) statuses.push(raw.status);
+    billingStatusesByPlacement.set(raw.placement_id, statuses);
+  }
+
+  return {
+    managedPlacementIds,
+    contributorsByPlacement,
+    billingStatusesByPlacement,
+  };
 }
 
 // ---------------------------------------------------------------------------

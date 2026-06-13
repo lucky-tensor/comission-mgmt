@@ -16,6 +16,7 @@
 import { Tabs } from '../Tabs';
 import { PlanAcknowledgment } from './PlanAcknowledgment';
 import { DrawBalanceView } from './DrawBalanceView';
+import { PlacementLedger } from '../placements/PlacementLedger';
 
 export function HRHome() {
   return (
@@ -28,6 +29,10 @@ export function HRHome() {
       </header>
 
       <Tabs defaultTab="acknowledgment">
+        <Tabs.Tab id="placements" label="Placements">
+          <PlacementLedger role="HR" />
+        </Tabs.Tab>
+
         <Tabs.Tab id="acknowledgment" label="Plan Acknowledgment">
           <PlanAcknowledgment />
         </Tabs.Tab>
