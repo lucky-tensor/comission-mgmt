@@ -113,7 +113,6 @@ export function FinancePage({ role = 'FinanceAdmin' }: { role?: AppRole }) {
             <ReconciliationReport embedded />
           </Section>
         </Tabs.Tab>
-
       </Tabs>
     </div>
   );
