@@ -6,6 +6,7 @@
  * results via the delegated token write path.
  *
  * Phase: Arbitration & Simulation (dev-scout #188)
+ * Canonical docs: docs/prd.md §5.4, docs/prd.md §5.12
  * Canonical: docs/arbitration-simulation.md — Arbitration agent execution flow
  *
  * STUB IMPLEMENTATION: Compiles and accepts task payloads. Does not invoke Claude API

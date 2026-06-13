@@ -8,6 +8,7 @@
  *
  * Canonical docs:
  *   - docs/prd.md §5.9
+ *   - docs/prd.md §5.12
  *   - docs/arbitration-simulation.md
  * Issue: feat: Producer Deal Simulation — payout + dispute-risk forecasting (#187)
  */

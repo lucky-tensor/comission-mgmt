@@ -18,7 +18,7 @@
  * self-contained and exposes explicit loading/error/empty/result states so the
  * flow is testable in a real browser.
  *
- * Canonical docs: docs/prd.md §5.9, §9; docs/arbitration-simulation.md
+ * Canonical docs: docs/prd.md §5.9, §5.12, §9; docs/arbitration-simulation.md
  * Issue: feat: webapp — UI surfaces for AI dispute arbitration + deal simulation (#199)
  */
 

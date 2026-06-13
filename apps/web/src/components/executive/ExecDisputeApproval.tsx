@@ -25,7 +25,7 @@
  *
  * CSRF: mutations go through apiPost which attaches the double-submit header.
  *
- * Canonical docs: docs/prd.md §4 (Executive), §5.4
+ * Canonical docs: docs/prd.md §4 (Executive), §5.4, §5.12
  * Issue: feat: Executive UI — escalated dispute final-approval (#113)
  */
 
