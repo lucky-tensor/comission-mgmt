@@ -6,7 +6,7 @@
  *
  * Canonical docs:
  *   - docs/prd.md §5.5 — Invoice and Collection Tracking
- *   - docs/prd.md §7.2 — Accounts Receivable and Invoice Data
+ *   - docs/prd.md §7 — Accounts Receivable and Invoice Data
  *   - packages/db/schema.sql — invoices DDL
  *
  * Issue: feat: invoice and collection tracking (#12)

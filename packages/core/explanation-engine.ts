@@ -8,7 +8,6 @@
  *
  * ## Canonical docs
  * - docs/prd.md §9 — Explainability constraint
- * - docs/prd.md §7.2 — Differentiating explainability
  *
  * ## Explanation structure (all scenarios):
  *   1. Credit sentence: split credit on the placement and the credited base amount.
