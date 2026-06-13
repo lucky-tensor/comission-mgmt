@@ -74,8 +74,9 @@ policy, deterministic CI gates), never by convention. The stack mirrors the refe
 rules engine, split/attribution model, draw recovery, clawback/holdback logic, explainability generation,
 the append-only audit ledger, JWT sign/verify (ES256 via Web Crypto), field encryption (AES-256-GCM/HKDF
 via Web Crypto), rate limiting (token bucket), UUID v4 generation, CSV import/export and date utilities,
-and small UI components. Every dependency is recorded in `docs/dependencies.md` with Buy/DIY justification,
-locked versions, and a periodically audited transitive tree (ARCH-C-005/C-013, IMPL-ARCH-023).
+and small UI components. Buy/DIY decisions for all vendored dependencies are recorded in §3 (this section)
+and §5 of this document, per ARCH-C-005/C-013 and IMPL-ARCH-023. A separate dependency-registry file was
+considered but not created; the §3 vendor table is the authoritative record (see issue #240).
 
 *No vendor is currently `[unanchored]`.* Notification delivery (PRD §5.6) is in-platform only; if an external
 email/SMS provider is later required it will be `[unanchored]` until a rule motivates it.
