@@ -270,10 +270,53 @@ describe('generateExplanation — edge cases', () => {
     expect(result).toContain('guarantee window');
   });
 
-  it('explanation contains plan_version_id and placement_id for traceability', () => {
+  it('explanation does not contain raw plan_version_id or placement_id in prose (issue #222)', () => {
     const result = generateExplanation(baseRateInput);
-    expect(result).toContain('plan-v1-fixture');
-    expect(result).toContain('placement-1-fixture');
+    // Raw UUIDs/IDs must not appear in the producer-facing explanation prose.
+    // They remain accessible as ExplanationInput fields for API trace metadata.
+    expect(result).not.toContain('plan-v1-fixture');
+    expect(result).not.toContain('placement-1-fixture');
+  });
+
+  it('collection-held explanation omits UUID prose and does not say "Payable" or "Released"', () => {
+    const result = generateExplanation(collectionHeldInput);
+    expect(result).not.toContain('plan-v4-fixture');
+    expect(result).not.toContain('placement-4-fixture');
+    // Must not suggest payout is released when it is held
+    expect(result).not.toContain('Payable');
+    expect(result).not.toContain('Released');
+    expect(result).toContain('pending client collection');
+  });
+
+  it('guarantee-held explanation omits UUID prose and does not say "Payable" or "Released"', () => {
+    const result = generateExplanation(guaranteeHeldInput);
+    expect(result).not.toContain('plan-v5-fixture');
+    expect(result).not.toContain('placement-5-fixture');
+    expect(result).not.toContain('Payable');
+    expect(result).not.toContain('Released');
+    expect(result).toContain('guarantee window');
+  });
+
+  it('legacy draw-recovery zero-net explanation omits UUID prose', () => {
+    const input: ExplanationInput = {
+      commissionableBase: 30_000,
+      splitPct: 1.0,
+      creditedBase: 30_000,
+      appliedRate: 0.2,
+      isTieredRate: false,
+      grossCommission: 6_000,
+      deskCost: 0,
+      drawDeducted: 6_000,
+      netPayable: 0,
+      heldForCollection: false,
+      heldForGuarantee: false,
+      planVersionId: 'plan-legacy-fixture',
+      placementId: 'placement-legacy-fixture',
+    };
+    const result = generateExplanation(input);
+    expect(result).not.toContain('plan-legacy-fixture');
+    expect(result).not.toContain('placement-legacy-fixture');
+    expect(result).toContain('draw recovery');
   });
 });
 
@@ -312,7 +355,8 @@ describe('CommissionRecord.explanation — populated by runCalculationPipeline',
     expect(record.explanation.length).toBeGreaterThan(0);
     expect(record.explanation).toContain('$30,000.00');
     expect(record.explanation).toContain('$6,000.00');
-    expect(record.explanation).toContain('plan-version-pipeline-fixture');
+    // Raw plan version ID must NOT appear in producer-facing explanation prose (issue #222)
+    expect(record.explanation).not.toContain('plan-version-pipeline-fixture');
   });
 
   it('explanation mentions "pending client collection" when heldForCollection=true', async () => {

@@ -29,6 +29,13 @@ export interface CommissionRecord {
   tier_rate: number;
   /** Lifecycle status: Accrued | Held | PendingApproval | Approved | Payable | Paid. */
   status: string;
+  /**
+   * Producer-facing display status — always consistent with hold_reason.
+   * Collection-gated → "Pending Collection"; guarantee-gated → "Held";
+   * otherwise mirrors `status`. Corrects legacy records where status=Payable but
+   * hold_reason=collection_gate (issue #222).
+   */
+  producer_display_status?: string;
   /** Reason a record is held, or null when not held. */
   hold_reason: string | null;
   billing_phase_id: string | null;

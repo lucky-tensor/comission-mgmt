@@ -823,3 +823,162 @@ describe('End-to-end: placement → calculate → /me/commission-records', () =>
     expect((record.explanation as string).length).toBeGreaterThan(0);
   });
 });
+
+// ---------------------------------------------------------------------------
+// issue #222 — payout explanation and status consistency
+// ---------------------------------------------------------------------------
+
+describe('issue #222 — trace metadata present in response, absent from explanation prose', () => {
+  test('placement_id and plan_version_id returned as API metadata but not in explanation text', async () => {
+    const producerId = crypto.randomUUID();
+    const producerClaims: SessionClaims = {
+      org_id: ORG_A_ID,
+      user_id: producerId,
+      role: 'Producer',
+      jti: crypto.randomUUID(),
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    };
+
+    const placementId = await createPlacementWithContributor(testSql, financeAdminA, producerId);
+    await createActivePlanForProducer(testSql, financeAdminA, producerId);
+    await calculateFor(testSql, financeAdminA, placementId);
+
+    const req = makeRequest({ path: '/me/commission-records' });
+    const res = await handleGetMyCommissionRecords(req, producerClaims, testSql, testSql);
+    expect(res.status).toBe(200);
+
+    const body = (await jsonBody(res)) as {
+      commission_records: Array<{
+        placement_id: string;
+        plan_version_id: string;
+        explanation: string | null;
+      }>;
+    };
+    expect(body.commission_records.length).toBeGreaterThan(0);
+
+    for (const record of body.commission_records) {
+      // Trace metadata must be present as top-level fields
+      expect(record.placement_id).toBeTruthy();
+      expect(record.plan_version_id).toBeTruthy();
+
+      // But neither raw ID should appear inside the producer-facing explanation prose
+      if (record.explanation) {
+        expect(record.explanation).not.toContain(record.placement_id);
+        expect(record.explanation).not.toContain(record.plan_version_id);
+      }
+    }
+  });
+
+  test('legacy Payable+$0+collection-hold record: /me/commission-records returns held display state, not Payable', async () => {
+    const producerId = crypto.randomUUID();
+    const producerClaims: SessionClaims = {
+      org_id: ORG_A_ID,
+      user_id: producerId,
+      role: 'Producer',
+      jti: crypto.randomUUID(),
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    };
+
+    // Create placement + calculate (no invoice → held for collection, net_payable=0)
+    const placementId = await createPlacementWithContributor(testSql, financeAdminA, producerId);
+    await createActivePlanForProducer(testSql, financeAdminA, producerId);
+    const recordIds = await calculateFor(testSql, financeAdminA, placementId);
+    expect(recordIds.length).toBeGreaterThan(0);
+
+    // Simulate a legacy contradiction: status=Payable but hold_reason=collection_gate
+    // (net_payable is encrypted and left as-is to avoid ciphertext corruption).
+    await testSql.unsafe(
+      `UPDATE commission_records
+          SET status = 'Payable', hold_reason = 'collection_gate'
+        WHERE id = $1`,
+      [recordIds[0]],
+    );
+
+    const req = makeRequest({ path: '/me/commission-records' });
+    const res = await handleGetMyCommissionRecords(req, producerClaims, testSql, testSql);
+    expect(res.status).toBe(200);
+
+    const body = (await jsonBody(res)) as {
+      commission_records: Array<{
+        id: string;
+        status: string;
+        producer_display_status: string;
+        net_payable: string | number;
+        hold_reason: string | null;
+        explanation: string | null;
+      }>;
+    };
+
+    const legacy = body.commission_records.find((r) => r.id === recordIds[0]);
+    expect(legacy).toBeDefined();
+
+    // hold_reason=collection_gate is present as trace metadata
+    expect(legacy!.hold_reason).toBe('collection_gate');
+
+    // producer_display_status must be held/pending — never Payable or Released (issue #222)
+    expect(legacy!.producer_display_status).not.toBe('Payable');
+    expect(legacy!.producer_display_status).not.toBe('Released');
+    expect(legacy!.producer_display_status).toBe('Pending Collection');
+
+    // The explanation must describe the collection hold — never present the record as Payable/Released
+    if (legacy!.explanation) {
+      expect(legacy!.explanation).toContain('pending client collection');
+      expect(legacy!.explanation).not.toContain(' Payable');
+      expect(legacy!.explanation).not.toContain(' Released');
+    }
+
+    // Caller must not issue a mutation query to fix the legacy record — we only read.
+    // (Verified by confirming the DB status column was NOT reset during the GET call.)
+    const rows = (await testSql.unsafe(
+      `SELECT status FROM commission_records WHERE id = $1`,
+      [recordIds[0]],
+    )) as unknown as { status: string }[];
+    // Status column is unchanged (the GET handler is read-only — no mutation issued).
+    expect(rows[0].status).toBe('Payable');
+  });
+
+  test('/me/payouts: legacy Payable+$0+collection-hold record returns Pending Collection display state', async () => {
+    const producerId = crypto.randomUUID();
+    const producerClaims: SessionClaims = {
+      org_id: ORG_A_ID,
+      user_id: producerId,
+      role: 'Producer',
+      jti: crypto.randomUUID(),
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    };
+
+    // Build an approved run so the record shows up in /me/payouts
+    const { recordIds } = await buildApprovedRun(testSql, financeAdminA, [producerId]);
+    expect(recordIds.length).toBeGreaterThan(0);
+
+    // Corrupt the record to simulate legacy contradiction: status=Payable but
+    // hold_reason=collection_gate (net_payable is encrypted and left as-is).
+    await testSql.unsafe(
+      `UPDATE commission_records
+          SET status = 'Payable', hold_reason = 'collection_gate'
+        WHERE id = $1`,
+      [recordIds[0]],
+    );
+
+    const req = makeRequest({ path: '/me/payouts' });
+    const res = await handleGetMyPayouts(req, producerClaims, testSql, testSql);
+    expect(res.status).toBe(200);
+
+    const body = (await jsonBody(res)) as {
+      payouts: Array<{
+        id: string;
+        status: string;
+        producer_display_status: string;
+        hold_reason: string | null;
+      }>;
+    };
+
+    const legacy = body.payouts.find((r) => r.id === recordIds[0]);
+    expect(legacy).toBeDefined();
+    expect(legacy!.hold_reason).toBe('collection_gate');
+    // producer_display_status must reflect the hold, not the stale status column
+    expect(legacy!.producer_display_status).toBe('Pending Collection');
+    expect(legacy!.producer_display_status).not.toBe('Payable');
+    expect(legacy!.producer_display_status).not.toBe('Released');
+  });
+});

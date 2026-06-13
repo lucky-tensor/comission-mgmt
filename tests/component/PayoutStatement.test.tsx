@@ -71,4 +71,69 @@ describe('PayoutStatementView', () => {
     await expect.element(page.getByText('$15,750.00')).toBeInTheDocument();
     await expect.element(page.getByText('25%')).toBeInTheDocument();
   });
+
+  // -------------------------------------------------------------------------
+  // issue #222 — held records render $0.00 net and collection/guarantee wording
+  // -------------------------------------------------------------------------
+
+  test('collection-held payout renders $0.00 calculated amount and collection hold reason', async () => {
+    const heldPayout: Payout = {
+      ...payout,
+      id: 'p-held-collection',
+      status: 'Held',
+      producer_display_status: 'Pending Collection',
+      hold_reason: 'collection_gate',
+      net_payable: 0,
+      explanation: 'Payment is pending client collection.',
+    };
+    mounted = renderInBrowser(
+      <PayoutStatementView state={{ data: [heldPayout], loading: false, error: null }} />,
+    );
+    await expect.element(page.getByTestId('payout-table')).toBeInTheDocument();
+    // Holdback column should show the hold reason, not "Released"
+    await expect.element(page.getByText('collection_gate')).toBeInTheDocument();
+    // Calculated amount column shows $0.00
+    await expect.element(page.getByText('$0.00')).toBeInTheDocument();
+  });
+
+  test('guarantee-held payout renders $0.00 calculated amount and guarantee hold reason', async () => {
+    const guaranteePayout: Payout = {
+      ...payout,
+      id: 'p-held-guarantee',
+      status: 'Held',
+      producer_display_status: 'Held',
+      hold_reason: 'guarantee_hold',
+      net_payable: 0,
+    };
+    mounted = renderInBrowser(
+      <PayoutStatementView state={{ data: [guaranteePayout], loading: false, error: null }} />,
+    );
+    await expect.element(page.getByTestId('payout-table')).toBeInTheDocument();
+    await expect.element(page.getByText('guarantee_hold')).toBeInTheDocument();
+    await expect.element(page.getByText('$0.00')).toBeInTheDocument();
+  });
+
+  test('unheld positive-net payout renders "Released" in holdback column', async () => {
+    mounted = renderInBrowser(
+      <PayoutStatementView state={{ data: [payout], loading: false, error: null }} />,
+    );
+    await expect.element(page.getByTestId('payout-table')).toBeInTheDocument();
+    // hold_reason is null → holdback column shows "Released"
+    await expect.element(page.getByText('Released')).toBeInTheDocument();
+    await expect.element(page.getByText('$15,750.00')).toBeInTheDocument();
+  });
+
+  test('confidential placement renders Confidential in position column', async () => {
+    const confidentialPayout: Payout = {
+      ...payout,
+      id: 'p-confidential',
+      position_title: 'Confidential',
+      client_name: 'Confidential',
+    };
+    mounted = renderInBrowser(
+      <PayoutStatementView state={{ data: [confidentialPayout], loading: false, error: null }} />,
+    );
+    await expect.element(page.getByTestId('payout-table')).toBeInTheDocument();
+    await expect.element(page.getByText('Confidential')).toBeInTheDocument();
+  });
 });
