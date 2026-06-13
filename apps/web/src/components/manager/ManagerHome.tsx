@@ -14,11 +14,16 @@ import { SplitApproval } from './SplitApproval';
 import { AttributionTimeline } from './AttributionTimeline';
 import { TeamCommissionView } from './TeamCommissionView';
 import { ManagerPortal as SplitEscalation } from './SplitEscalation';
+import { PlacementLedger } from '../placements/PlacementLedger';
 
 export function ManagerHome() {
   return (
     <div data-testid="manager-home" className="max-w-wide mx-auto p-6">
       <Tabs defaultTab="approvals">
+        <Tabs.Tab id="placements" label="Placements">
+          <PlacementLedger role="Manager" />
+        </Tabs.Tab>
+
         <Tabs.Tab id="approvals" label="Approvals">
           <div className="space-y-6">
             <SplitApproval />

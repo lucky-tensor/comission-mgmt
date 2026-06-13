@@ -4,15 +4,18 @@
  * UX overhaul (#203, docs/ux-review.md §2): consolidates separate routes
  * (/finance and /reconciliation) into one page with tabs:
  *
- *   1. Processing (default)
+ *   1. Cases
+ *      - PlacementLedger — cross-role placement management surface
+ *
+ *   2. Processing (default)
  *      - Data Gap Queue              — placements missing commission-required data
  *      - Commission Runs             — open / review / approve / finalize runs
  *      - Invoice & Collection Tracking — per-placement billing phases & invoices
  *
- *   2. Adjustments & Payroll
+ *   3. Adjustments & Payroll
  *      - Adjustments & Payroll Export  — adjustment ledger + payroll-ready export
  *
- *   3. Reconciliation
+ *   4. Reconciliation
  *      - Reconciliation Report
  *
  * Canonical docs: docs/prd.md §4 (Finance Admin); docs/ux-review.md §2
@@ -26,7 +29,8 @@ import { CommissionRunReview } from './CommissionRunReview';
 import { InvoiceCollectionSection } from './FinanceAdmin';
 import { FinanceAdminSurface } from './FinanceAdminSurface';
 import { ReconciliationReport } from './ReconciliationReport';
-import { PlacementLedger } from './PlacementLedger';
+import { PlacementLedger } from '../placements/PlacementLedger';
+import type { AppRole } from 'core/auth';
 
 function Section({
   id,
@@ -59,7 +63,7 @@ function Section({
   );
 }
 
-export function FinancePage() {
+export function FinancePage({ role = 'FinanceAdmin' }: { role?: AppRole }) {
   return (
     <div data-testid="finance-page">
       <header className="mb-6">
@@ -71,6 +75,10 @@ export function FinancePage() {
       </header>
 
       <Tabs defaultTab="processing">
+        <Tabs.Tab id="cases" label="Cases">
+          <PlacementLedger role={role} />
+        </Tabs.Tab>
+
         <Tabs.Tab id="processing" label="Processing">
           <div className="space-y-6">
             {/* The Data Gap Queue child renders its own "Data Gap Queue" heading, so
@@ -106,12 +114,6 @@ export function FinancePage() {
         <Tabs.Tab id="reconciliation" label="Reconciliation">
           <Section id="finance-reconciliation" testId="finance-section-reconciliation">
             <ReconciliationReport embedded />
-          </Section>
-        </Tabs.Tab>
-
-        <Tabs.Tab id="cases" label="Cases">
-          <Section id="finance-cases" testId="finance-section-cases">
-            <PlacementLedger />
           </Section>
         </Tabs.Tab>
       </Tabs>

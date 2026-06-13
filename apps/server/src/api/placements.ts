@@ -39,6 +39,7 @@ import {
   updatePlacement,
   listIncompletePlacements,
   checkPlacementsComplete,
+  getPlacementLedgerMetadata,
 } from 'db/placements';
 import {
   getGuaranteePeriodForPlacement,
@@ -88,6 +89,12 @@ function jsonResponse(body: unknown, status = 200): Response {
 
 function errorResponse(message: string, status: number, fields?: Record<string, string>): Response {
   return jsonResponse({ error: message, ...(fields ? { fields } : {}) }, status);
+}
+
+function requireFinanceAdmin(claims: SessionClaims): Response | null {
+  return claims.role === 'FinanceAdmin'
+    ? null
+    : errorResponse('Forbidden: Finance Admin role required', 403);
 }
 
 // ---------------------------------------------------------------------------
@@ -229,6 +236,7 @@ export interface CreatePlacementBody {
   fee_amount?: string;
   compensation_base: string;
   guarantee_days?: number | null;
+  is_confidential?: boolean;
 }
 
 /** Required fields for a complete placement. Missing any → 'Created' with incomplete flag. */
@@ -296,6 +304,9 @@ export async function handleCreatePlacement(
   claims: SessionClaims,
   sqlClient?: SqlClient,
 ): Promise<Response> {
+  const denied = requireFinanceAdmin(claims);
+  if (denied) return denied;
+
   let body: Partial<CreatePlacementBody>;
   try {
     body = (await req.json()) as Partial<CreatePlacementBody>;
@@ -324,6 +335,7 @@ export async function handleCreatePlacement(
       startDate,
       guaranteeDays,
       guaranteeExpiryDate: computeGuaranteeExpiryDate(startDate, guaranteeDays),
+      isConfidential: typedBody.is_confidential ?? false,
       status: 'Created',
     });
 
@@ -374,6 +386,9 @@ export async function handleImportPlacements(
   claims: SessionClaims,
   sqlClient?: SqlClient,
 ): Promise<Response> {
+  const denied = requireFinanceAdmin(claims);
+  if (denied) return denied;
+
   const contentType = req.headers.get('content-type') ?? '';
   let csvText: string;
 
@@ -546,6 +561,72 @@ export async function handleListPlacements(
 }
 
 // ---------------------------------------------------------------------------
+// GET /placements/ledger — role-scoped placement management view
+// ---------------------------------------------------------------------------
+
+const PLACEMENT_LEDGER_ROLES = new Set(['FinanceAdmin', 'Executive', 'HR', 'Manager']);
+
+export async function handleListPlacementLedger(
+  claims: SessionClaims,
+  sqlClient?: SqlClient,
+  auditSqlClient?: SqlClient,
+): Promise<Response> {
+  if (!PLACEMENT_LEDGER_ROLES.has(claims.role)) {
+    return errorResponse('Forbidden', 403);
+  }
+
+  const db = sqlClient ?? defaultSql;
+  const adb = auditSqlClient ?? defaultAuditSql;
+
+  try {
+    const placements = await sensitiveRead(
+      adb,
+      {
+        orgId: claims.org_id,
+        actorId: claims.user_id,
+        action: 'placement.ledger.list',
+        entityType: 'placement',
+        entityId: claims.org_id,
+      },
+      () => listPlacements(db, claims.org_id),
+    );
+    const metadata = await getPlacementLedgerMetadata(
+      db,
+      claims.org_id,
+      claims.role === 'Manager' ? claims.user_id : undefined,
+    );
+    const visiblePlacements =
+      claims.role === 'Manager'
+        ? placements.filter((placement) => metadata.managedPlacementIds.has(placement.id))
+        : placements;
+
+    return jsonResponse({
+      editable: claims.role === 'FinanceAdmin',
+      placements: visiblePlacements.map((placement) => ({
+        id: placement.id,
+        candidate_id: placement.candidateId,
+        client_entity_id: placement.clientEntityId,
+        job_title: placement.jobTitle,
+        compensation_base: placement.compensationBase,
+        fee_amount: placement.feeAmount,
+        status: placement.status,
+        start_date: formatDate(placement.startDate),
+        guarantee_days: placement.guaranteeDays,
+        guarantee_expiry_date: placement.guaranteeExpiryDate,
+        is_confidential: placement.isConfidential,
+        billing_statuses: metadata.billingStatusesByPlacement.get(placement.id) ?? [],
+        contributors: metadata.contributorsByPlacement.get(placement.id) ?? [],
+        created_at: placement.createdAt,
+        updated_at: placement.updatedAt,
+      })),
+    });
+  } catch (err: unknown) {
+    console.error('[placements] ledger list error:', err);
+    return errorResponse('Failed to list placement ledger', 500);
+  }
+}
+
+// ---------------------------------------------------------------------------
 // GET /placements/:id — get a single placement
 // ---------------------------------------------------------------------------
 
@@ -701,16 +782,14 @@ export async function handleUpdatePlacement(
   sqlClient?: SqlClient,
   auditSqlClient?: SqlClient,
 ): Promise<Response> {
+  const denied = requireFinanceAdmin(claims);
+  if (denied) return denied;
+
   let body: Partial<UpdatePlacementBody>;
   try {
     body = (await req.json()) as Partial<UpdatePlacementBody>;
   } catch {
     return errorResponse('Invalid JSON body', 400);
-  }
-
-  // RBAC: only FinanceAdmin may set the confidential flag
-  if ('is_confidential' in body && claims.role !== 'FinanceAdmin') {
-    return errorResponse('Only Finance Admin can set the confidential flag', 403);
   }
 
   const db = sqlClient ?? defaultSql;
@@ -742,6 +821,23 @@ export async function handleUpdatePlacement(
   if (body.fee_pct !== undefined && isNaN(Number(body.fee_pct))) {
     errors['fee_pct'] = 'fee_pct must be a numeric string';
   }
+  const placementStatuses = new Set([
+    'Created',
+    'ContributorsAssigned',
+    'PendingApproval',
+    'Active',
+    'Invoiced',
+    'Collected',
+    'GuaranteeActive',
+    'GuaranteeExpired',
+    'Closed',
+    'Refunded',
+    'Disputed',
+    'ClawbackTriggered',
+  ]);
+  if (body.status !== undefined && !placementStatuses.has(body.status)) {
+    errors['status'] = 'status is invalid';
+  }
   if (Object.keys(errors).length > 0) {
     return errorResponse('Validation failed', 422, errors);
   }
@@ -769,17 +865,23 @@ export async function handleUpdatePlacement(
       : undefined; // no change
 
   try {
-    const updated = await updatePlacement(db, placementId, {
-      candidateId: body.candidate_id,
-      clientEntityId: body.client_entity_id,
-      jobTitle: body.job_title,
-      compensationBase: body.compensation_base,
-      feeAmount,
-      startDate: 'start_date' in body ? body.start_date : undefined,
-      guaranteeDays: 'guarantee_days' in body ? body.guarantee_days : undefined,
-      guaranteeExpiryDate: newGuaranteeExpiryDate,
-      isConfidential: 'is_confidential' in body ? body.is_confidential : undefined,
-    });
+    const updated = await updatePlacement(
+      db,
+      placementId,
+      {
+        candidateId: body.candidate_id,
+        clientEntityId: body.client_entity_id,
+        jobTitle: body.job_title,
+        compensationBase: body.compensation_base,
+        feeAmount,
+        startDate: 'start_date' in body ? body.start_date : undefined,
+        guaranteeDays: 'guarantee_days' in body ? body.guarantee_days : undefined,
+        guaranteeExpiryDate: newGuaranteeExpiryDate,
+        status: body.status as import('db/placements').PlacementStatus | undefined,
+        isConfidential: 'is_confidential' in body ? body.is_confidential : undefined,
+      },
+      claims.org_id,
+    );
 
     if (!updated) {
       return errorResponse('Placement not found', 404);
