@@ -75,6 +75,8 @@ describe('HR-1: Plan acknowledgment two-role flow', () => {
 describe('HR-2: HR views draw balance and recovery schedule', () => {
   test('draw-balance-view renders on /hr', async () => {
     mount.current = await loginAs('HR');
+    // DrawBalanceView is in the Draw & Recovery tab (tabbed navigation).
+    await userEvent.click(page.getByRole('tab', { name: /draw/i }));
     await expect.element(page.getByTestId('draw-balance-view')).toBeInTheDocument();
     await expect
       .element(page.getByTestId('draw-balance-heading'))
@@ -83,6 +85,8 @@ describe('HR-2: HR views draw balance and recovery schedule', () => {
 
   test('producer picker is present (no free-text UUID input)', async () => {
     mount.current = await loginAs('HR');
+    // DrawBalanceView is in the Draw & Recovery tab (tabbed navigation).
+    await userEvent.click(page.getByRole('tab', { name: /draw/i }));
     await expect.element(page.getByTestId('draw-balance-view')).toBeInTheDocument();
     await expect.element(page.getByTestId('producer-picker-select')).toBeInTheDocument();
     expect(await page.getByTestId('producer-id-input').elements()).toHaveLength(0);
@@ -91,6 +95,8 @@ describe('HR-2: HR views draw balance and recovery schedule', () => {
 
   test('selecting a producer from the picker renders the balance panel', async () => {
     mount.current = await loginAs('HR');
+    // DrawBalanceView is in the Draw & Recovery tab (tabbed navigation).
+    await userEvent.click(page.getByRole('tab', { name: /draw/i }));
     await expect.element(page.getByTestId('draw-balance-view')).toBeInTheDocument();
     await expect.element(page.getByTestId('producer-picker-select')).toBeInTheDocument();
     await page.getByTestId('producer-picker-select').selectOptions(SEEDED.producerId);
@@ -100,6 +106,8 @@ describe('HR-2: HR views draw balance and recovery schedule', () => {
 
   test('outstanding-balance cell renders with a numeric value', async () => {
     mount.current = await loginAs('HR');
+    // DrawBalanceView is in the Draw & Recovery tab (tabbed navigation).
+    await userEvent.click(page.getByRole('tab', { name: /draw/i }));
     await expect.element(page.getByTestId('producer-picker-select')).toBeInTheDocument();
     await page.getByTestId('producer-picker-select').selectOptions(SEEDED.producerId);
     await expect.element(page.getByTestId('outstanding-balance')).toBeInTheDocument();
@@ -109,6 +117,8 @@ describe('HR-2: HR views draw balance and recovery schedule', () => {
 
   test('recovery schedule section renders (empty-state or schedule rows)', async () => {
     mount.current = await loginAs('HR');
+    // DrawBalanceView is in the Draw & Recovery tab (tabbed navigation).
+    await userEvent.click(page.getByRole('tab', { name: /draw/i }));
     await expect.element(page.getByTestId('producer-picker-select')).toBeInTheDocument();
     await page.getByTestId('producer-picker-select').selectOptions(SEEDED.producerId);
     // Wait for the data to finish loading before inspecting the schedule section.

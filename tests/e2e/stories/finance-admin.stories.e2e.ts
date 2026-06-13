@@ -143,8 +143,10 @@ describe('FA-2: Finance Admin reviews and approves a commission run', () => {
       await userEvent.click(page.getByRole('button', { name: 'Save' }).all()[0]);
       await expect.element(page.getByTestId('recon-all-clear')).toBeInTheDocument();
     }
-    // Navigate back to finance and load the pre-seeded run.
+    // Navigate back to finance and switch to the Processing tab (Tabs component
+    // retains the Reconciliation tab state after navigating away and back).
     navigate('/finance');
+    await userEvent.click(page.getByRole('tab', { name: /processing/i }));
     await expect.element(page.getByTestId('commission-run-review')).toBeInTheDocument();
     await userEvent.fill(page.getByTestId('load-run-id-input'), s.fixture.closeRunId);
     await userEvent.click(page.getByTestId('load-run-queue-button'));

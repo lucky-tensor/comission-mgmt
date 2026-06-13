@@ -120,12 +120,16 @@ describe('MG-1: Manager approves split allocations', () => {
 describe('MG-2: Manager views attribution timeline', () => {
   test('attribution-timeline renders on /manager in idle state', async () => {
     mount.current = await loginAs('Manager');
+    // AttributionTimeline is in the Team Performance tab (tabbed navigation).
+    await userEvent.click(page.getByRole('tab', { name: /team performance/i }));
     await expect.element(page.getByTestId('attribution-timeline')).toBeInTheDocument();
     await expect.element(page.getByTestId('timeline-idle')).toBeInTheDocument();
   });
 
   test('searching by placement ID loads timeline events', async () => {
     mount.current = await loginAs('Manager');
+    // AttributionTimeline is in the Team Performance tab (tabbed navigation).
+    await userEvent.click(page.getByRole('tab', { name: /team performance/i }));
     await expect.element(page.getByTestId('attribution-timeline')).toBeInTheDocument();
     await expect.element(page.getByTestId('placement-picker-select')).toBeInTheDocument();
     await page.getByTestId('placement-picker-select').selectOptions(pendingPlacementId);
@@ -134,6 +138,8 @@ describe('MG-2: Manager views attribution timeline', () => {
 
   test('timeline events include at least one event with an actor', async () => {
     mount.current = await loginAs('Manager');
+    // AttributionTimeline is in the Team Performance tab (tabbed navigation).
+    await userEvent.click(page.getByRole('tab', { name: /team performance/i }));
     await expect.element(page.getByTestId('placement-picker-select')).toBeInTheDocument();
     await page.getByTestId('placement-picker-select').selectOptions(pendingPlacementId);
     await expect.element(page.getByTestId('timeline-events')).toBeInTheDocument();
@@ -143,6 +149,8 @@ describe('MG-2: Manager views attribution timeline', () => {
 
   test('each event node shows a timestamp', async () => {
     mount.current = await loginAs('Manager');
+    // AttributionTimeline is in the Team Performance tab (tabbed navigation).
+    await userEvent.click(page.getByRole('tab', { name: /team performance/i }));
     await expect.element(page.getByTestId('placement-picker-select')).toBeInTheDocument();
     await page.getByTestId('placement-picker-select').selectOptions(pendingPlacementId);
     await expect.element(page.getByTestId('timeline-events')).toBeInTheDocument();
@@ -157,6 +165,8 @@ describe('MG-2: Manager views attribution timeline', () => {
 describe('MG-3: Manager views team commission accruals', () => {
   test('team-commission-view-heading renders on /manager', async () => {
     mount.current = await loginAs('Manager');
+    // TeamCommissionView is in the Team Performance tab (tabbed navigation).
+    await userEvent.click(page.getByRole('tab', { name: /team performance/i }));
     await expect.element(page.getByTestId('team-commission-view-heading')).toBeInTheDocument();
     await expect
       .element(page.getByTestId('team-commission-view-heading'))
@@ -165,6 +175,8 @@ describe('MG-3: Manager views team commission accruals', () => {
 
   test('placements table renders with at least one placement row', async () => {
     mount.current = await loginAs('Manager');
+    // TeamCommissionView is in the Team Performance tab (tabbed navigation).
+    await userEvent.click(page.getByRole('tab', { name: /team performance/i }));
     await expect.element(page.getByTestId('placements-table')).toBeInTheDocument();
     const rows = page.getByTestId('placements-table').getByRole('row');
     // At least one data row (beyond the header).
@@ -173,6 +185,8 @@ describe('MG-3: Manager views team commission accruals', () => {
 
   test('commission summary panel renders', async () => {
     mount.current = await loginAs('Manager');
+    // TeamCommissionView is in the Team Performance tab (tabbed navigation).
+    await userEvent.click(page.getByRole('tab', { name: /team performance/i }));
     await expect
       .element(page.getByText('Commission Summary by Producer', { exact: false }))
       .toBeInTheDocument();
@@ -180,6 +194,8 @@ describe('MG-3: Manager views team commission accruals', () => {
 
   test('team isolation: Manager 2 placement is absent from Manager 1 view', async () => {
     mount.current = await loginAs('Manager');
+    // TeamCommissionView is in the Team Performance tab (tabbed navigation).
+    await userEvent.click(page.getByRole('tab', { name: /team performance/i }));
     await expect.element(page.getByTestId('placements-table')).toBeInTheDocument();
     await expect
       .element(page.getByText('Finance Director (Isolated)', { exact: false }))
@@ -188,6 +204,8 @@ describe('MG-3: Manager views team commission accruals', () => {
 
   test('open disputes/exceptions panel renders (disputes-table or empty state)', async () => {
     mount.current = await loginAs('Manager');
+    // TeamCommissionView is in the Team Performance tab (tabbed navigation).
+    await userEvent.click(page.getByRole('tab', { name: /team performance/i }));
     await expect.element(page.getByTestId('team-commission-view')).toBeInTheDocument();
     // Wait for the OpenDisputesPanel to finish loading (disputes-table or empty state).
     // open-disputes-loaded is rendered only after the API response resolves.

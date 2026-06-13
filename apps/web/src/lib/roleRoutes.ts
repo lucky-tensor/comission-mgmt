@@ -107,6 +107,8 @@ export const ROLE_ROUTES: Record<AppRole, RoleRouteConfig> = {
     ]),
     navItems: [
       { path: ROUTES.EXECUTIVE, label: 'Executive Dashboard' },
+      { path: ROUTES.EXEC_PROFITABILITY, label: 'Profitability' },
+      { path: ROUTES.EXEC_TRENDS, label: 'Exception & Dispute Trends' },
       { path: ROUTES.DOCS, label: 'Docs' },
     ],
   },
