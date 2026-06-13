@@ -8,6 +8,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@fontsource-variable/geist": "5",
+    "@fontsource-variable/geist-mono": "5",
     "@simplewebauthn/browser": "^13.3.0",
     "@simplewebauthn/types": "^12.0.0",
     "core": "workspace:*",
@@ -16,9 +18,11 @@
     "ui": "workspace:*"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "4",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
     "@vitejs/plugin-react": "^4.2.0",
+    "tailwindcss": "4",
     "typescript": "^5.0.0",
     "vite": "^5.1.0"
   }

@@ -1,0 +1,799 @@
+{
+  "ok": true,
+  "generated_at": "2026-06-12T00:30:46.913Z",
+  "repo_root": "/home/lucas/superfield/demos/comission-mgmt",
+  "repo": "lucky-tensor/comission-mgmt",
+  "tasks_repo": "lucky-tensor/comission-mgmt",
+  "pr_repo": "lucky-tensor/comission-mgmt",
+  "plan": {
+    "number": 1,
+    "title": "Plan",
+    "url": "https://github.com/lucky-tensor/comission-mgmt/issues/1",
+    "body": "## Phase\n\nMeta\n\n## Motivation\n\nCoordinate development work across multiple phases using deterministic, scout-gated execution where each phase begins with a dev scout PR that establishes stable seams before feature work can begin. This ensures phases integrate without conflicts and features complete before phase PRs merge to the default branch.\n\n## Canonical docs\n\n- `docs/prd.md`\n\n## Features\n\n**Planned phases and scouts:**\n- (complete) E2E Hardening (#176 scout, branch: phase/e2e-hardening)\n- (pending) Arbitration & Simulation (#188 scout, branch: phase/arbitration-simulation)\n- (pending) Demo Polish (#200 scout, branch: phase/demo-polish)\n- (pending) Web App UX (#201 scout, branch: phase/webapp-ux)\n\n**Execution rules:**\n- Feature PRs target phase/* branches; phase PRs target main\n- No non-scout issue in a phase may begin until its scout PR merges\n- Phases are serialized or parallelizable as indicated in the phase metadata\n- Heavy test policy on phase PRs; fast on feature PRs\n\n**Current phase status:**\n- (complete) E2E Hardening phase complete (#176, #175, #156, #162 closed)\n- (pending) Arbitration & Simulation phase in progress (#188, #186, #187 closed; #199 UI remaining)\n- (pending) Demo Polish phase queued\n- (pending) Web App UX phase queued\n\n## Test Plan\n\n- (pending) All phase scouts establish stable seams and merge without integration issues\n- (pending) Phase features integrate with no cross-phase merge conflicts\n- (pending) All E2E tests pass in the default branch after each phase PR merge\n- (pending) Scout PRs pass heavy test policy; feature PRs pass fast test policy\n\n---\n\n## Detailed Phase Structure\n\n### Phase: E2E Hardening\n\nGoal: Strengthen the E2E test harness by gating story tests on browser console errors, then add full Finance Admin and Producer role story coverage to the suite.\nParallelizable: yes\nBranch: phase/e2e-hardening\nDepends on phases: None.\nScout gate: #176\nPhase PR: phase/e2e-hardening → main\nTest policy: fast on feature PRs, heavy on phase PR\n\n- #176 - [dev-scout] dev-scout: verify E2E harness console error gate and story test seams [risk: 2]\n\n**Parallel group: console-gate-and-producer-e2e**\n- #175 - test(e2e): add console error gate — fail story tests on browser console errors and suppress log noise [risk: 2]\n- #156 - test: E2E browser tests — Producer user stories (PR-1 through PR-4) [risk: 3]\n- #162 - test: E2E browser tests — Finance Admin user stories (FA-1 through FA-5) [risk: 4]\n\n### Phase: Arbitration & Simulation\n\nGoal: Implement dispute arbitration recommendations (Finance/Manager) and producer deal simulation (Producer), both powered by Claude API reasoning over commission logic.\nParallelizable: yes\nBranch: phase/arbitration-simulation\nDepends on phases: E2E Hardening\nScout gate: #188\nPhase PR: phase/arbitration-simulation → main\nTest policy: fast on feature PRs, heavy on phase PR\n\n- #188 - [dev-scout] dev-scout: Arbitration & Simulation worker infrastructure and Claude API integration [risk: 3]\n\n**Parallel group: arbitration-and-simulation**\n- #186 - feat: Dispute Arbitration Engine — AI-driven payout recommendations [risk: 3]\n- #187 - feat: Producer Deal Simulation — payout + dispute-risk forecasting [risk: 3]\n- #199 - feat: webapp — add UI surfaces for AI dispute arbitration and deal simulation [risk: 4]\n\n### Phase: Demo Polish\n\nGoal: Populate the demo seed with heterogeneous commission examples across fee structures, tiers, and incentive types.\nParallelizable: no\nSerialization reason: Single-issue phase — only #196 (demo seed) lives here.\nBranch: phase/demo-polish\nDepends on phases: None.\nScout gate: #200\nPhase PR: phase/demo-polish → main\nTest policy: fast on feature PRs, heavy on phase PR\n\n- #200 - [dev-scout] dev-scout: Demo Polish phase branch and seed data seam [risk: 1]\n- #196 - feat: demo seed — heterogeneous commission examples for producer account [risk: 2]\n\n### Phase: Web App UX\n\nGoal: Clean up role-based nav surfaces and add inclusive product documentation accessible to all authenticated roles.\nParallelizable: no\nSerialization reason: #198 (nav cleanup) and #197 (product docs) both modify apps/web/src/lib/roleRoutes.ts — serialized to avoid merge conflicts.\nBranch: phase/webapp-ux\nDepends on phases: None.\nScout gate: #201\nPhase PR: phase/webapp-ux → main\nTest policy: fast on feature PRs, heavy on phase PR\n\n- #201 - [dev-scout] dev-scout: Web App UX phase branch and routing seam [risk: 1]\n- #198 - fix: webapp — remove irrelevant nav surfaces from Manager and FinanceAdmin roles [risk: 2]\n- #197 - feat: webapp — inclusive product documentation accessible to all roles [risk: 3]\n\n## Phase: Web App UX\n\n- #203 - feat: webapp — UX overhaul: entity pickers, design-system pass, NavShell rebuild\n  <!-- superfield: {\"number\":203,\"phase\":\"Web App UX\",\"phase_confidence\":\"high\",\"phase_branch\":\"phase/webapp-ux\",\"kind\":\"feature\",\"integration_level\":\"feature\",\"target_base\":\"phase/webapp-ux\",\"test_tier\":\"fast\",\"dependencies\":[201,198,197],\"expected_touchpoints\":[\"apps/web/src/components/NavShell.tsx\",\"apps/web/src/lib/roleRoutes.ts\",\"apps/web/src/App.tsx\",\"apps/web/src/lib/useSession.ts\",\"apps/web/src/components/Login.tsx\",\"apps/web/src/components/finance/FinanceAdmin.tsx\",\"apps/web/src/components/finance/FinanceAdminSurface.tsx\",\"apps/web/src/components/finance/AdjustmentLedger.tsx\",\"apps/web/src/components/finance/PayrollExport.tsx\",\"apps/web/src/components/finance/CommissionRunReview.tsx\",\"apps/web/src/components/finance/ReconciliationReport.tsx\",\"apps/web/src/components/executive/ExecTrends.tsx\",\"apps/web/src/components/ExecProfitability.tsx\",\"apps/web/src/components/hr/DrawBalanceView.tsx\",\"apps/web/src/components/manager/AttributionTimeline.tsx\",\"apps/web/src/components/portal/CreditedPlacements.tsx\",\"apps/web/index.html\",\"packages/ui/Button.tsx\",\"packages/ui/index.ts\",\"apps/server/src/api/commission-runs.ts\",\"apps/server/src/api/analytics.ts\"],\"public_contracts\":[\"New GET /commission-runs list endpoint (id, status, created_at, placement count) for the run picker — today only GET /commission-runs/:id/* exists\",\"GET /analytics/executive profitability rows gain a client display-name field alongside the client id\",\"packages/ui exports a token layer (colors, spacing, container width), Button variants (primary/secondary/destructive), and a StatusChip component with a semantic status→variant mapping\",\"roleRoutes.ts route map gains prefix/child-route semantics (a parent path permits and highlights its detail routes); consumed by NavShell, the Forbidden guard, and post-login redirect\"],\"shared_state\":[\"roleRoutes.ts is the single source of truth for landing, permitted paths, and nav items per role; this feature changes its matching semantics but must not move gating into components\",\"App.tsx route table changes from stacked component lists to one composed page component per route\",\"useSession.ts /me probe and its console output (the 401 signed-out path must stay silent)\"],\"migration_effects\":[],\"config_effects\":[\"eslint no-console rule enabled for apps/web/src (warn-free build required by lint gate)\"],\"test_surfaces\":[\"bun --bun vitest run tests/component (NavShell, picker, StatusChip, page-composition tests)\",\"bun run test:commission-runs (new list endpoint)\",\"bun run test:executive-analytics (client display-name field)\",\"bun run test:browser (story suites under the #175 console-error gate)\",\"bun run typecheck && bun run lint\"],\"coupling_risks\":[{\"surface\":\"apps/web/src/lib/roleRoutes.ts\",\"risk\":\"#197 (docs nav item) and #198 (remove leaked nav surfaces) both modify roleRoutes.ts in the same phase\",\"mitigation\":\"Phase is already serialized for this reason; this issue depends on #197 and #198 and lands last in the phase\"},{\"surface\":\"E2E console-error gate (#175)\",\"risk\":\"Story tests fail on pre-auth 401 console noise if the gate lands before the session-probe fix\",\"mitigation\":\"This issue includes the probe fix; its browser story asserts zero console errors on the login page\"},{\"surface\":\"Detail routes for arbitration/simulation UI (#199, Arbitration & Simulation phase)\",\"risk\":\"#199 needs child routes like /disputes/:id which today's exact-match routing cannot express\",\"mitigation\":\"Prefix/child-route matching introduced here is a prerequisite capability, not a conflict; no shared files with #199 beyond roleRoutes.ts entries\"}],\"spec_quality\":\"complete\",\"open_questions\":[],\"parallel_safe\":false} -->\n\n## Phase: Unplaced\n\n- #211 - docs: architecture.md stale — all six role surfaces shipped, not just producer portal\n  <!-- superfield: {\"number\":211,\"phase\":\"Unplaced\",\"phase_confidence\":\"low\",\"phase_branch\":null,\"kind\":\"feature\",\"integration_level\":\"feature\",\"target_base\":null,\"test_tier\":\"fast\",\"dependencies\":[],\"expected_touchpoints\":[\"docs/architecture.md\"],\"public_contracts\":[],\"shared_state\":[],\"migration_effects\":[],\"config_effects\":[],\"test_surfaces\":[\"grep -n 'producer portal plus the login surface' docs/architecture.md (must no longer assert it is the only shipped surface)\",\"ls apps/web/src/components/{finance,manager,executive,hr,partner,portal} (confirms the six shipped surfaces the doc must describe)\"],\"coupling_risks\":[],\"spec_quality\":\"complete\",\"open_questions\":[],\"parallel_safe\":true} -->\n\n- #212 - docs: architecture.md package layout claims six packages but only core/db/ui exist\n  <!-- superfield: {\"number\":212,\"phase\":\"Unplaced\",\"phase_confidence\":\"low\",\"phase_branch\":null,\"kind\":\"feature\",\"integration_level\":\"feature\",\"target_base\":null,\"test_tier\":\"fast\",\"dependencies\":[],\"expected_touchpoints\":[\"docs/architecture.md\",\"packages/ui/index.ts\",\"packages/ui/Button.tsx\"],\"public_contracts\":[],\"shared_state\":[],\"migration_effects\":[],\"config_effects\":[],\"test_surfaces\":[\"ls packages/ (confirms only core, db, ui exist — no auth/data/services/integrations)\",\"grep -n 'packages/{core,ui,auth,data,services,integrations}' docs/architecture.md (untagged claim must be tagged (planned) or corrected)\"],\"coupling_risks\":[],\"spec_quality\":\"complete\",\"open_questions\":[],\"parallel_safe\":true} -->\n\n- #215 - docs: code back-links cite wrong PRD section numbers (5.8 mislabeled, phantom 7.6)\n  <!-- superfield: {\"number\":215,\"phase\":\"Unplaced\",\"phase_confidence\":\"low\",\"phase_branch\":null,\"kind\":\"feature\",\"integration_level\":\"feature\",\"target_base\":null,\"test_tier\":\"fast\",\"dependencies\":[],\"expected_touchpoints\":[\"apps/web/src/components/portal/ProducerPortal.tsx\",\"apps/web/src/components/portal/CreditedPlacements.tsx\",\"apps/web/src/components/portal/PayoutStatement.tsx\",\"apps/web/src/components/portal/DisputeForm.tsx\",\"apps/web/src/components/portal/DealSimulator.tsx\",\"apps/web/src/lib/apiClient.ts\",\"apps/server/src/api/me.ts\",\"apps/server/src/api/disputes.ts\",\"apps/server/src/api/simulations.ts\",\"packages/core/producer-portal.ts\",\"packages/core/producer-simulation.ts\",\"packages/db/src/disputes.ts\"],\"public_contracts\":[],\"shared_state\":[],\"migration_effects\":[],\"config_effects\":[],\"test_surfaces\":[\"grep -rn section-number PRD back-links across apps/ and packages/\"],\"coupling_risks\":[],\"spec_quality\":\"complete\",\"open_questions\":[],\"parallel_safe\":true} -->\n\n- #216 - docs: PRD describes no AI dispute arbitration or producer deal simulation despite a whole shipped phase\n  <!-- superfield: {\"number\":216,\"phase\":\"Unplaced\",\"phase_confidence\":\"low\",\"phase_branch\":null,\"kind\":\"feature\",\"integration_level\":\"feature\",\"target_base\":null,\"test_tier\":\"fast\",\"dependencies\":[],\"expected_touchpoints\":[\"docs/prd.md\"],\"public_contracts\":[],\"shared_state\":[],\"migration_effects\":[],\"config_effects\":[],\"test_surfaces\":[\"grep -in arbitration/simulation in docs/prd.md\"],\"coupling_risks\":[],\"spec_quality\":\"complete\",\"open_questions\":[],\"parallel_safe\":true} -->"
+  },
+  "plan_entries": [
+    {
+      "number": 176,
+      "title": "[dev-scout] dev-scout: verify E2E harness console error gate and story test seams",
+      "risk": 2,
+      "phase": null,
+      "phase_depends_on": [],
+      "phase_scout_issue_number": 176,
+      "kind": "dev-scout",
+      "dependencies": [],
+      "parallel_safe": null
+    },
+    {
+      "number": 175,
+      "title": "test(e2e): add console error gate — fail story tests on browser console errors and suppress log noise",
+      "risk": 2,
+      "phase": null,
+      "phase_depends_on": [],
+      "phase_scout_issue_number": 176,
+      "kind": null,
+      "dependencies": [],
+      "parallel_safe": null
+    },
+    {
+      "number": 156,
+      "title": "test: E2E browser tests — Producer user stories (PR-1 through PR-4)",
+      "risk": 3,
+      "phase": null,
+      "phase_depends_on": [],
+      "phase_scout_issue_number": 176,
+      "kind": null,
+      "dependencies": [],
+      "parallel_safe": null
+    },
+    {
+      "number": 162,
+      "title": "test: E2E browser tests — Finance Admin user stories (FA-1 through FA-5)",
+      "risk": 4,
+      "phase": null,
+      "phase_depends_on": [],
+      "phase_scout_issue_number": 176,
+      "kind": null,
+      "dependencies": [],
+      "parallel_safe": null
+    },
+    {
+      "number": 188,
+      "title": "[dev-scout] dev-scout: Arbitration & Simulation worker infrastructure and Claude API integration",
+      "risk": 3,
+      "phase": null,
+      "phase_depends_on": [
+        "E2E Hardening"
+      ],
+      "phase_scout_issue_number": 188,
+      "kind": "dev-scout",
+      "dependencies": [],
+      "parallel_safe": null
+    },
+    {
+      "number": 186,
+      "title": "feat: Dispute Arbitration Engine — AI-driven payout recommendations",
+      "risk": 3,
+      "phase": null,
+      "phase_depends_on": [
+        "E2E Hardening"
+      ],
+      "phase_scout_issue_number": 188,
+      "kind": null,
+      "dependencies": [],
+      "parallel_safe": null
+    },
+    {
+      "number": 187,
+      "title": "feat: Producer Deal Simulation — payout + dispute-risk forecasting",
+      "risk": 3,
+      "phase": null,
+      "phase_depends_on": [
+        "E2E Hardening"
+      ],
+      "phase_scout_issue_number": 188,
+      "kind": null,
+      "dependencies": [],
+      "parallel_safe": null
+    },
+    {
+      "number": 199,
+      "title": "feat: webapp — add UI surfaces for AI dispute arbitration and deal simulation",
+      "risk": 4,
+      "phase": null,
+      "phase_depends_on": [
+        "E2E Hardening"
+      ],
+      "phase_scout_issue_number": 188,
+      "kind": null,
+      "dependencies": [],
+      "parallel_safe": null
+    },
+    {
+      "number": 200,
+      "title": "[dev-scout] dev-scout: Demo Polish phase branch and seed data seam",
+      "risk": 1,
+      "phase": null,
+      "phase_depends_on": [],
+      "phase_scout_issue_number": 200,
+      "kind": "dev-scout",
+      "dependencies": [],
+      "parallel_safe": null
+    },
+    {
+      "number": 196,
+      "title": "feat: demo seed — heterogeneous commission examples for producer account",
+      "risk": 2,
+      "phase": null,
+      "phase_depends_on": [],
+      "phase_scout_issue_number": 200,
+      "kind": null,
+      "dependencies": [],
+      "parallel_safe": null
+    },
+    {
+      "number": 201,
+      "title": "[dev-scout] dev-scout: Web App UX phase branch and routing seam",
+      "risk": 1,
+      "phase": null,
+      "phase_depends_on": [],
+      "phase_scout_issue_number": 201,
+      "kind": "dev-scout",
+      "dependencies": [],
+      "parallel_safe": null
+    },
+    {
+      "number": 198,
+      "title": "fix: webapp — remove irrelevant nav surfaces from Manager and FinanceAdmin roles",
+      "risk": 2,
+      "phase": null,
+      "phase_depends_on": [],
+      "phase_scout_issue_number": 201,
+      "kind": null,
+      "dependencies": [],
+      "parallel_safe": null
+    },
+    {
+      "number": 197,
+      "title": "feat: webapp — inclusive product documentation accessible to all roles",
+      "risk": 3,
+      "phase": null,
+      "phase_depends_on": [],
+      "phase_scout_issue_number": 201,
+      "kind": null,
+      "dependencies": [],
+      "parallel_safe": null
+    },
+    {
+      "number": 203,
+      "title": "feat: webapp — UX overhaul: entity pickers, design-system pass, NavShell rebuild",
+      "risk": null,
+      "phase": "Web App UX",
+      "phase_depends_on": [],
+      "phase_scout_issue_number": null,
+      "kind": "feature",
+      "dependencies": [
+        201,
+        198,
+        197
+      ],
+      "parallel_safe": false,
+      "phase_confidence": "high",
+      "phase_branch": "phase/webapp-ux",
+      "integration_level": "feature",
+      "target_base": "phase/webapp-ux",
+      "test_tier": "fast",
+      "expected_touchpoints": [
+        "apps/web/src/components/NavShell.tsx",
+        "apps/web/src/lib/roleRoutes.ts",
+        "apps/web/src/App.tsx",
+        "apps/web/src/lib/useSession.ts",
+        "apps/web/src/components/Login.tsx",
+        "apps/web/src/components/finance/FinanceAdmin.tsx",
+        "apps/web/src/components/finance/FinanceAdminSurface.tsx",
+        "apps/web/src/components/finance/AdjustmentLedger.tsx",
+        "apps/web/src/components/finance/PayrollExport.tsx",
+        "apps/web/src/components/finance/CommissionRunReview.tsx",
+        "apps/web/src/components/finance/ReconciliationReport.tsx",
+        "apps/web/src/components/executive/ExecTrends.tsx",
+        "apps/web/src/components/ExecProfitability.tsx",
+        "apps/web/src/components/hr/DrawBalanceView.tsx",
+        "apps/web/src/components/manager/AttributionTimeline.tsx",
+        "apps/web/src/components/portal/CreditedPlacements.tsx",
+        "apps/web/index.html",
+        "packages/ui/Button.tsx",
+        "packages/ui/index.ts",
+        "apps/server/src/api/commission-runs.ts",
+        "apps/server/src/api/analytics.ts"
+      ],
+      "public_contracts": [
+        "New GET /commission-runs list endpoint (id, status, created_at, placement count) for the run picker — today only GET /commission-runs/:id/* exists",
+        "GET /analytics/executive profitability rows gain a client display-name field alongside the client id",
+        "packages/ui exports a token layer (colors, spacing, container width), Button variants (primary/secondary/destructive), and a StatusChip component with a semantic status→variant mapping",
+        "roleRoutes.ts route map gains prefix/child-route semantics (a parent path permits and highlights its detail routes); consumed by NavShell, the Forbidden guard, and post-login redirect"
+      ],
+      "shared_state": [
+        "roleRoutes.ts is the single source of truth for landing, permitted paths, and nav items per role; this feature changes its matching semantics but must not move gating into components",
+        "App.tsx route table changes from stacked component lists to one composed page component per route",
+        "useSession.ts /me probe and its console output (the 401 signed-out path must stay silent)"
+      ],
+      "migration_effects": [],
+      "config_effects": [
+        "eslint no-console rule enabled for apps/web/src (warn-free build required by lint gate)"
+      ],
+      "test_surfaces": [
+        "bun --bun vitest run tests/component (NavShell, picker, StatusChip, page-composition tests)",
+        "bun run test:commission-runs (new list endpoint)",
+        "bun run test:executive-analytics (client display-name field)",
+        "bun run test:browser (story suites under the #175 console-error gate)",
+        "bun run typecheck && bun run lint"
+      ],
+      "coupling_risks": [
+        {
+          "surface": "apps/web/src/lib/roleRoutes.ts",
+          "risk": "#197 (docs nav item) and #198 (remove leaked nav surfaces) both modify roleRoutes.ts in the same phase",
+          "mitigation": "Phase is already serialized for this reason; this issue depends on #197 and #198 and lands last in the phase"
+        },
+        {
+          "surface": "E2E console-error gate (#175)",
+          "risk": "Story tests fail on pre-auth 401 console noise if the gate lands before the session-probe fix",
+          "mitigation": "This issue includes the probe fix; its browser story asserts zero console errors on the login page"
+        },
+        {
+          "surface": "Detail routes for arbitration/simulation UI (#199, Arbitration & Simulation phase)",
+          "risk": "#199 needs child routes like /disputes/:id which today's exact-match routing cannot express",
+          "mitigation": "Prefix/child-route matching introduced here is a prerequisite capability, not a conflict; no shared files with #199 beyond roleRoutes.ts entries"
+        }
+      ],
+      "spec_quality": "complete",
+      "open_questions": []
+    },
+    {
+      "number": 211,
+      "title": "docs: architecture.md stale — all six role surfaces shipped, not just producer portal",
+      "risk": null,
+      "phase": "Unplaced",
+      "phase_depends_on": [],
+      "phase_scout_issue_number": null,
+      "kind": "feature",
+      "dependencies": [],
+      "parallel_safe": true,
+      "phase_confidence": "low",
+      "phase_branch": null,
+      "integration_level": "feature",
+      "target_base": null,
+      "test_tier": "fast",
+      "expected_touchpoints": [
+        "docs/architecture.md"
+      ],
+      "public_contracts": [],
+      "shared_state": [],
+      "migration_effects": [],
+      "config_effects": [],
+      "test_surfaces": [
+        "grep -n 'producer portal plus the login surface' docs/architecture.md (must no longer assert it is the only shipped surface)",
+        "ls apps/web/src/components/{finance,manager,executive,hr,partner,portal} (confirms the six shipped surfaces the doc must describe)"
+      ],
+      "coupling_risks": [],
+      "spec_quality": "complete",
+      "open_questions": []
+    },
+    {
+      "number": 212,
+      "title": "docs: architecture.md package layout claims six packages but only core/db/ui exist",
+      "risk": null,
+      "phase": "Unplaced",
+      "phase_depends_on": [],
+      "phase_scout_issue_number": null,
+      "kind": "feature",
+      "dependencies": [],
+      "parallel_safe": true,
+      "phase_confidence": "low",
+      "phase_branch": null,
+      "integration_level": "feature",
+      "target_base": null,
+      "test_tier": "fast",
+      "expected_touchpoints": [
+        "docs/architecture.md",
+        "packages/ui/index.ts",
+        "packages/ui/Button.tsx"
+      ],
+      "public_contracts": [],
+      "shared_state": [],
+      "migration_effects": [],
+      "config_effects": [],
+      "test_surfaces": [
+        "ls packages/ (confirms only core, db, ui exist — no auth/data/services/integrations)",
+        "grep -n 'packages/{core,ui,auth,data,services,integrations}' docs/architecture.md (untagged claim must be tagged (planned) or corrected)"
+      ],
+      "coupling_risks": [],
+      "spec_quality": "complete",
+      "open_questions": []
+    },
+    {
+      "number": 215,
+      "title": "docs: code back-links cite wrong PRD section numbers (5.8 mislabeled, phantom 7.6)",
+      "risk": null,
+      "phase": "Unplaced",
+      "phase_depends_on": [],
+      "phase_scout_issue_number": null,
+      "kind": "feature",
+      "dependencies": [],
+      "parallel_safe": true,
+      "phase_confidence": "low",
+      "phase_branch": null,
+      "integration_level": "feature",
+      "target_base": null,
+      "test_tier": "fast",
+      "expected_touchpoints": [
+        "apps/web/src/components/portal/ProducerPortal.tsx",
+        "apps/web/src/components/portal/CreditedPlacements.tsx",
+        "apps/web/src/components/portal/PayoutStatement.tsx",
+        "apps/web/src/components/portal/DisputeForm.tsx",
+        "apps/web/src/components/portal/DealSimulator.tsx",
+        "apps/web/src/lib/apiClient.ts",
+        "apps/server/src/api/me.ts",
+        "apps/server/src/api/disputes.ts",
+        "apps/server/src/api/simulations.ts",
+        "packages/core/producer-portal.ts",
+        "packages/core/producer-simulation.ts",
+        "packages/db/src/disputes.ts"
+      ],
+      "public_contracts": [],
+      "shared_state": [],
+      "migration_effects": [],
+      "config_effects": [],
+      "test_surfaces": [
+        "grep -rn section-number PRD back-links across apps/ and packages/"
+      ],
+      "coupling_risks": [],
+      "spec_quality": "complete",
+      "open_questions": []
+    },
+    {
+      "number": 216,
+      "title": "docs: PRD describes no AI dispute arbitration or producer deal simulation despite a whole shipped phase",
+      "risk": null,
+      "phase": "Unplaced",
+      "phase_depends_on": [],
+      "phase_scout_issue_number": null,
+      "kind": "feature",
+      "dependencies": [],
+      "parallel_safe": true,
+      "phase_confidence": "low",
+      "phase_branch": null,
+      "integration_level": "feature",
+      "target_base": null,
+      "test_tier": "fast",
+      "expected_touchpoints": [
+        "docs/prd.md"
+      ],
+      "public_contracts": [],
+      "shared_state": [],
+      "migration_effects": [],
+      "config_effects": [],
+      "test_surfaces": [
+        "grep -in arbitration/simulation in docs/prd.md"
+      ],
+      "coupling_risks": [],
+      "spec_quality": "complete",
+      "open_questions": []
+    }
+  ],
+  "issues": [
+    {
+      "number": 216,
+      "title": "docs: PRD describes no AI dispute arbitration or producer deal simulation despite a whole shipped phase",
+      "url": "https://github.com/lucky-tensor/comission-mgmt/issues/216",
+      "state": "OPEN",
+      "acceptance": {
+        "total": 4,
+        "unchecked": 4,
+        "complete": false
+      },
+      "test_plan": {
+        "total": 3,
+        "unchecked": 3,
+        "complete": false
+      },
+      "checklist": {
+        "total": 7,
+        "unchecked": 7,
+        "complete": false
+      },
+      "dependencies": [],
+      "dependencies_closed": true
+    },
+    {
+      "number": 215,
+      "title": "docs: code back-links cite wrong PRD section numbers (5.8 mislabeled, phantom 7.6)",
+      "url": "https://github.com/lucky-tensor/comission-mgmt/issues/215",
+      "state": "CLOSED",
+      "acceptance": {
+        "total": 5,
+        "unchecked": 0,
+        "complete": true
+      },
+      "test_plan": {
+        "total": 3,
+        "unchecked": 0,
+        "complete": true
+      },
+      "checklist": {
+        "total": 8,
+        "unchecked": 0,
+        "complete": true
+      },
+      "dependencies": [],
+      "dependencies_closed": true
+    },
+    {
+      "number": 212,
+      "title": "docs: architecture.md package layout claims six packages but only core/db/ui exist",
+      "url": "https://github.com/lucky-tensor/comission-mgmt/issues/212",
+      "state": "CLOSED",
+      "acceptance": {
+        "total": 3,
+        "unchecked": 0,
+        "complete": true
+      },
+      "test_plan": {
+        "total": 2,
+        "unchecked": 0,
+        "complete": true
+      },
+      "checklist": {
+        "total": 5,
+        "unchecked": 0,
+        "complete": true
+      },
+      "dependencies": [],
+      "dependencies_closed": true
+    },
+    {
+      "number": 211,
+      "title": "docs: architecture.md stale — all six role surfaces shipped, not just producer portal",
+      "url": "https://github.com/lucky-tensor/comission-mgmt/issues/211",
+      "state": "CLOSED",
+      "acceptance": {
+        "total": 3,
+        "unchecked": 0,
+        "complete": true
+      },
+      "test_plan": {
+        "total": 2,
+        "unchecked": 0,
+        "complete": true
+      },
+      "checklist": {
+        "total": 5,
+        "unchecked": 0,
+        "complete": true
+      },
+      "dependencies": [],
+      "dependencies_closed": true
+    },
+    {
+      "number": 203,
+      "title": "feat: webapp — UX overhaul: entity pickers, design-system pass, NavShell rebuild",
+      "url": "https://github.com/lucky-tensor/comission-mgmt/issues/203",
+      "state": "CLOSED",
+      "acceptance": {
+        "total": 12,
+        "unchecked": 0,
+        "complete": true
+      },
+      "test_plan": {
+        "total": 6,
+        "unchecked": 0,
+        "complete": true
+      },
+      "checklist": {
+        "total": 18,
+        "unchecked": 0,
+        "complete": true
+      },
+      "dependencies": [],
+      "dependencies_closed": true
+    },
+    {
+      "number": 201,
+      "title": "dev-scout: Web App UX phase branch and routing seam",
+      "url": "https://github.com/lucky-tensor/comission-mgmt/issues/201",
+      "state": "CLOSED",
+      "acceptance": {
+        "total": 0,
+        "unchecked": 0,
+        "complete": false
+      },
+      "test_plan": {
+        "total": 0,
+        "unchecked": 0,
+        "complete": false
+      },
+      "checklist": {
+        "total": 0,
+        "unchecked": 0,
+        "complete": false
+      },
+      "dependencies": [],
+      "dependencies_closed": true
+    },
+    {
+      "number": 200,
+      "title": "dev-scout: Demo Polish phase branch and seed data seam",
+      "url": "https://github.com/lucky-tensor/comission-mgmt/issues/200",
+      "state": "CLOSED",
+      "acceptance": {
+        "total": 0,
+        "unchecked": 0,
+        "complete": false
+      },
+      "test_plan": {
+        "total": 0,
+        "unchecked": 0,
+        "complete": false
+      },
+      "checklist": {
+        "total": 0,
+        "unchecked": 0,
+        "complete": false
+      },
+      "dependencies": [],
+      "dependencies_closed": true
+    },
+    {
+      "number": 199,
+      "title": "feat: webapp — add UI surfaces for AI dispute arbitration and deal simulation",
+      "url": "https://github.com/lucky-tensor/comission-mgmt/issues/199",
+      "state": "CLOSED",
+      "acceptance": {
+        "total": 11,
+        "unchecked": 0,
+        "complete": true
+      },
+      "test_plan": {
+        "total": 7,
+        "unchecked": 0,
+        "complete": true
+      },
+      "checklist": {
+        "total": 18,
+        "unchecked": 0,
+        "complete": true
+      },
+      "dependencies": [],
+      "dependencies_closed": true
+    },
+    {
+      "number": 198,
+      "title": "fix: webapp — remove irrelevant nav surfaces from Manager and FinanceAdmin roles",
+      "url": "https://github.com/lucky-tensor/comission-mgmt/issues/198",
+      "state": "CLOSED",
+      "acceptance": {
+        "total": 0,
+        "unchecked": 0,
+        "complete": false
+      },
+      "test_plan": {
+        "total": 0,
+        "unchecked": 0,
+        "complete": false
+      },
+      "checklist": {
+        "total": 0,
+        "unchecked": 0,
+        "complete": false
+      },
+      "dependencies": [],
+      "dependencies_closed": true
+    },
+    {
+      "number": 197,
+      "title": "feat: webapp — inclusive product documentation accessible to all roles",
+      "url": "https://github.com/lucky-tensor/comission-mgmt/issues/197",
+      "state": "CLOSED",
+      "acceptance": {
+        "total": 0,
+        "unchecked": 0,
+        "complete": false
+      },
+      "test_plan": {
+        "total": 0,
+        "unchecked": 0,
+        "complete": false
+      },
+      "checklist": {
+        "total": 0,
+        "unchecked": 0,
+        "complete": false
+      },
+      "dependencies": [],
+      "dependencies_closed": true
+    },
+    {
+      "number": 196,
+      "title": "feat: demo seed — heterogeneous commission examples for producer account",
+      "url": "https://github.com/lucky-tensor/comission-mgmt/issues/196",
+      "state": "CLOSED",
+      "acceptance": {
+        "total": 7,
+        "unchecked": 0,
+        "complete": true
+      },
+      "test_plan": {
+        "total": 4,
+        "unchecked": 0,
+        "complete": true
+      },
+      "checklist": {
+        "total": 11,
+        "unchecked": 0,
+        "complete": true
+      },
+      "dependencies": [],
+      "dependencies_closed": true
+    },
+    {
+      "number": 188,
+      "title": "dev-scout: Arbitration & Simulation worker infrastructure and Claude API integration",
+      "url": "https://github.com/lucky-tensor/comission-mgmt/issues/188",
+      "state": "CLOSED",
+      "acceptance": {
+        "total": 10,
+        "unchecked": 0,
+        "complete": true
+      },
+      "test_plan": {
+        "total": 9,
+        "unchecked": 0,
+        "complete": true
+      },
+      "checklist": {
+        "total": 19,
+        "unchecked": 0,
+        "complete": true
+      },
+      "dependencies": [],
+      "dependencies_closed": true
+    },
+    {
+      "number": 187,
+      "title": "feat: Producer Deal Simulation — payout + dispute-risk forecasting",
+      "url": "https://github.com/lucky-tensor/comission-mgmt/issues/187",
+      "state": "CLOSED",
+      "acceptance": {
+        "total": 10,
+        "unchecked": 0,
+        "complete": true
+      },
+      "test_plan": {
+        "total": 9,
+        "unchecked": 0,
+        "complete": true
+      },
+      "checklist": {
+        "total": 19,
+        "unchecked": 0,
+        "complete": true
+      },
+      "dependencies": [],
+      "dependencies_closed": true
+    },
+    {
+      "number": 186,
+      "title": "feat: Dispute Arbitration Engine — AI-driven payout recommendations",
+      "url": "https://github.com/lucky-tensor/comission-mgmt/issues/186",
+      "state": "CLOSED",
+      "acceptance": {
+        "total": 0,
+        "unchecked": 0,
+        "complete": false
+      },
+      "test_plan": {
+        "total": 0,
+        "unchecked": 0,
+        "complete": false
+      },
+      "checklist": {
+        "total": 0,
+        "unchecked": 0,
+        "complete": false
+      },
+      "dependencies": [],
+      "dependencies_closed": true
+    },
+    {
+      "number": 176,
+      "title": "[dev-scout] dev-scout: verify E2E harness console error gate and story test seams",
+      "url": "https://github.com/lucky-tensor/comission-mgmt/issues/176",
+      "state": "CLOSED",
+      "acceptance": {
+        "total": 3,
+        "unchecked": 0,
+        "complete": true
+      },
+      "test_plan": {
+        "total": 2,
+        "unchecked": 0,
+        "complete": true
+      },
+      "checklist": {
+        "total": 5,
+        "unchecked": 0,
+        "complete": true
+      },
+      "dependencies": [],
+      "dependencies_closed": true
+    },
+    {
+      "number": 175,
+      "title": "test(e2e): add console error gate — fail story tests on browser console errors and suppress log noise",
+      "url": "https://github.com/lucky-tensor/comission-mgmt/issues/175",
+      "state": "CLOSED",
+      "acceptance": {
+        "total": 4,
+        "unchecked": 0,
+        "complete": true
+      },
+      "test_plan": {
+        "total": 3,
+        "unchecked": 0,
+        "complete": true
+      },
+      "checklist": {
+        "total": 7,
+        "unchecked": 0,
+        "complete": true
+      },
+      "dependencies": [],
+      "dependencies_closed": true
+    },
+    {
+      "number": 162,
+      "title": "test: E2E browser tests — Finance Admin user stories (FA-1 through FA-5)",
+      "url": "https://github.com/lucky-tensor/comission-mgmt/issues/162",
+      "state": "CLOSED",
+      "acceptance": {
+        "total": 7,
+        "unchecked": 0,
+        "complete": true
+      },
+      "test_plan": {
+        "total": 5,
+        "unchecked": 0,
+        "complete": true
+      },
+      "checklist": {
+        "total": 12,
+        "unchecked": 0,
+        "complete": true
+      },
+      "dependencies": [],
+      "dependencies_closed": true
+    },
+    {
+      "number": 156,
+      "title": "test: E2E browser tests — Producer user stories (PR-1 through PR-4)",
+      "url": "https://github.com/lucky-tensor/comission-mgmt/issues/156",
+      "state": "CLOSED",
+      "acceptance": {
+        "total": 6,
+        "unchecked": 0,
+        "complete": true
+      },
+      "test_plan": {
+        "total": 4,
+        "unchecked": 0,
+        "complete": true
+      },
+      "checklist": {
+        "total": 10,
+        "unchecked": 0,
+        "complete": true
+      },
+      "dependencies": [],
+      "dependencies_closed": true
+    }
+  ],
+  "pull_requests": []
+}

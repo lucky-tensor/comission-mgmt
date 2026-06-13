@@ -80,21 +80,9 @@ export type AttributionTimelinePhase =
 // Shared styles
 // ---------------------------------------------------------------------------
 
-const cardStyle: React.CSSProperties = {
-  background: '#ffffff',
-  border: '1px solid #e5e7eb',
-  borderRadius: '0.75rem',
-  padding: '1.5rem',
-  marginBottom: '1.5rem',
-};
+const CARD_CLASS = 'bg-surface border border-border rounded-xl p-6 mb-6';
 
-const headingStyle: React.CSSProperties = {
-  fontSize: '1.125rem',
-  fontWeight: 600,
-  color: '#111827',
-  marginTop: 0,
-  marginBottom: '1rem',
-};
+const HEADING_CLASS = 'text-lg font-semibold text-ink mt-0 mb-4';
 
 const EVENT_TYPE_LABELS: Record<string, string> = {
   Submitted: 'Submitted for approval',
@@ -102,11 +90,18 @@ const EVENT_TYPE_LABELS: Record<string, string> = {
   Rejected: 'Rejected',
 };
 
-const EVENT_TYPE_COLORS: Record<string, React.CSSProperties> = {
-  Submitted: { background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe' },
-  Approved: { background: '#d1fae5', color: '#065f46', border: '1px solid #6ee7b7' },
-  Rejected: { background: '#fee2e2', color: '#991b1b', border: '1px solid #fca5a5' },
+/**
+ * Per-event-type color classes (background + text + border tokens). The former
+ * blue "Submitted" tint is neutralized to surface-sunken per the design system;
+ * Approved maps to the ok (green) tokens and Rejected to the bad (red) tokens.
+ */
+const EVENT_TYPE_COLORS: Record<string, string> = {
+  Submitted: 'bg-surface-sunken text-ink-muted border border-border',
+  Approved: 'bg-ok-bg text-ok-fg border border-ok-fg/30',
+  Rejected: 'bg-bad-bg text-bad-fg border border-bad-fg/30',
 };
+
+const DEFAULT_EVENT_COLOR = 'bg-surface-muted text-ink-muted border border-border';
 
 // ---------------------------------------------------------------------------
 // AttributionTimelineView — pure presentational view
@@ -129,11 +124,11 @@ export function AttributionTimelineView({
   onSearch,
 }: AttributionTimelineViewProps) {
   return (
-    <div data-testid="attribution-timeline" style={cardStyle}>
-      <h2 style={headingStyle}>Attribution Timeline</h2>
+    <div data-testid="attribution-timeline" className={CARD_CLASS}>
+      <h2 className={HEADING_CLASS}>Attribution Timeline</h2>
 
       {/* Placement picker — select a deal by client/candidate/role, not a UUID. */}
-      <div data-testid="timeline-search-form" style={{ marginBottom: '1.25rem' }}>
+      <div data-testid="timeline-search-form" className="mb-5">
         <EntityPicker
           name="placement"
           label="Placement"
@@ -147,10 +142,7 @@ export function AttributionTimelineView({
       </div>
 
       {phase.kind === 'idle' && (
-        <div
-          data-testid="timeline-idle"
-          style={{ fontSize: '0.875rem', color: '#9ca3af', padding: '0.5rem 0' }}
-        >
+        <div data-testid="timeline-idle" className="text-sm text-ink-faint py-2">
           Enter a placement ID to view its attribution history.
         </div>
       )}
@@ -160,90 +152,45 @@ export function AttributionTimelineView({
         <EmptyState message="No attribution events recorded for this placement." />
       )}
       {phase.kind === 'timeline' && (
-        <ol data-testid="timeline-events" style={{ margin: 0, padding: 0, listStyle: 'none' }}>
+        <ol data-testid="timeline-events" className="m-0 p-0 list-none">
           {phase.events.map((event, idx) => {
-            const colorStyle = EVENT_TYPE_COLORS[event.event_type] ?? {
-              background: '#f9fafb',
-              color: '#374151',
-              border: '1px solid #e5e7eb',
-            };
+            const colorClass = EVENT_TYPE_COLORS[event.event_type] ?? DEFAULT_EVENT_COLOR;
+            const isLast = idx >= phase.events.length - 1;
             return (
               <li
                 key={event.id}
                 data-testid={`timeline-event-${event.id}`}
-                style={{
-                  display: 'flex',
-                  gap: '0.875rem',
-                  paddingBottom: idx < phase.events.length - 1 ? '1.25rem' : 0,
-                  position: 'relative',
-                }}
+                className={`flex gap-3.5 relative ${isLast ? 'pb-0' : 'pb-5'}`}
               >
                 {/* Connector line */}
-                {idx < phase.events.length - 1 && (
+                {!isLast && (
                   <div
                     aria-hidden="true"
-                    style={{
-                      position: 'absolute',
-                      left: '0.6875rem',
-                      top: '1.5rem',
-                      bottom: 0,
-                      width: '2px',
-                      background: '#e5e7eb',
-                    }}
+                    className="absolute left-[0.6875rem] top-6 bottom-0 w-0.5 bg-border"
                   />
                 )}
                 {/* Dot */}
                 <div
                   aria-hidden="true"
-                  style={{
-                    width: '1.375rem',
-                    height: '1.375rem',
-                    borderRadius: '50%',
-                    background: colorStyle.background as string,
-                    border: colorStyle.border as string,
-                    flexShrink: 0,
-                    marginTop: '0.125rem',
-                  }}
+                  className={`w-[1.375rem] h-[1.375rem] rounded-full shrink-0 mt-0.5 ${colorClass}`}
                 />
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
                     <span
                       data-testid={`event-type-${event.id}`}
-                      style={{
-                        fontSize: '0.8125rem',
-                        fontWeight: 600,
-                        ...colorStyle,
-                        padding: '0.125rem 0.5rem',
-                        borderRadius: '9999px',
-                      }}
+                      className={`text-[0.8125rem] font-semibold px-2 py-0.5 rounded-full ${colorClass}`}
                     >
                       {EVENT_TYPE_LABELS[event.event_type] ?? event.event_type}
                     </span>
-                    <span
-                      data-testid={`event-date-${event.id}`}
-                      style={{ fontSize: '0.75rem', color: '#9ca3af' }}
-                    >
+                    <span data-testid={`event-date-${event.id}`} className="text-xs text-ink-faint">
                       {formatDate(event.created_at)}
                     </span>
                   </div>
-                  <div
-                    style={{
-                      fontSize: '0.8125rem',
-                      color: '#6b7280',
-                      marginTop: '0.25rem',
-                    }}
-                  >
-                    by {event.actor_id}
-                  </div>
+                  <div className="text-[0.8125rem] text-ink-subtle mt-1">by {event.actor_id}</div>
                   {event.reason && (
                     <div
                       data-testid={`event-reason-${event.id}`}
-                      style={{
-                        fontSize: '0.8125rem',
-                        color: '#374151',
-                        marginTop: '0.25rem',
-                        fontStyle: 'italic',
-                      }}
+                      className="text-[0.8125rem] text-ink-muted mt-1 italic"
                     >
                       &ldquo;{event.reason}&rdquo;
                     </div>

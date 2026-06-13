@@ -128,8 +128,9 @@ describe('FA-2: Finance Admin reviews and approves a commission run', () => {
   test('finalize succeeds after all discrepancies are acknowledged', async () => {
     s.current = await loginAs('Finance Admin');
     await expect.element(page.getByTestId('commission-run-review')).toBeInTheDocument();
-    // Acknowledge the reconciliation discrepancy first.
-    navigate('/reconciliation');
+    // Acknowledge the reconciliation discrepancy first (reconciliation is now a tab on /finance).
+    navigate('/finance');
+    await userEvent.click(page.getByRole('tab', { name: /reconciliation/i }));
     await expect.element(page.getByTestId('reconciliation-report')).toBeInTheDocument();
     await userEvent.fill(page.getByTestId('recon-period-start-input'), '2025-05-01');
     await userEvent.fill(page.getByTestId('recon-period-end-input'), '2025-05-31');
@@ -142,8 +143,10 @@ describe('FA-2: Finance Admin reviews and approves a commission run', () => {
       await userEvent.click(page.getByRole('button', { name: 'Save' }).all()[0]);
       await expect.element(page.getByTestId('recon-all-clear')).toBeInTheDocument();
     }
-    // Navigate back to finance and load the pre-seeded run.
+    // Navigate back to finance and switch to the Processing tab (Tabs component
+    // retains the Reconciliation tab state after navigating away and back).
     navigate('/finance');
+    await userEvent.click(page.getByRole('tab', { name: /processing/i }));
     await expect.element(page.getByTestId('commission-run-review')).toBeInTheDocument();
     await userEvent.fill(page.getByTestId('load-run-id-input'), s.fixture.closeRunId);
     await userEvent.click(page.getByTestId('load-run-queue-button'));
@@ -203,11 +206,15 @@ describe('FA-2: Finance Admin reviews and approves a commission run', () => {
 describe('FA-3: Finance Admin generates a payroll-ready export', () => {
   test('finance-home surface renders on /finance (FinanceAdminSurface)', async () => {
     s.current = await loginAs('Finance Admin');
+    // FinanceAdminSurface is now in the Adjustments & Payroll tab
+    await userEvent.click(page.getByRole('tab', { name: /adjustments/i }));
     await expect.element(page.getByTestId('finance-home')).toBeInTheDocument();
   });
 
   test('loading a run reveals export-generate-section', async () => {
     s.current = await loginAs('Finance Admin');
+    // FinanceAdminSurface is now in the Adjustments & Payroll tab
+    await userEvent.click(page.getByRole('tab', { name: /adjustments/i }));
     await expect.element(page.getByTestId('finance-home')).toBeInTheDocument();
     // Select the close run from the run picker (by id) in FinanceAdminSurface.
     await expect.element(page.getByTestId('run-picker-select')).toBeInTheDocument();
@@ -217,6 +224,8 @@ describe('FA-3: Finance Admin generates a payroll-ready export', () => {
 
   test('generate-export-button is present when run status is Approved', async () => {
     s.current = await loginAs('Finance Admin');
+    // FinanceAdminSurface is now in the Adjustments & Payroll tab
+    await userEvent.click(page.getByRole('tab', { name: /adjustments/i }));
     await expect.element(page.getByTestId('finance-home')).toBeInTheDocument();
     await expect.element(page.getByTestId('run-picker-select')).toBeInTheDocument();
     await page.getByTestId('run-picker-select').selectOptions(s.fixture.closeRunId);
@@ -226,6 +235,8 @@ describe('FA-3: Finance Admin generates a payroll-ready export', () => {
 
   test('clicking generate produces an export row or shows a generate error', async () => {
     s.current = await loginAs('Finance Admin');
+    // FinanceAdminSurface is now in the Adjustments & Payroll tab
+    await userEvent.click(page.getByRole('tab', { name: /adjustments/i }));
     await expect.element(page.getByTestId('finance-home')).toBeInTheDocument();
     await expect.element(page.getByTestId('run-picker-select')).toBeInTheDocument();
     await page.getByTestId('run-picker-select').selectOptions(s.fixture.closeRunId);
@@ -346,6 +357,8 @@ describe('FA-4: Finance Admin tracks invoice and collection status', () => {
 describe('FA-5: Finance Admin applies adjustments via the append-only ledger', () => {
   test('adjustment-ledger renders when a placement is loaded in FinanceAdminSurface', async () => {
     s.current = await loginAs('Finance Admin');
+    // FinanceAdminSurface is now in the Adjustments & Payroll tab
+    await userEvent.click(page.getByRole('tab', { name: /adjustments/i }));
     await expect.element(page.getByTestId('finance-home')).toBeInTheDocument();
     // Use the placement-id-input form in FinanceAdminSurface.
     await expect
@@ -359,6 +372,8 @@ describe('FA-5: Finance Admin applies adjustments via the append-only ledger', (
 
   test('trigger form is visible after loading placement ledger', async () => {
     s.current = await loginAs('Finance Admin');
+    // FinanceAdminSurface is now in the Adjustments & Payroll tab
+    await userEvent.click(page.getByRole('tab', { name: /adjustments/i }));
     await expect.element(page.getByTestId('finance-home')).toBeInTheDocument();
     await expect
       .element(page.getByTestId('adjustment-placement-picker-select'))
@@ -375,6 +390,8 @@ describe('FA-5: Finance Admin applies adjustments via the append-only ledger', (
 
   test('submitting the trigger form shows a result (adjustment row or trigger error)', async () => {
     s.current = await loginAs('Finance Admin');
+    // FinanceAdminSurface is now in the Adjustments & Payroll tab
+    await userEvent.click(page.getByRole('tab', { name: /adjustments/i }));
     await expect.element(page.getByTestId('finance-home')).toBeInTheDocument();
     await expect
       .element(page.getByTestId('adjustment-placement-picker-select'))

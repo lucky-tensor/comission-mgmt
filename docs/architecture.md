@@ -68,7 +68,7 @@ policy, deterministic CI gates), never by convention. The stack mirrors the refe
 | **`postgres` (npm)** | PostgreSQL client | IMPL-DATA-033 | Tagged-template parameterization by default; one client for three pools. |
 | **`@scure/bip39`** _(planned)_ | BIP-39 mnemonic for recovery shard | IMPL-AUTH-027 | **Not yet a dependency.** The passkey account-recovery flow (§5.3) is planned, not shipped; `@scure/bip39` will be added when it lands. |
 | **Vitest / Playwright / ESLint / Prettier** | Test + quality tooling | IMPL-TEST-001/002/021/022 | Vitest single driver; Playwright as headless-Chromium provider only. |
-| **React / Tailwind CSS** | UI framework + styling | IMPL-ARCH-003/004, IMPL-UX-008/009 | Design tokens are a DIY JSON file; component docs are static build output (no Storybook). |
+| **React / Tailwind CSS** | UI framework + styling | IMPL-ARCH-003/004, IMPL-UX-008/009 | Design tokens are a DIY CSS `@theme` (Tailwind v4) in `apps/web/src/index.css`; component docs are static build output (no Storybook). |
 
 **DIY (explicitly not bought), per the Buy-vs-DIY framework (ARCH-D-002, IMPL-ARCH-022/025):** the commission
 rules engine, split/attribution model, draw recovery, clawback/holdback logic, explainability generation,

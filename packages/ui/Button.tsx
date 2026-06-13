@@ -14,8 +14,7 @@
  * Issue: feat: webapp — UX overhaul: design-system pass (#203)
  */
 
-import type { ButtonHTMLAttributes, CSSProperties } from 'react';
-import { colors, radius } from './tokens';
+import type { ButtonHTMLAttributes } from 'react';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'destructive';
 
@@ -23,31 +22,21 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
 }
 
-const VARIANT_STYLE: Record<ButtonVariant, CSSProperties> = {
-  primary: { background: colors.primary, color: '#ffffff', border: 'none' },
-  secondary: {
-    background: colors.surfaceSunken,
-    color: colors.ink,
-    border: `1px solid ${colors.borderStrong}`,
-  },
-  destructive: { background: colors.redFg, color: '#ffffff', border: 'none' },
+const BASE_CLASS =
+  'inline-flex items-center justify-center px-4 py-2 rounded-md text-sm font-medium ' +
+  'cursor-pointer transition-colors disabled:opacity-55 disabled:cursor-not-allowed';
+
+const VARIANT_CLASS: Record<ButtonVariant, string> = {
+  primary: 'bg-ink text-white border border-transparent hover:bg-ink-muted',
+  secondary: 'bg-surface-sunken text-ink border border-border-strong hover:bg-border',
+  destructive: 'bg-bad-fg text-white border border-transparent hover:opacity-90',
 };
 
-export function Button({ variant = 'primary', children, style, disabled, ...props }: ButtonProps) {
-  const base: CSSProperties = {
-    padding: '0.5rem 1rem',
-    borderRadius: radius.sm,
-    cursor: disabled ? 'not-allowed' : 'pointer',
-    fontWeight: 500,
-    fontSize: '0.875rem',
-    opacity: disabled ? 0.55 : 1,
-  };
-
+export function Button({ variant = 'primary', children, className, ...props }: ButtonProps) {
   return (
     <button
       data-variant={variant}
-      disabled={disabled}
-      style={{ ...base, ...VARIANT_STYLE[variant], ...style }}
+      className={[BASE_CLASS, VARIANT_CLASS[variant], className].filter(Boolean).join(' ')}
       {...props}
     >
       {children}

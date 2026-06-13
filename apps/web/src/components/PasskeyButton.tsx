@@ -27,33 +27,18 @@ import type {
 } from '@simplewebauthn/types';
 
 // ---------------------------------------------------------------------------
-// Shared style helpers
+// Shared style helpers — Tailwind class strings (theme tokens, no raw hex)
 // ---------------------------------------------------------------------------
 
-const btnStyle: React.CSSProperties = {
-  width: '100%',
-  padding: '0.625rem 1rem',
-  borderRadius: '0.375rem',
-  border: '1px solid #d1d5db',
-  background: '#111827',
-  color: '#ffffff',
-  fontSize: '0.875rem',
-  fontWeight: 500,
-  cursor: 'pointer',
-};
+const BTN_CLASS =
+  'w-full px-4 py-2.5 rounded-md border border-border-strong bg-ink text-white ' +
+  'text-sm font-medium cursor-pointer';
 
-const btnDisabledStyle: React.CSSProperties = {
-  ...btnStyle,
-  background: '#6b7280',
-  cursor: 'not-allowed',
-};
+const BTN_DISABLED_CLASS =
+  'w-full px-4 py-2.5 rounded-md border border-border-strong bg-ink-subtle text-white ' +
+  'text-sm font-medium cursor-not-allowed';
 
-const unavailableStyle: React.CSSProperties = {
-  fontSize: '0.8125rem',
-  color: '#9ca3af',
-  textAlign: 'center',
-  padding: '0.625rem',
-};
+const UNAVAILABLE_CLASS = 'text-[0.8125rem] text-ink-faint text-center p-2.5';
 
 // ---------------------------------------------------------------------------
 // Availability helper
@@ -88,7 +73,7 @@ export function RegisterPasskeyButton({
 
   if (!isWebAuthnAvailable()) {
     return (
-      <p style={unavailableStyle} data-testid="passkey-unavailable">
+      <p className={UNAVAILABLE_CLASS} data-testid="passkey-unavailable">
         Passkeys are not supported in this browser.
       </p>
     );
@@ -151,7 +136,7 @@ export function RegisterPasskeyButton({
       data-testid="register-passkey-btn"
       onClick={handleRegister}
       disabled={loading}
-      style={loading ? btnDisabledStyle : btnStyle}
+      className={loading ? BTN_DISABLED_CLASS : BTN_CLASS}
     >
       {loading ? 'Registering…' : 'Register Passkey'}
     </button>
@@ -177,7 +162,7 @@ export function PasskeyLoginButton({ onSuccess, onError }: PasskeyLoginButtonPro
 
   if (!isWebAuthnAvailable()) {
     return (
-      <p style={unavailableStyle} data-testid="passkey-unavailable">
+      <p className={UNAVAILABLE_CLASS} data-testid="passkey-unavailable">
         Passkeys are not supported in this browser.
       </p>
     );
@@ -236,7 +221,7 @@ export function PasskeyLoginButton({ onSuccess, onError }: PasskeyLoginButtonPro
       data-testid="login-passkey-btn"
       onClick={handleLogin}
       disabled={loading}
-      style={loading ? btnDisabledStyle : btnStyle}
+      className={loading ? BTN_DISABLED_CLASS : BTN_CLASS}
     >
       {loading ? 'Signing in…' : 'Sign in with Passkey'}
     </button>

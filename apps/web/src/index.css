@@ -1,0 +1,68 @@
+/*
+ * Global stylesheet — the single source of truth for the web app's visual system.
+ *
+ * Replaces the former JS token module (packages/ui/tokens.ts). Every surface now
+ * styles itself with Tailwind utilities generated from the `@theme` below, so the
+ * product reads as one designed system rather than a stack of API panels.
+ *
+ * Palette: a slate near-monochrome — one neutral ramp (surface → ink) as the
+ * primary, plus ONE restrained blue accent (links / focus / selected). The
+ * green/amber/red status colors are functional (StatusChip semantics) and kept.
+ *
+ * Font: Geist (variable), self-hosted via @fontsource — no CDN call.
+ *
+ * Canonical docs: docs/ux-review.md §5 (Visual system); docs/architecture.md
+ */
+
+@import 'tailwindcss';
+
+/* Self-hosted Geist (variable axes). */
+@import '@fontsource-variable/geist';
+@import '@fontsource-variable/geist-mono';
+
+/* The shared ui package lives outside this app's root; scan it for class names. */
+@source '../../../packages/ui';
+
+@theme {
+  --font-sans: 'Geist Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'Geist Mono Variable', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* One neutral ramp (slate). surface = page/cards, ink = primary text. */
+  --color-surface: #ffffff;
+  --color-surface-muted: #f8fafc; /* slate-50  */
+  --color-surface-sunken: #f1f5f9; /* slate-100 */
+  --color-border: #e2e8f0; /* slate-200 */
+  --color-border-strong: #cbd5e1; /* slate-300 */
+  --color-ink-faint: #94a3b8; /* slate-400 */
+  --color-ink-subtle: #64748b; /* slate-500 */
+  --color-ink-muted: #334155; /* slate-700 */
+  --color-ink: #0f172a; /* slate-900 — primary text, primary buttons, nav bar */
+
+  /* The single restrained accent — links, focus rings, selected state. */
+  --color-accent: #2563eb; /* blue-600 */
+  --color-accent-hover: #1d4ed8; /* blue-700 */
+
+  /* Functional status chips (StatusChip). green=paid, amber=pending, red=blocked. */
+  --color-ok-bg: #dcfce7;
+  --color-ok-fg: #166534;
+  --color-warn-bg: #fef3c7;
+  --color-warn-fg: #92400e;
+  --color-bad-bg: #fee2e2;
+  --color-bad-fg: #991b1b;
+  --color-neutral-bg: #f1f5f9;
+  --color-neutral-fg: #334155;
+}
+
+@layer base {
+  html {
+    font-family: var(--font-sans);
+  }
+
+  body {
+    margin: 0;
+    background-color: var(--color-surface-muted);
+    color: var(--color-ink);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}

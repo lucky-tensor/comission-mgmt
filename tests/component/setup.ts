@@ -6,6 +6,10 @@
  * Issue: feat: Producer Portal UI + headless-Chromium browser/E2E harness (#78)
  */
 
+// Load the global stylesheet (Tailwind + @theme) so browser-mode tests render
+// with the real visual system, mirroring the production app entry (main.tsx).
+import '../../apps/web/src/index.css';
+
 declare global {
   var IS_REACT_ACT_ENVIRONMENT: boolean;
 }

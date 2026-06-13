@@ -141,18 +141,19 @@ describe('EX-1: Executive views firm financial position', () => {
 // ---------------------------------------------------------------------------
 
 describe('EX-2: Executive views profitability analytics', () => {
-  test('navigating to /executive/profitability via nav renders the surface', async () => {
+  test('clicking profitability tab renders the surface', async () => {
     mount.current = await loginAs('Executive');
     await expect.element(page.getByTestId('nav-shell')).toBeInTheDocument();
-    // NavShell renders buttons with data-testid derived from path (slashes → dashes).
-    await userEvent.click(page.getByTestId('nav-item-executive-profitability'));
+    // Click the Profitability tab (moved from nav to tabbed interface within /executive).
+    await userEvent.click(page.getByRole('tab', { name: /profitability/i }));
     await expect.element(page.getByTestId('exec-profitability')).toBeInTheDocument();
-    expect(window.location.pathname).toBe('/executive/profitability');
+    expect(window.location.pathname).toBe('/executive');
   });
 
   test('dimension-switcher is present', async () => {
     mount.current = await loginAs('Executive');
     navigate('/executive/profitability');
+    await userEvent.click(page.getByRole('tab', { name: /profitability/i }));
     await expect.element(page.getByTestId('exec-profitability')).toBeInTheDocument();
     await expect.element(page.getByTestId('dimension-switcher')).toBeInTheDocument();
   });
@@ -160,6 +161,7 @@ describe('EX-2: Executive views profitability analytics', () => {
   test('switching to Client dimension loads client rows', async () => {
     mount.current = await loginAs('Executive');
     navigate('/executive/profitability');
+    await userEvent.click(page.getByRole('tab', { name: /profitability/i }));
     await expect.element(page.getByTestId('dimension-switcher')).toBeInTheDocument();
     await userEvent.click(page.getByTestId('dim-btn-client'));
     // Poll until one of: profitability-table (data), empty-state (no data), or error-state (API failure).
@@ -184,6 +186,7 @@ describe('EX-2: Executive views profitability analytics', () => {
   test('switching to Recruiter dimension loads recruiter rows or empty state', async () => {
     mount.current = await loginAs('Executive');
     navigate('/executive/profitability');
+    await userEvent.click(page.getByRole('tab', { name: /profitability/i }));
     await expect.element(page.getByTestId('dimension-switcher')).toBeInTheDocument();
     await userEvent.click(page.getByTestId('dim-btn-recruiter'));
     // Accept profitability-table (data), empty-state (no data), or error-state.
@@ -203,17 +206,19 @@ describe('EX-2: Executive views profitability analytics', () => {
 // ---------------------------------------------------------------------------
 
 describe('EX-3: Executive views exception and dispute rate trends', () => {
-  test('navigating to /executive/trends via nav renders the trends surface', async () => {
+  test('clicking trends tab renders the trends surface', async () => {
     mount.current = await loginAs('Executive');
     await expect.element(page.getByTestId('nav-shell')).toBeInTheDocument();
-    await userEvent.click(page.getByTestId('nav-item-executive-trends'));
+    // Click the Trends tab (moved from nav to tabbed interface within /executive).
+    await userEvent.click(page.getByRole('tab', { name: /trends/i }));
     await expect.element(page.getByTestId('exec-trends')).toBeInTheDocument();
-    expect(window.location.pathname).toBe('/executive/trends');
+    expect(window.location.pathname).toBe('/executive');
   });
 
   test('period inputs are present on the trends surface', async () => {
     mount.current = await loginAs('Executive');
     navigate('/executive/trends');
+    await userEvent.click(page.getByRole('tab', { name: /trends/i }));
     await expect.element(page.getByTestId('exec-trends')).toBeInTheDocument();
     await expect.element(page.getByTestId('trends-range-start-input')).toBeInTheDocument();
     await expect.element(page.getByTestId('trends-range-end-input')).toBeInTheDocument();
@@ -222,6 +227,7 @@ describe('EX-3: Executive views exception and dispute rate trends', () => {
   test('fetching the seed period renders the trends table or error state', async () => {
     mount.current = await loginAs('Executive');
     navigate('/executive/trends');
+    await userEvent.click(page.getByRole('tab', { name: /trends/i }));
     await expect.element(page.getByTestId('exec-trends')).toBeInTheDocument();
     await userEvent.fill(page.getByTestId('trends-range-start-input'), '2025-05-01');
     await userEvent.fill(page.getByTestId('trends-range-end-input'), '2025-05-31');
@@ -241,6 +247,7 @@ describe('EX-3: Executive views exception and dispute rate trends', () => {
   test('fetching the seed period shows data or empty state or error state', async () => {
     mount.current = await loginAs('Executive');
     navigate('/executive/trends');
+    await userEvent.click(page.getByRole('tab', { name: /trends/i }));
     await expect.element(page.getByTestId('exec-trends')).toBeInTheDocument();
     await userEvent.fill(page.getByTestId('trends-range-start-input'), '2025-05-01');
     await userEvent.fill(page.getByTestId('trends-range-end-input'), '2025-05-31');

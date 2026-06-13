@@ -30,6 +30,7 @@
  */
 
 import { useState } from 'react';
+import { Button } from 'ui';
 import type { AppRole } from 'core/auth';
 import { ApiError, apiGet, apiPost } from '../../lib/apiClient';
 import { useAsync } from '../../lib/useAsync';
@@ -176,49 +177,28 @@ function DisputeDetailView({
       <button
         data-testid="back-to-list"
         onClick={onBack}
-        style={{
-          marginBottom: '1rem',
-          fontSize: '0.8125rem',
-          background: 'none',
-          border: 'none',
-          color: '#2563eb',
-          cursor: 'pointer',
-          padding: 0,
-          textDecoration: 'underline',
-        }}
+        className="mb-4 text-[0.8125rem] bg-transparent border-none text-accent cursor-pointer p-0 underline"
       >
         ← Back to escalated disputes
       </button>
 
       <PortalCard title="Dispute Details">
-        <dl
-          data-testid="dispute-meta"
-          style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem 1rem', margin: 0 }}
-        >
+        <dl data-testid="dispute-meta" className="grid grid-cols-2 gap-x-4 gap-y-2 m-0">
           <div>
-            <dt style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 600 }}>Dispute ID</dt>
-            <dd
-              data-testid="dispute-id"
-              style={{ margin: 0, fontSize: '0.875rem', color: '#111827' }}
-            >
+            <dt className="text-xs text-ink-subtle font-semibold">Dispute ID</dt>
+            <dd data-testid="dispute-id" className="m-0 text-sm text-ink">
               {dispute.id}
             </dd>
           </div>
           <div>
-            <dt style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 600 }}>State</dt>
-            <dd
-              data-testid="dispute-state"
-              style={{ margin: 0, fontSize: '0.875rem', color: '#111827' }}
-            >
+            <dt className="text-xs text-ink-subtle font-semibold">State</dt>
+            <dd data-testid="dispute-state" className="m-0 text-sm text-ink">
               {dispute.state}
             </dd>
           </div>
-          <div style={{ gridColumn: '1 / -1' }}>
-            <dt style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 600 }}>Description</dt>
-            <dd
-              data-testid="dispute-description"
-              style={{ margin: 0, fontSize: '0.875rem', color: '#111827' }}
-            >
+          <div className="col-span-2">
+            <dt className="text-xs text-ink-subtle font-semibold">Description</dt>
+            <dd data-testid="dispute-description" className="m-0 text-sm text-ink">
               {dispute.description}
             </dd>
           </div>
@@ -233,45 +213,25 @@ function DisputeDetailView({
             <EmptyState message="No attribution events recorded for this placement." />
           )}
           {!timelineLoading && !timelineError && timeline && timeline.length > 0 && (
-            <ol data-testid="timeline-events" style={{ margin: 0, padding: 0, listStyle: 'none' }}>
+            <ol data-testid="timeline-events" className="m-0 p-0 list-none">
               {timeline.map((event) => (
                 <li
                   key={event.id}
                   data-testid={`timeline-event-${event.id}`}
-                  style={{
-                    borderBottom: '1px solid #e5e7eb',
-                    padding: '0.75rem 0',
-                    display: 'flex',
-                    gap: '1rem',
-                    alignItems: 'flex-start',
-                  }}
+                  className="border-b border-border py-3 flex gap-4 items-start"
                 >
                   <span
                     data-testid="timeline-event-type"
-                    style={{
-                      fontSize: '0.75rem',
-                      background: '#dbeafe',
-                      color: '#1e40af',
-                      padding: '0.125rem 0.5rem',
-                      borderRadius: '0.25rem',
-                      fontWeight: 600,
-                      flexShrink: 0,
-                    }}
+                    className="text-xs bg-surface-sunken text-ink-muted px-2 py-0.5 rounded font-semibold shrink-0"
                   >
                     {event.event_type}
                   </span>
                   <div>
-                    <div style={{ fontSize: '0.8125rem', color: '#374151' }}>
-                      Actor: {event.actor_id}
-                    </div>
+                    <div className="text-[0.8125rem] text-ink-muted">Actor: {event.actor_id}</div>
                     {event.reason && (
-                      <div
-                        style={{ fontSize: '0.8125rem', color: '#6b7280', marginTop: '0.25rem' }}
-                      >
-                        {event.reason}
-                      </div>
+                      <div className="text-[0.8125rem] text-ink-subtle mt-1">{event.reason}</div>
                     )}
-                    <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.25rem' }}>
+                    <div className="text-xs text-ink-faint mt-1">
                       {new Date(event.created_at).toLocaleString()}
                     </div>
                   </div>
@@ -287,28 +247,15 @@ function DisputeDetailView({
           <div data-testid="arbitration-section">
             {arbStatus === 'idle' && (
               <>
-                <p style={{ fontSize: '0.8125rem', color: '#6b7280', margin: '0 0 0.75rem' }}>
+                <p className="text-[0.8125rem] text-ink-subtle mt-0 mb-3">
                   Request an AI recommendation for this escalated dispute. The output is advisory
                   only — the final resolution is always a documented human decision recorded below.
                 </p>
-                <button
-                  data-testid="run-arbitration-btn"
-                  onClick={handleArbitrate}
-                  style={{
-                    padding: '0.5rem 1.25rem',
-                    background: '#7c3aed',
-                    color: '#ffffff',
-                    border: 'none',
-                    borderRadius: '0.5rem',
-                    cursor: 'pointer',
-                    fontSize: '0.875rem',
-                    fontWeight: 600,
-                  }}
-                >
+                <Button data-testid="run-arbitration-btn" onClick={handleArbitrate}>
                   Run Arbitration
-                </button>
+                </Button>
                 {arbError && (
-                  <div style={{ marginTop: '0.75rem' }}>
+                  <div className="mt-3">
                     <ErrorState message={arbError} />
                   </div>
                 )}
@@ -321,7 +268,7 @@ function DisputeDetailView({
               <div
                 data-testid="arbitration-rejected"
                 role="status"
-                style={{ fontSize: '0.8125rem', color: '#6b7280' }}
+                className="text-[0.8125rem] text-ink-subtle"
               >
                 Recommendation rejected. Resolve the dispute with your own rationale below.
               </div>
@@ -330,60 +277,44 @@ function DisputeDetailView({
             {arbStatus === 'done' && recommendation && (
               <div
                 data-testid="arbitration-recommendation"
-                style={{
-                  padding: '1.25rem',
-                  background: '#faf5ff',
-                  border: '1px solid #d8b4fe',
-                  borderRadius: '0.5rem',
-                }}
+                className="p-5 bg-surface-sunken border border-border rounded-lg"
               >
-                <div style={{ marginBottom: '0.75rem' }}>
-                  <div style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 600 }}>
-                    Recommendation
-                  </div>
+                <div className="mb-3">
+                  <div className="text-xs text-ink-subtle font-semibold">Recommendation</div>
                   <div
                     data-testid="arbitration-summary"
-                    style={{ fontSize: '0.9375rem', fontWeight: 600, color: '#111827' }}
+                    className="text-[0.9375rem] font-semibold text-ink"
                   >
                     {recommendation.recommendation}
                   </div>
                 </div>
 
-                <div style={{ marginBottom: '0.75rem' }}>
-                  <div style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 600 }}>
-                    Reasoning
-                  </div>
+                <div className="mb-3">
+                  <div className="text-xs text-ink-subtle font-semibold">Reasoning</div>
                   <p
                     data-testid="arbitration-reasoning"
-                    style={{ fontSize: '0.875rem', color: '#374151', margin: '0.25rem 0 0' }}
+                    className="text-sm text-ink-muted mt-1 mb-0"
                   >
                     {recommendation.reasoning}
                   </p>
                 </div>
 
-                <div style={{ marginBottom: '0.75rem' }}>
-                  <div style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 600 }}>
-                    Payout adjustment
-                  </div>
+                <div className="mb-3">
+                  <div className="text-xs text-ink-subtle font-semibold">Payout adjustment</div>
                   <div
                     data-testid="arbitration-payout-adjustment"
-                    style={{ fontSize: '0.9375rem', color: '#111827' }}
+                    className="text-[0.9375rem] text-ink"
                   >
                     {recommendation.payout_adjustment}
                   </div>
                 </div>
 
                 {recommendation.edge_cases.length > 0 && (
-                  <div style={{ marginBottom: '0.75rem' }}>
-                    <div style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 600 }}>
-                      Edge cases
-                    </div>
-                    <ul
-                      data-testid="arbitration-edge-cases"
-                      style={{ margin: '0.25rem 0 0', paddingLeft: '1.25rem' }}
-                    >
+                  <div className="mb-3">
+                    <div className="text-xs text-ink-subtle font-semibold">Edge cases</div>
+                    <ul data-testid="arbitration-edge-cases" className="mt-1 mb-0 pl-5">
                       {recommendation.edge_cases.map((ec, i) => (
-                        <li key={i} style={{ fontSize: '0.8125rem', color: '#374151' }}>
+                        <li key={i} className="text-[0.8125rem] text-ink-muted">
                           {ec}
                         </li>
                       ))}
@@ -391,50 +322,31 @@ function DisputeDetailView({
                   </div>
                 )}
 
-                <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: '0.75rem 0' }}>
+                <p className="text-xs text-ink-subtle my-3">
                   This is a recommendation only. Accepting requires a rationale and records the AI
                   recommendation reference, you as the deciding actor, and your rationale in the
                   audit trail. Enter your rationale below, then Accept or Reject.
                 </p>
 
-                <div style={{ display: 'flex', gap: '0.75rem' }}>
-                  <button
+                <div className="flex gap-3">
+                  <Button
                     data-testid="arbitration-accept-btn"
                     onClick={() => handleResolve(recommendation.id ?? 'ai-recommendation')}
                     disabled={saving}
-                    style={{
-                      padding: '0.5rem 1.25rem',
-                      background: saving ? '#93c5fd' : '#16a34a',
-                      color: '#ffffff',
-                      border: 'none',
-                      borderRadius: '0.5rem',
-                      cursor: saving ? 'not-allowed' : 'pointer',
-                      fontSize: '0.875rem',
-                      fontWeight: 600,
-                    }}
                   >
                     {saving ? 'Resolving…' : 'Accept'}
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    variant="destructive"
                     data-testid="arbitration-reject-btn"
                     onClick={() => {
                       setArbStatus('rejected');
                       setRecommendation(null);
                     }}
                     disabled={saving}
-                    style={{
-                      padding: '0.5rem 1.25rem',
-                      background: '#ffffff',
-                      color: '#b91c1c',
-                      border: '1px solid #fca5a5',
-                      borderRadius: '0.5rem',
-                      cursor: 'pointer',
-                      fontSize: '0.875rem',
-                      fontWeight: 600,
-                    }}
                   >
                     Reject
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}
@@ -447,14 +359,7 @@ function DisputeDetailView({
           <div
             data-testid="resolve-confirmation"
             role="status"
-            style={{
-              padding: '1.25rem',
-              background: '#ecfdf5',
-              border: '1px solid #6ee7b7',
-              borderRadius: '0.5rem',
-              color: '#065f46',
-              fontSize: '0.875rem',
-            }}
+            className="p-5 bg-ok-bg border border-ok-fg/30 rounded-lg text-ok-fg text-sm"
           >
             Dispute resolved — placement is unblocked for the commission run. Rationale recorded in
             the audit trail.
@@ -465,13 +370,7 @@ function DisputeDetailView({
           <div data-testid="resolve-form">
             <label
               htmlFor="resolution-rationale"
-              style={{
-                display: 'block',
-                fontSize: '0.8125rem',
-                color: '#374151',
-                marginBottom: '0.375rem',
-                fontWeight: 600,
-              }}
+              className="block text-[0.8125rem] text-ink-muted mb-1.5 font-semibold"
             >
               Rationale (required)
             </label>
@@ -481,24 +380,14 @@ function DisputeDetailView({
               value={rationale}
               onChange={(e) => setRationale(e.target.value)}
               placeholder="Enter the final decision rationale to be recorded in the audit trail…"
-              style={{
-                width: '100%',
-                boxSizing: 'border-box',
-                padding: '0.625rem 0.75rem',
-                border: '1px solid #d1d5db',
-                borderRadius: '0.5rem',
-                fontSize: '0.875rem',
-                minHeight: '5rem',
-                resize: 'vertical',
-                marginBottom: '0.75rem',
-              }}
+              className="w-full box-border px-3 py-2.5 border border-border-strong rounded-lg text-sm min-h-[5rem] resize-y mb-3"
             />
 
             {rationaleError && (
               <div
                 data-testid="rationale-error"
                 role="alert"
-                style={{ color: '#b91c1c', fontSize: '0.8125rem', marginBottom: '0.75rem' }}
+                className="text-bad-fg text-[0.8125rem] mb-3"
               >
                 {rationaleError}
               </div>
@@ -508,29 +397,15 @@ function DisputeDetailView({
               <div
                 data-testid="save-error"
                 role="alert"
-                style={{ color: '#b91c1c', fontSize: '0.8125rem', marginBottom: '0.75rem' }}
+                className="text-bad-fg text-[0.8125rem] mb-3"
               >
                 {saveError}
               </div>
             )}
 
-            <button
-              data-testid="resolve-btn"
-              onClick={() => handleResolve()}
-              disabled={saving}
-              style={{
-                padding: '0.5rem 1.25rem',
-                background: saving ? '#93c5fd' : '#2563eb',
-                color: '#ffffff',
-                border: 'none',
-                borderRadius: '0.5rem',
-                cursor: saving ? 'not-allowed' : 'pointer',
-                fontSize: '0.875rem',
-                fontWeight: 600,
-              }}
-            >
+            <Button data-testid="resolve-btn" onClick={() => handleResolve()} disabled={saving}>
               {saving ? 'Resolving…' : 'Approve & Resolve'}
-            </button>
+            </Button>
           </div>
         </PortalCard>
       )}
@@ -551,39 +426,21 @@ function DisputeRow({ dispute, onSelect }: DisputeRowProps) {
   return (
     <div
       data-testid={`dispute-row-${dispute.id}`}
-      style={{
-        borderBottom: '1px solid #e5e7eb',
-        padding: '1rem 0',
-        display: 'flex',
-        alignItems: 'flex-start',
-        justifyContent: 'space-between',
-        gap: '1rem',
-      }}
+      className="border-b border-border py-4 flex items-start justify-between gap-4"
     >
       <div>
-        <div style={{ fontWeight: 600, color: '#111827', fontSize: '0.9375rem' }}>
+        <div className="font-semibold text-ink text-[0.9375rem]">
           Dispute #{dispute.id.slice(0, 8)}
         </div>
-        <div style={{ fontSize: '0.8125rem', color: '#6b7280', marginTop: '0.25rem' }}>
-          {dispute.description}
-        </div>
-        <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.25rem' }}>
+        <div className="text-[0.8125rem] text-ink-subtle mt-1">{dispute.description}</div>
+        <div className="text-xs text-ink-faint mt-1">
           Submitted {new Date(dispute.created_at).toLocaleDateString()}
         </div>
       </div>
       <button
         data-testid={`review-btn-${dispute.id}`}
         onClick={() => onSelect(dispute)}
-        style={{
-          flexShrink: 0,
-          fontSize: '0.8125rem',
-          padding: '0.375rem 0.75rem',
-          background: '#2563eb',
-          color: '#ffffff',
-          border: 'none',
-          borderRadius: '0.375rem',
-          cursor: 'pointer',
-        }}
+        className="shrink-0 text-[0.8125rem] px-3 py-1.5 rounded-md bg-ink text-white cursor-pointer"
       >
         Review
       </button>
@@ -634,22 +491,14 @@ export function ExecDisputeApprovalView({
   return (
     <div
       data-testid="exec-dispute-approval"
-      style={{
-        minHeight: 'calc(100vh - 3.25rem)',
-        background: '#f9fafb',
-        fontFamily: 'system-ui, sans-serif',
-        padding: '2rem 1rem',
-      }}
+      className="min-h-[calc(100vh-3.25rem)] bg-surface-muted px-4 py-8"
     >
-      <div style={{ maxWidth: '880px', margin: '0 auto' }}>
-        <header style={{ marginBottom: '1.5rem' }}>
-          <h1
-            data-testid="exec-dispute-heading"
-            style={{ fontSize: '1.5rem', fontWeight: 700, color: '#111827', margin: '0 0 0.25rem' }}
-          >
+      <div className="max-w-[880px] mx-auto">
+        <header className="mb-6">
+          <h1 data-testid="exec-dispute-heading" className="text-2xl font-bold text-ink mt-0 mb-1">
             Escalated Dispute Approval
           </h1>
-          <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: 0 }}>
+          <p className="text-sm text-ink-subtle m-0">
             Attribution disputes escalated for executive final approval. Resolve each with a
             documented rationale to unblock the placement for the commission run.
           </p>

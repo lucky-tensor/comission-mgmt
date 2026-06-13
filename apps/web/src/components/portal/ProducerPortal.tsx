@@ -19,6 +19,7 @@
 import type { CommissionRecord } from 'core/producer-portal';
 import { ApiError, apiGet } from '../../lib/apiClient';
 import { useAsync } from '../../lib/useAsync';
+import { Tabs } from '../Tabs';
 import { PayoutStatement } from './PayoutStatement';
 import { CreditedPlacementsView } from './CreditedPlacements';
 import { TierProgress } from './TierProgress';
@@ -43,41 +44,41 @@ export function ProducerPortal({ onUnauthenticated }: { onUnauthenticated?: () =
   );
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        background: '#f9fafb',
-        fontFamily: 'system-ui, sans-serif',
-        padding: '2rem 1rem',
-      }}
-    >
-      <div style={{ maxWidth: '880px', margin: '0 auto' }}>
-        <header style={{ marginBottom: '2rem' }}>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#111827', margin: 0 }}>
-            Producer Payout Portal
-          </h1>
-          <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: '0.25rem 0 0' }}>
+    <div className="min-h-screen bg-surface-muted px-4 py-8">
+      <div className="max-w-[880px] mx-auto">
+        <header className="mb-8">
+          <h1 className="text-2xl font-bold text-ink m-0">Producer Payout Portal</h1>
+          <p className="text-sm text-ink-subtle mt-1 mb-0">
             Your credited placements, payouts, tier progress, and disputes.
           </p>
         </header>
 
-        <PayoutStatement />
+        <Tabs defaultTab="dashboard">
+          <Tabs.Tab id="dashboard" label="Dashboard">
+            <div className="space-y-6">
+              <PayoutStatement />
+              <TierProgress />
+              <ProducerPlanAcknowledgment />
+            </div>
+          </Tabs.Tab>
 
-        <TierProgress />
+          <Tabs.Tab id="placements" label="Placements">
+            <div className="space-y-6">
+              <CreditedPlacementsView state={records} />
+              {records.loading ? (
+                <LoadingState label="dispute form" />
+              ) : records.error ? (
+                <ErrorState message={records.error} />
+              ) : (
+                <DisputeForm records={records.data ?? []} />
+              )}
+            </div>
+          </Tabs.Tab>
 
-        <ProducerPlanAcknowledgment />
-
-        <CreditedPlacementsView state={records} />
-
-        {records.loading ? (
-          <LoadingState label="dispute form" />
-        ) : records.error ? (
-          <ErrorState message={records.error} />
-        ) : (
-          <DisputeForm records={records.data ?? []} />
-        )}
-
-        <DealSimulator />
+          <Tabs.Tab id="tools" label="Tools">
+            <DealSimulator />
+          </Tabs.Tab>
+        </Tabs>
       </div>
     </div>
   );

@@ -21,7 +21,6 @@ import { PayrollExport } from './PayrollExport';
 import { EntityPicker } from '../EntityPicker';
 import { apiGet } from '../../lib/apiClient';
 import { useAsync } from '../../lib/useAsync';
-import { colors } from 'ui';
 
 // Shared list-row shapes returned by the list endpoints.
 interface PlacementListItem {
@@ -40,14 +39,9 @@ interface CommissionRunListItem {
   record_count: number;
 }
 
-const sectionStyle: React.CSSProperties = { marginBottom: '2rem' };
+const SECTION_CLASS = 'mb-8';
 
-const sectionHeadingStyle: React.CSSProperties = {
-  fontSize: '1rem',
-  fontWeight: 700,
-  color: colors.ink,
-  margin: '0 0 0.75rem',
-};
+const SECTION_HEADING_CLASS = 'text-base font-bold text-ink m-0 mb-3';
 
 function placementOptionLabel(p: PlacementListItem): string {
   const title = p.position_title ?? p.job_title ?? null;
@@ -81,8 +75,8 @@ export function FinanceAdminSurface() {
 
   return (
     <div data-testid="finance-home">
-      <section style={sectionStyle} aria-labelledby="adjustment-ledger-heading">
-        <h2 id="adjustment-ledger-heading" style={sectionHeadingStyle}>
+      <section className={SECTION_CLASS} aria-labelledby="adjustment-ledger-heading">
+        <h2 id="adjustment-ledger-heading" className={SECTION_HEADING_CLASS}>
           Adjustment ledger
         </h2>
         <EntityPicker
@@ -99,8 +93,8 @@ export function FinanceAdminSurface() {
         {placementId && <AdjustmentLedger placementId={placementId} />}
       </section>
 
-      <section style={sectionStyle} aria-labelledby="payroll-export-heading">
-        <h2 id="payroll-export-heading" style={sectionHeadingStyle}>
+      <section className={SECTION_CLASS} aria-labelledby="payroll-export-heading">
+        <h2 id="payroll-export-heading" className={SECTION_HEADING_CLASS}>
           Payroll export
         </h2>
         <EntityPicker

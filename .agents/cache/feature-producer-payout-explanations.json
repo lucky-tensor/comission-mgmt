@@ -1,0 +1,13 @@
+{
+  "name": "Producer portal payout explanations use meaningful fields and consistent status",
+  "phase": "Web App UX",
+  "motivation": "Producer payout cards currently expose implementation details and contradictory financial state. For example, a card can show Payable and $0.00 net while its explanation says payment is pending client collection, then ends with raw plan-version and placement UUIDs. This undermines the portal's purpose of explaining payouts without finance assistance.",
+  "intended_experience": "In My Portal, each payout card presents a concise explanation using producer-relevant business terms and values that agree with the displayed status and net amount. Held or collection-gated payouts are labeled as held or pending rather than payable, the explanation identifies the reason and expected trigger, and raw UUIDs are removed from prose and available only as secondary trace metadata when needed.",
+  "constraints": [
+    "Preserve deterministic calculation traceability to the placement and plan version without putting raw UUIDs in the primary explanation prose.",
+    "Use the commission record as the source of truth so the status label, net amount, gross amount, and hold explanation cannot contradict one another.",
+    "Do not change commission calculation arithmetic or ledger history as part of this presentation correction.",
+    "Cover base-rate, tiered-rate, collection-held, guarantee-held, and zero-net scenarios with automated tests.",
+    "Keep confidential-placement masking intact in producer-facing content."
+  ]
+}

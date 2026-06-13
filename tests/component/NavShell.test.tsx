@@ -110,9 +110,9 @@ describe('NavShell — header role badge', () => {
 });
 
 describe('NavShell — overflow', () => {
-  test('Executive (five nav items, at the cap) renders all items inline with no overflow', async () => {
-    // Executive has exactly 5 nav items (Dashboard, Profitability, Trends,
-    // Finance View, Docs) — at the cap, so nothing collapses.
+  test('Executive (four nav items, below the cap) renders all items inline with no overflow', async () => {
+    // Executive has 4 nav items (Dashboard, Profitability, Trends, Docs)
+    // — below the cap of 5, so nothing collapses into overflow.
     render({ role: 'Executive', currentPath: '/executive' });
     await expect.element(page.getByTestId('nav-item-executive')).toBeInTheDocument();
     await expect.element(page.getByTestId('nav-item-docs')).toBeInTheDocument();
