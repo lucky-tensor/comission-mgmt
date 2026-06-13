@@ -1,22 +1,29 @@
 /**
  * FinancePage — Finance Admin surface with tabbed interface.
  *
- * UX overhaul (#203, docs/ux-review.md §2): consolidates separate routes
- * (/finance and /reconciliation) into one page with tabs:
+ * UX overhaul (#203, docs/ux-review.md §2): consolidates the Finance surfaces
+ * into one page with tabs. Each tab is an addressable sub-path so the sidebar
+ * links straight to it and deep-links work:
  *
- *   1. Cases
+ *   1. Cases                — /finance/cases
  *      - PlacementLedger — cross-role placement management surface
  *
- *   2. Processing (default)
+ *   2. Processing (default) — /finance
  *      - Data Gap Queue              — placements missing commission-required data
  *      - Commission Runs             — open / review / approve / finalize runs
  *      - Invoice & Collection Tracking — per-placement billing phases & invoices
  *
- *   3. Adjustments & Payroll
+ *   3. Adjustments & Payroll — /finance/adjustments
  *      - Adjustments & Payroll Export  — adjustment ledger + payroll-ready export
  *
- *   4. Reconciliation
+ *   4. Reconciliation        — /finance/reconciliation
  *      - Reconciliation Report
+ *
+ * When `currentPath` is supplied (the standalone Finance Admin surface), the
+ * active tab is derived from the URL and tab clicks push a new path — so the
+ * sidebar highlight and the page stay in sync. When omitted (the read-only
+ * instance embedded in the Executive dashboard) the tabs use local state only
+ * and never change the URL.
  *
  * Canonical docs: docs/prd.md §4 (Finance Admin); docs/ux-review.md §2
  * Issue: feat: webapp — UX overhaul: page composition (#203)
@@ -30,7 +37,12 @@ import { InvoiceCollectionSection } from './FinanceAdmin';
 import { FinanceAdminSurface } from './FinanceAdminSurface';
 import { ReconciliationReport } from './ReconciliationReport';
 import { PlacementLedger } from '../placements/PlacementLedger';
+import { ROUTES, tabFromPath, pathForTab } from '../../lib/roleRoutes';
+import { navigate } from '../../lib/navigation';
 import type { AppRole } from 'core/auth';
+
+/** Default tab shown at the bare /finance path. */
+const FINANCE_DEFAULT_TAB = 'processing';
 
 function Section({
   id,
@@ -63,7 +75,23 @@ function Section({
   );
 }
 
-export function FinancePage({ role = 'FinanceAdmin' }: { role?: AppRole }) {
+export function FinancePage({
+  role = 'FinanceAdmin',
+  currentPath,
+}: {
+  role?: AppRole;
+  /**
+   * Current location. When provided, the active tab is read from the path and
+   * tab changes update the URL. When omitted, tabs are local-state only (used
+   * for the read-only Finance view embedded in the Executive dashboard).
+   */
+  currentPath?: string;
+}) {
+  const urlSynced = currentPath !== undefined;
+  const activeTab = urlSynced
+    ? tabFromPath(currentPath, ROUTES.FINANCE, FINANCE_DEFAULT_TAB)
+    : FINANCE_DEFAULT_TAB;
+
   return (
     <div data-testid="finance-page">
       <header className="mb-6">
@@ -74,7 +102,17 @@ export function FinancePage({ role = 'FinanceAdmin' }: { role?: AppRole }) {
         </p>
       </header>
 
-      <Tabs defaultTab="processing">
+      {/* key remounts Tabs when the URL-derived tab changes (e.g. a sidebar
+          click), so the path stays the single source of truth for tab state. */}
+      <Tabs
+        key={activeTab}
+        defaultTab={activeTab}
+        onTabChange={
+          urlSynced
+            ? (tab) => navigate(pathForTab(tab, ROUTES.FINANCE, FINANCE_DEFAULT_TAB))
+            : undefined
+        }
+      >
         <Tabs.Tab id="cases" label="Cases">
           <PlacementLedger role={role} />
         </Tabs.Tab>

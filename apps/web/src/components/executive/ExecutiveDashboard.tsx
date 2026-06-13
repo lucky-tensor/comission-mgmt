@@ -26,13 +26,28 @@ import { ExecDisputeApproval } from './ExecDisputeApproval';
 import { ExecProfitability } from '../ExecProfitability';
 import { ExecTrends } from './ExecTrends';
 import { FinancePage } from '../finance/FinancePage';
+import { ROUTES, tabFromPath, pathForTab } from '../../lib/roleRoutes';
+import { navigate } from '../../lib/navigation';
 import type { AppRole } from 'core/auth';
+
+/** Default tab shown at the bare /executive path. */
+const EXEC_DEFAULT_TAB = 'dashboard';
 
 interface ExecutiveDashboardProps {
   role: AppRole;
+  /**
+   * Current location. The active tab is derived from the path and tab changes
+   * update the URL, so the sidebar highlight and the page stay in sync.
+   */
+  currentPath?: string;
 }
 
-export function ExecutiveDashboard({ role }: ExecutiveDashboardProps) {
+export function ExecutiveDashboard({ role, currentPath }: ExecutiveDashboardProps) {
+  const urlSynced = currentPath !== undefined;
+  const activeTab = urlSynced
+    ? tabFromPath(currentPath, ROUTES.EXECUTIVE, EXEC_DEFAULT_TAB)
+    : EXEC_DEFAULT_TAB;
+
   return (
     <div data-testid="executive-dashboard" className="space-y-6">
       <header className="mb-6">
@@ -42,7 +57,17 @@ export function ExecutiveDashboard({ role }: ExecutiveDashboardProps) {
         </p>
       </header>
 
-      <Tabs defaultTab="dashboard">
+      {/* key remounts Tabs when the URL-derived tab changes (e.g. a sidebar
+          click), so the path stays the single source of truth for tab state. */}
+      <Tabs
+        key={activeTab}
+        defaultTab={activeTab}
+        onTabChange={
+          urlSynced
+            ? (tab) => navigate(pathForTab(tab, ROUTES.EXECUTIVE, EXEC_DEFAULT_TAB))
+            : undefined
+        }
+      >
         <Tabs.Tab id="dashboard" label="Dashboard">
           <div className="space-y-6">
             <ExecFinancialPosition />

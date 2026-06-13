@@ -1,13 +1,16 @@
 /**
  * NavShell — application navigation shell with left sidebar.
  *
- * Implements the Atlas design system layout: left sidebar with nav items,
- * top bar with page title and user info, and main content area.
+ * Implements the Atlas design system layout: a single left sidebar holds the
+ * brand, the nav items, and the user-account menu (which contains Sign out),
+ * with the page content filling the rest of the viewport. There is deliberately
+ * no second top bar — the Atlas admin shell carries account/session controls in
+ * the sidebar's account button, not a separate chrome strip.
  *
- * Layout is responsive but sidebar is always visible (no mobile collapse).
+ * Layout is responsive but the sidebar is always visible (no mobile collapse).
  *
- * Canonical docs: Atlas design system (packages/ui/design-system/atlas/);
- *                 docs/web-app-ux.md (routing seam)
+ * Canonical docs: Atlas design system (packages/ui/design-system/atlas/, see
+ *                 ui_kits/admin-console/Shell.jsx); docs/web-app-ux.md (routing seam)
  */
 
 import type { AppRole } from 'core/auth';
@@ -18,7 +21,7 @@ import {
   type NavItem,
   type RoleRouteConfig,
 } from '../lib/roleRoutes';
-import { type ReactNode, type MouseEvent } from 'react';
+import { useState, type ReactNode, type MouseEvent } from 'react';
 
 interface NavShellProps {
   role: AppRole;
@@ -49,6 +52,9 @@ const ICON_SVGS: Record<string, string> = {
     '<rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 3h-4a2 2 0 0 0-2 2v2H8V5a2 2 0 0 0-2-2H2v2h2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7h2V5a2 2 0 0 0-2-2z"/>',
   'book-open':
     '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>',
+  'chevrons-up-down': '<path d="m7 15 5 5 5-5"/><path d="m7 9 5-5 5 5"/>',
+  'log-out':
+    '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>',
 };
 
 function Icon({ name, size = 18 }: { name: string; size?: number }) {
@@ -109,8 +115,98 @@ function NavLink({
   );
 }
 
+/** Up-to-two-letter initials for the account avatar. */
+function initialsFor(name: string): string {
+  return (
+    name
+      .split(' ')
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0])
+      .join('')
+      .toUpperCase() || 'U'
+  );
+}
+
 /**
- * Left sidebar with branding, nav items, and user account info.
+ * Account button at the bottom of the sidebar. Click toggles a small menu that
+ * holds the Sign out action — the Atlas admin shell keeps session controls here
+ * rather than in a separate top bar.
+ *
+ * Persona vs role is shown without repetition: when a distinct persona name is
+ * known it is the primary line and the role is the secondary line; otherwise the
+ * role alone is shown once. The role line always carries the `nav-role-badge`
+ * test id so role-based assertions have a single stable target.
+ */
+function UserMenu({
+  personaName,
+  roleText,
+  onLogout,
+}: {
+  personaName?: string | null;
+  roleText: string;
+  onLogout: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const showPersona = !!personaName && personaName !== roleText;
+  const primary = showPersona ? (personaName as string) : roleText;
+
+  return (
+    <div className="relative border-t border-color-border pt-3">
+      {open && (
+        <div
+          role="menu"
+          data-testid="nav-account-menu"
+          className="absolute bottom-full left-0 right-0 mb-1 flex flex-col rounded-sm border border-color-border bg-color-surface p-1 shadow-md"
+        >
+          <button
+            type="button"
+            role="menuitem"
+            data-testid="nav-logout-button"
+            onClick={() => {
+              setOpen(false);
+              onLogout();
+            }}
+            className="flex items-center gap-2 px-2 py-2 rounded-sm text-sm font-medium text-color-ink-muted text-left cursor-pointer transition-colors duration-120 hover:bg-color-surface-hover hover:text-color-ink"
+          >
+            <Icon name="log-out" size={16} />
+            <span>Sign out</span>
+          </button>
+        </div>
+      )}
+
+      <button
+        type="button"
+        data-testid="nav-account-button"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center gap-2 px-2 py-2 rounded-sm border border-color-border bg-color-surface text-left cursor-pointer transition-colors duration-120 hover:bg-color-surface-hover"
+      >
+        <div className="w-8 h-8 rounded-sm bg-color-ink text-white flex items-center justify-center text-xs font-semibold flex-shrink-0">
+          {initialsFor(primary)}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div
+            className="text-xs font-medium text-color-ink truncate"
+            data-testid={showPersona ? undefined : 'nav-role-badge'}
+          >
+            {primary}
+          </div>
+          {showPersona && (
+            <div className="text-xs text-color-ink-subtle truncate" data-testid="nav-role-badge">
+              {roleText}
+            </div>
+          )}
+        </div>
+        <Icon name="chevrons-up-down" size={15} />
+      </button>
+    </div>
+  );
+}
+
+/**
+ * Left sidebar: brand, nav items, and the account menu (with Sign out).
  */
 function Sidebar({
   config,
@@ -118,24 +214,24 @@ function Sidebar({
   onNavigate,
   personaName,
   roleText,
+  onLogout,
 }: {
   config: RoleRouteConfig;
   activePath: string | null;
   onNavigate: (path: string) => void;
   personaName?: string | null;
   roleText: string;
+  onLogout: () => void;
 }) {
   return (
     <aside
       data-testid="nav-sidebar"
       className="flex flex-col h-screen w-44 flex-shrink-0 bg-color-surface border-r border-color-border p-3"
     >
-      {/* Brand */}
+      {/* Brand — product only; the role lives in the account menu below so it is
+          never shown twice. */}
       <div className="flex items-center gap-2 px-2 pb-3 mb-2 border-b border-color-border">
-        <div className="flex-1">
-          <div className="font-semibold text-base text-color-ink">Commission Mgmt</div>
-          <div className="text-xs text-color-ink-subtle mt-0.5">{roleText}</div>
-        </div>
+        <div className="font-semibold text-base text-color-ink">Commission Mgmt</div>
       </div>
 
       {/* Nav items */}
@@ -152,72 +248,14 @@ function Sidebar({
         </div>
       </nav>
 
-      {/* User account info */}
-      <div className="border-t border-color-border pt-3">
-        <button
-          className="w-full flex items-center gap-2 px-2 py-2 rounded-sm border border-color-border bg-color-surface text-left cursor-pointer transition-colors duration-120 hover:bg-color-surface-hover"
-          onClick={() => {}}
-        >
-          <div className="w-8 h-8 rounded-sm bg-color-ink text-white flex items-center justify-center text-xs font-semibold flex-shrink-0">
-            {personaName
-              ?.split(' ')
-              .slice(0, 2)
-              .map((n) => n[0])
-              .join('')
-              .toUpperCase() || 'U'}
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="text-xs font-medium text-color-ink truncate">
-              {personaName || roleText}
-            </div>
-            <div className="text-xs text-color-ink-subtle truncate">{roleText}</div>
-          </div>
-        </button>
-      </div>
+      <UserMenu personaName={personaName} roleText={roleText} onLogout={onLogout} />
     </aside>
   );
 }
 
 /**
- * Top bar with page title, user badge, and logout.
- */
-function TopBar({
-  personaName,
-  roleText,
-  onLogout,
-}: {
-  personaName?: string | null;
-  roleText: string;
-  onLogout: () => void;
-}) {
-  return (
-    <header
-      data-testid="nav-topbar"
-      className="h-13 flex-shrink-0 border-b border-color-border bg-color-surface flex items-center px-6 gap-4"
-    >
-      <div className="flex-1" />
-      <div className="flex items-center gap-3">
-        <div
-          data-testid="nav-role-badge"
-          className="text-xs font-medium text-color-ink-muted px-2.5 py-1 bg-color-surface-muted rounded-xs whitespace-nowrap"
-        >
-          {personaName ? `${personaName} · ${roleText}` : roleText}
-        </div>
-        <button
-          type="button"
-          data-testid="nav-logout-button"
-          onClick={onLogout}
-          className="px-3 py-2 rounded-sm text-sm font-medium text-color-ink-muted border border-color-border cursor-pointer transition-colors duration-120 hover:text-color-ink"
-        >
-          Log out
-        </button>
-      </div>
-    </header>
-  );
-}
-
-/**
- * Main layout container with sidebar and main content area.
+ * Application shell: a single left sidebar plus the page content. No top bar —
+ * session controls live in the sidebar account menu (see UserMenu).
  */
 export function NavShell({
   role,
@@ -233,24 +271,18 @@ export function NavShell({
 
   return (
     <div data-testid="nav-shell" className="flex h-screen bg-color-surface-muted overflow-hidden">
-      {/* Left sidebar */}
       <Sidebar
         config={config}
         activePath={activePath}
         onNavigate={onNavigate}
         personaName={personaName}
         roleText={roleText}
+        onLogout={onLogout}
       />
 
-      {/* Main area: topbar + content */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <TopBar personaName={personaName} roleText={roleText} onLogout={onLogout} />
-
-        {/* Main content */}
-        <main className="flex-1 overflow-auto p-6">
-          <div className="max-w-screen-2xl mx-auto">{children}</div>
-        </main>
-      </div>
+      <main className="flex-1 min-w-0 overflow-auto p-6">
+        <div className="max-w-screen-2xl mx-auto">{children}</div>
+      </main>
     </div>
   );
 }

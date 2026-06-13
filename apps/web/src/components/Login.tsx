@@ -50,12 +50,45 @@ function tabClass(active: boolean): string {
 /** Demo persona button classes, by loading state. */
 function demoButtonClass(loading: boolean): string {
   return [
-    'px-3 py-2 border border-border rounded-md text-sm font-medium text-ink-muted transition-colors',
+    'w-40 flex-shrink-0 px-3 py-2 border rounded-md text-sm font-semibold transition-colors',
     loading
-      ? 'bg-surface-sunken cursor-not-allowed'
-      : 'bg-surface-muted cursor-pointer hover:bg-surface-sunken',
+      ? 'border-border bg-surface-sunken text-ink-muted cursor-not-allowed'
+      : 'border-ink bg-ink text-white cursor-pointer hover:bg-accent-hover',
   ].join(' ');
 }
+
+/**
+ * Per-role user story shown beside each demo sign-in button. Keyed by the
+ * AppRole enum the demo endpoint returns. The list itself is ordered by the
+ * server (Finance Admin first); these strings describe *why* each persona signs
+ * in, so a first-time viewer understands what each surface is for.
+ */
+const ROLE_STORIES: Record<string, { headline: string; body: string }> = {
+  FinanceAdmin: {
+    headline: 'Closes the period',
+    body: 'Owns month-end close: clears data gaps, runs and approves commissions, tracks invoicing and collection, reconciles, and exports payroll.',
+  },
+  Producer: {
+    headline: 'Gets paid',
+    body: 'The recruiter earning the commission — reviews their own payout statements, commission plan, tier progress, and draw balance.',
+  },
+  Manager: {
+    headline: 'Approves the team',
+    body: "Approves splits and attribution, reviews their team's commissions, and escalates cross-team tiebreakers.",
+  },
+  Executive: {
+    headline: 'Watches the firm',
+    body: 'Monitors firm financial position, profitability, and dispute / exception trends, and gives final approval on escalated disputes.',
+  },
+  HR: {
+    headline: 'Runs plans & draws',
+    body: 'Manages commission-plan acknowledgments and producer draw balances and recovery schedules.',
+  },
+  ExternalPartner: {
+    headline: 'Guest, scoped view',
+    body: 'A read-only outside partner who sees only their own placements and payouts — nothing else in the firm.',
+  },
+};
 
 // ---------------------------------------------------------------------------
 // Component
@@ -142,7 +175,7 @@ export default function Login({ onSuccess }: LoginProps) {
 
   return (
     <div
-      className="min-h-screen bg-surface-muted flex flex-col justify-center items-center p-4"
+      className="min-h-screen bg-surface-muted flex flex-col justify-center items-center gap-4 p-4"
       data-testid="login-container"
     >
       <div className="bg-surface p-8 rounded-xl border border-border w-full max-w-auth">
@@ -258,31 +291,55 @@ export default function Login({ onSuccess }: LoginProps) {
             <PasskeyLoginButton onSuccess={handleSuccess} onError={handleError} />
           </div>
         )}
-
-        {/* Demo section — one-click persona grid, visible when demo users are
-            available. The create-account control lives behind the Register tab. */}
-        {demoUsers.length > 0 && (
-          <div className="mt-6 pt-6 border-t border-border" data-testid="demo-section">
-            <p className="text-xs text-ink-faint text-center mb-3 uppercase tracking-wider">
-              Demo — one-click sign in
-            </p>
-            <div className="grid grid-cols-2 gap-2 mb-4">
-              {demoUsers.map((user) => (
-                <button
-                  key={user.id}
-                  type="button"
-                  data-testid={`demo-user-${user.id}`}
-                  className={demoButtonClass(demoLoading)}
-                  disabled={demoLoading}
-                  onClick={() => handleDemoSignIn(user.id)}
-                >
-                  {user.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
+
+      {/* Demo card — a wider panel that sits below the sign-in card. Each row is
+          a persona: the one-click sign-in button on the left, the user story it
+          unlocks on the right. Rows arrive ordered by priority from the server
+          (Finance Admin first). The create-account control lives behind the
+          Register tab, off this first-impression view. */}
+      {demoUsers.length > 0 && (
+        <div
+          className="bg-surface p-6 rounded-xl border border-border w-full max-w-narrow"
+          data-testid="demo-section"
+        >
+          <p className="text-xs text-ink-faint text-center mb-1 uppercase tracking-wider">
+            Demo — sign in as a persona
+          </p>
+          <p className="text-sm text-ink-subtle text-center mb-5">
+            Each role sees a different slice of the commission workflow, ordered by priority.
+          </p>
+          <ul className="flex flex-col gap-2">
+            {demoUsers.map((user) => {
+              const story = ROLE_STORIES[user.role];
+              return (
+                <li
+                  key={user.id}
+                  className="flex items-center gap-4 p-3 rounded-md border border-border bg-surface-muted"
+                >
+                  <button
+                    type="button"
+                    data-testid={`demo-user-${user.id}`}
+                    className={demoButtonClass(demoLoading)}
+                    disabled={demoLoading}
+                    onClick={() => handleDemoSignIn(user.id)}
+                  >
+                    {user.label}
+                  </button>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-semibold text-ink">
+                      {story?.headline ?? user.label}
+                    </div>
+                    <p className="text-xs text-ink-subtle mt-0.5 leading-relaxed">
+                      {story?.body ?? `Sign in as ${user.username}.`}
+                    </p>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }
