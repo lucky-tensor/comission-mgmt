@@ -81,9 +81,10 @@ export const ROLE_ROUTES: Record<AppRole, RoleRouteConfig> = {
   },
 
   FinanceAdmin: {
-    // Land on the first listed nav item (Cases), keeping the post-login surface
-    // in lockstep with the sidebar order. Invariant pinned in roleRoutes.test.ts.
-    landing: ROUTES.FINANCE_CASES,
+    // Finance's home is the Processing surface (the close-the-period workflow),
+    // so it is the first sidebar item and the post-login landing. Landing always
+    // equals navItems[0] — pinned in roleRoutes.test.ts.
+    landing: ROUTES.FINANCE,
     permitted: new Set([
       ROUTES.FINANCE,
       ROUTES.FINANCE_CASES,
@@ -96,10 +97,10 @@ export const ROLE_ROUTES: Record<AppRole, RoleRouteConfig> = {
     ]),
     // The Finance page's tabs are surfaced directly in the sidebar — one nav
     // item per surface — instead of a single "Finance Home" entry that hides
-    // them. The default Processing surface lives at the base /finance path.
+    // them. Processing (the default surface) leads at the base /finance path.
     navItems: [
-      { path: ROUTES.FINANCE_CASES, label: 'Cases', icon: 'briefcase' },
       { path: ROUTES.FINANCE, label: 'Processing', icon: 'wallet' },
+      { path: ROUTES.FINANCE_CASES, label: 'Cases', icon: 'briefcase' },
       { path: ROUTES.FINANCE_ADJUSTMENTS, label: 'Adjustments & Payroll', icon: 'check-circle' },
       { path: ROUTES.FINANCE_RECONCILIATION, label: 'Reconciliation', icon: 'line-chart' },
       { path: ROUTES.DOCS, label: 'Docs', icon: 'book-open' },
