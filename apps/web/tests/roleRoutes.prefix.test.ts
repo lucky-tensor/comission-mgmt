@@ -16,13 +16,15 @@
 import { describe, test, expect } from 'vitest';
 import {
   ROUTES,
+  ROLE_ROUTES,
   isPathPermitted,
   activeNavPath,
   normalizePath,
   pathMatchesPrefix,
   roleLabel,
+  tabFromPath,
+  pathForTab,
 } from '../src/lib/roleRoutes';
-import { splitNavItems } from '../src/components/NavShell';
 
 describe('normalizePath', () => {
   test('strips query strings and hashes', () => {
@@ -113,27 +115,68 @@ describe('roleLabel — human role labels', () => {
   });
 });
 
-describe('splitNavItems — overflow grouping past five items', () => {
-  const items = (n: number) => Array.from({ length: n }, (_, i) => `i${i}`);
+describe('tab <-> path mapping (Finance / Executive sub-path tabs)', () => {
+  test('the bare base path resolves to the default tab', () => {
+    expect(tabFromPath('/finance', ROUTES.FINANCE, 'processing')).toBe('processing');
+    expect(tabFromPath('/executive', ROUTES.EXECUTIVE, 'dashboard')).toBe('dashboard');
+  });
 
-  test('items within the cap stay inline (no overflow)', () => {
-    for (const n of [0, 1, 4, 5]) {
-      const { visible, overflow } = splitNavItems(items(n));
-      expect(visible).toHaveLength(n);
-      expect(overflow).toHaveLength(0);
+  test('a sub-path resolves to its tab id (trailing slash / query tolerated)', () => {
+    expect(tabFromPath('/finance/cases', ROUTES.FINANCE, 'processing')).toBe('cases');
+    expect(tabFromPath('/finance/reconciliation/', ROUTES.FINANCE, 'processing')).toBe(
+      'reconciliation',
+    );
+    expect(tabFromPath('/executive/trends?sort=desc', ROUTES.EXECUTIVE, 'dashboard')).toBe(
+      'trends',
+    );
+  });
+
+  test('a path outside the base falls back to the default tab', () => {
+    // The Finance view embedded in the Executive dashboard must not pick up an
+    // executive path as one of its own tabs.
+    expect(tabFromPath('/executive/finance', ROUTES.FINANCE, 'processing')).toBe('processing');
+  });
+
+  test('pathForTab is the inverse: default tab -> base, others -> sub-path', () => {
+    expect(pathForTab('processing', ROUTES.FINANCE, 'processing')).toBe('/finance');
+    expect(pathForTab('cases', ROUTES.FINANCE, 'processing')).toBe('/finance/cases');
+    expect(pathForTab('dashboard', ROUTES.EXECUTIVE, 'dashboard')).toBe('/executive');
+    expect(pathForTab('trends', ROUTES.EXECUTIVE, 'dashboard')).toBe('/executive/trends');
+  });
+
+  test('round-trips for every Finance tab path', () => {
+    for (const tab of ['processing', 'cases', 'adjustments', 'reconciliation']) {
+      const path = pathForTab(tab, ROUTES.FINANCE, 'processing');
+      expect(tabFromPath(path, ROUTES.FINANCE, 'processing')).toBe(tab);
+    }
+  });
+});
+
+describe('Finance nav consolidation — no duplicate Reconciliation', () => {
+  test('Reconciliation is a Finance sub-path, not a top-level route', () => {
+    // The old top-level /reconciliation route is gone; it now lives under finance.
+    expect((ROUTES as Record<string, string>).RECONCILIATION).toBeUndefined();
+    expect(ROUTES.FINANCE_RECONCILIATION).toBe('/finance/reconciliation');
+  });
+
+  test('each Finance tab is its own sidebar nav item under /finance', () => {
+    const paths = ROLE_ROUTES.FinanceAdmin.navItems.map((i) => i.path);
+    expect(paths).toContain(ROUTES.FINANCE); // Processing
+    expect(paths).toContain(ROUTES.FINANCE_CASES);
+    expect(paths).toContain(ROUTES.FINANCE_ADJUSTMENTS);
+    expect(paths).toContain(ROUTES.FINANCE_RECONCILIATION);
+    // No nav item points outside the /finance (or /docs) surfaces.
+    for (const p of paths) {
+      expect(p === ROUTES.DOCS || p.startsWith('/finance')).toBe(true);
     }
   });
 
-  test('more than five items fold the trailing items into the overflow', () => {
-    // 6 items: 4 visible + a More toggle slot, 2 in the overflow.
-    const { visible, overflow } = splitNavItems(items(6));
-    expect(visible).toEqual(['i0', 'i1', 'i2', 'i3']);
-    expect(overflow).toEqual(['i4', 'i5']);
-  });
-
-  test('the cap is configurable', () => {
-    const { visible, overflow } = splitNavItems(items(4), 3);
-    expect(visible).toEqual(['i0', 'i1']);
-    expect(overflow).toEqual(['i2', 'i3']);
+  test('a Finance sub-path highlights its own nav item, not Processing', () => {
+    expect(activeNavPath('FinanceAdmin', '/finance/reconciliation')).toBe(
+      ROUTES.FINANCE_RECONCILIATION,
+    );
+    expect(activeNavPath('FinanceAdmin', '/finance/cases')).toBe(ROUTES.FINANCE_CASES);
+    // The bare base highlights Processing.
+    expect(activeNavPath('FinanceAdmin', '/finance')).toBe(ROUTES.FINANCE);
   });
 });

@@ -21,6 +21,8 @@
   --color-surface: var(--surface-card);
   --color-surface-muted: var(--surface-page);
   --color-surface-sunken: var(--surface-sunken);
+  --color-surface-hover: var(--surface-hover);
+  --color-surface-active: var(--surface-active);
   --color-border: var(--border-default);
   --color-border-strong: var(--border-strong);
   --color-ink-faint: var(--text-disabled);
@@ -69,6 +71,12 @@
   --container-report: 960px;
   --container-wide: 1024px;
   --container-content: 1140px;
+
+  /* Layout dimensions for sidebar + topbar structure. */
+  --layout-sidebar: 176px;
+  --layout-topbar: 52px;
+  --layout-gutter: 20px;
+  --layout-page-max: 1200px;
 }
 
 @utility min-h-surface {

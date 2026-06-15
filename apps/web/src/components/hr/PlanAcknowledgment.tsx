@@ -227,7 +227,10 @@ export function PlanAcknowledgment() {
     <div data-testid="plan-acknowledgment" className="min-h-surface bg-surface-muted px-4 py-8">
       <div className="max-w-report mx-auto">
         <header className="mb-8">
-          <h1 data-testid="plan-acknowledgment-heading" className="text-2xl font-bold text-ink m-0">
+          <h1
+            data-testid="plan-acknowledgment-heading"
+            className="text-xl font-semibold tracking-tight text-ink m-0"
+          >
             HR / People Ops — Plan Acknowledgment
           </h1>
           <p className="text-sm text-ink-subtle mt-1 mb-0">

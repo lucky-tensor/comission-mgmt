@@ -49,13 +49,13 @@ import { PartnerPayoutView } from './components/partner/PartnerPayoutView';
 import { DocsView } from './components/DocsView';
 import { useSession } from './lib/useSession';
 import { apiPost } from './lib/apiClient';
-import { isPathPermitted, landingPathForRole, ROUTES } from './lib/roleRoutes';
+import { isPathPermitted, landingPathForRole, pathMatchesPrefix, ROUTES } from './lib/roleRoutes';
+import { navigate } from './lib/navigation';
 
-/** Navigate to a path and notify listeners (pushState doesn't emit popstate). */
-export function navigate(path: string) {
-  window.history.pushState({}, '', path);
-  window.dispatchEvent(new PopStateEvent('popstate'));
-}
+// Re-exported for backwards compatibility: callers historically imported
+// `navigate` from App. The implementation now lives in lib/navigation to avoid
+// an import cycle (page components navigate without importing the root App).
+export { navigate };
 
 // ---------------------------------------------------------------------------
 // Authenticated shell — rendered once session is known
@@ -75,27 +75,31 @@ function AuthenticatedApp({ role, path, personaName, onLogout }: AuthenticatedAp
     if (!permitted) {
       return <Forbidden role={role} onNavigate={navigate} />;
     }
-    switch (path) {
-      case ROUTES.PORTAL:
-        return <ProducerPortal onUnauthenticated={() => navigate(ROUTES.LOGIN)} />;
-      case ROUTES.FINANCE:
-      case ROUTES.RECONCILIATION:
-        return <FinancePage />;
-      case ROUTES.MANAGER:
-        return <ManagerHome />;
-      case ROUTES.EXECUTIVE:
-      case ROUTES.EXEC_PROFITABILITY:
-      case ROUTES.EXEC_TRENDS:
-        return <ExecutiveDashboard role={role} />;
-      case ROUTES.HR:
-        return <HRHome />;
-      case ROUTES.PARTNER:
-        return <PartnerPayoutView onUnauthenticated={() => navigate(ROUTES.LOGIN)} />;
-      case ROUTES.DOCS:
-        return <DocsView role={role} />;
-      default:
-        return <Forbidden role={role} onNavigate={navigate} />;
+    // Prefix dispatch: surfaces with addressable tab sub-paths (/finance/*,
+    // /executive/*) resolve to one composed page that reads the active tab from
+    // the path. Single-path surfaces match their exact base via the same helper.
+    if (pathMatchesPrefix(path, ROUTES.PORTAL)) {
+      return <ProducerPortal onUnauthenticated={() => navigate(ROUTES.LOGIN)} />;
     }
+    if (pathMatchesPrefix(path, ROUTES.FINANCE)) {
+      return <FinancePage currentPath={path} />;
+    }
+    if (pathMatchesPrefix(path, ROUTES.MANAGER)) {
+      return <ManagerHome />;
+    }
+    if (pathMatchesPrefix(path, ROUTES.EXECUTIVE)) {
+      return <ExecutiveDashboard role={role} currentPath={path} />;
+    }
+    if (pathMatchesPrefix(path, ROUTES.HR)) {
+      return <HRHome />;
+    }
+    if (pathMatchesPrefix(path, ROUTES.PARTNER)) {
+      return <PartnerPayoutView onUnauthenticated={() => navigate(ROUTES.LOGIN)} />;
+    }
+    if (pathMatchesPrefix(path, ROUTES.DOCS)) {
+      return <DocsView role={role} />;
+    }
+    return <Forbidden role={role} onNavigate={navigate} />;
   }
 
   return (

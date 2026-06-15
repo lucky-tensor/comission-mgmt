@@ -22,7 +22,7 @@ export function HRHome() {
   return (
     <div data-testid="hr-home" className="max-w-wide mx-auto p-6">
       <header className="mb-6">
-        <h1 className="text-2xl font-bold text-ink m-0">HR Home</h1>
+        <h1 className="text-xl font-semibold tracking-tight text-ink m-0">HR Home</h1>
         <p className="text-sm text-ink-subtle mt-1 mb-0">
           Manage commission plans and producer compensation.
         </p>

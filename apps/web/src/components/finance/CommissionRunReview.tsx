@@ -418,7 +418,9 @@ export function CommissionRunReviewView({
     >
       <div className={embedded ? '' : 'max-w-report mx-auto'}>
         <header className="mb-8">
-          <h2 className={`${embedded ? 'text-xl' : 'text-2xl'} font-bold text-ink m-0`}>
+          <h2
+            className={`${embedded ? 'text-lg' : 'text-xl'} font-semibold tracking-tight text-ink m-0`}
+          >
             {embedded ? 'Commission Runs' : 'Commission run review'}
           </h2>
           <p className="text-sm text-ink-subtle mt-1 mb-0">

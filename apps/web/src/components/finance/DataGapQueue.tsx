@@ -203,7 +203,7 @@ export function DataGapQueue({ embedded = false }: { embedded?: boolean }) {
         <header className="mb-6">
           <h2
             data-testid="data-gap-queue-heading"
-            className={`${embedded ? 'text-xl' : 'text-2xl'} font-bold text-ink m-0 mb-1`}
+            className={`${embedded ? 'text-lg' : 'text-xl'} font-semibold tracking-tight text-ink m-0 mb-1`}
           >
             Data Gap Queue
           </h2>

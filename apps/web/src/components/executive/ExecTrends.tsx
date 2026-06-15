@@ -305,7 +305,9 @@ export function ExecTrendsView({ phase, onFetch, loading, fetchError }: ExecTren
     <div data-testid="exec-trends" className={containerClass}>
       <div className={innerClass}>
         <header className="mb-8">
-          <h1 className="text-2xl font-bold text-ink m-0">Exception &amp; Dispute Rate Trends</h1>
+          <h1 className="text-xl font-semibold tracking-tight text-ink m-0">
+            Exception &amp; Dispute Rate Trends
+          </h1>
           <p className="text-sm text-ink-subtle mt-1 mb-0">
             View exception and dispute rates over time to evaluate whether commission plan rules are
             working. Select a date range to load monthly trend buckets.

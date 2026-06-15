@@ -64,9 +64,9 @@ function contrastRatio(foreground: string, background: string): number {
 describe('NavShell — anchors and accessibility', () => {
   test('the nav exposes its aria-label', async () => {
     render({ role: 'Producer', currentPath: '/portal' });
-    const nav = page.getByTestId('nav-bar');
+    const nav = page.getByRole('navigation', { name: 'Sidebar navigation' });
     await expect.element(nav).toBeInTheDocument();
-    expect(nav.element()?.getAttribute('aria-label')).toBe('Main navigation');
+    expect(nav.element()?.getAttribute('aria-label')).toBe('Sidebar navigation');
   });
 
   test('every nav item renders as an <a> with a valid href and a per-item test id', async () => {
@@ -92,9 +92,9 @@ describe('NavShell — anchors and accessibility', () => {
     expect(docs.getAttribute('aria-current')).toBeNull();
   });
 
-  test('inactive Docs navigation remains readable on the inverse shell', async () => {
+  test('inactive Docs navigation remains readable against the sidebar surface', async () => {
     render({ role: 'FinanceAdmin', currentPath: '/finance' });
-    const nav = page.getByTestId('nav-bar').element() as HTMLElement;
+    const nav = page.getByTestId('nav-sidebar').element() as HTMLElement;
     const docs = page.getByTestId('nav-item-docs').element() as HTMLElement;
     const navStyle = getComputedStyle(nav);
     const docsStyle = getComputedStyle(docs);
@@ -131,11 +131,13 @@ describe('NavShell — header role badge', () => {
     expect(badge.element()?.textContent).toBe('Finance Admin');
   });
 
-  test('shows "<persona> · <role>" when a persona name is given', async () => {
+  test('shows the persona name and role label when a persona name is given', async () => {
     render({ role: 'FinanceAdmin', currentPath: '/finance', personaName: 'Jordan Lee' });
     const badge = page.getByTestId('nav-role-badge');
     await expect.element(badge).toBeInTheDocument();
-    expect(badge.element()?.textContent).toBe('Jordan Lee · Finance Admin');
+    // Persona is the primary line; the role label carries the badge test id.
+    expect(badge.element()?.textContent).toBe('Finance Admin');
+    await expect.element(page.getByText('Jordan Lee')).toBeInTheDocument();
   });
 });
 

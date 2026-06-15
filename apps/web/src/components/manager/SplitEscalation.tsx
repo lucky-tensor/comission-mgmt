@@ -291,7 +291,9 @@ export function ManagerPortal({
     <div className="min-h-screen bg-surface-muted px-4 py-8">
       <div className="max-w-narrow mx-auto">
         <header className="mb-8">
-          <h1 className="text-2xl font-bold text-ink m-0">Manager — Cross-Team Split Escalation</h1>
+          <h1 className="text-xl font-semibold tracking-tight text-ink m-0">
+            Manager — Cross-Team Split Escalation
+          </h1>
           <p className="text-sm text-ink-subtle mt-1 mb-0">
             Escalate contested splits to the designated tiebreaker and track status.
           </p>

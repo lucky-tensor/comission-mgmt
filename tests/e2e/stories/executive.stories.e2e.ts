@@ -147,7 +147,8 @@ describe('EX-2: Executive views profitability analytics', () => {
     // Click the Profitability tab (moved from nav to tabbed interface within /executive).
     await userEvent.click(page.getByRole('tab', { name: /profitability/i }));
     await expect.element(page.getByTestId('exec-profitability')).toBeInTheDocument();
-    expect(window.location.pathname).toBe('/executive');
+    // Tabs are addressable sub-paths now — the URL reflects the active surface.
+    expect(window.location.pathname).toBe('/executive/profitability');
   });
 
   test('dimension-switcher is present', async () => {
@@ -212,7 +213,8 @@ describe('EX-3: Executive views exception and dispute rate trends', () => {
     // Click the Trends tab (moved from nav to tabbed interface within /executive).
     await userEvent.click(page.getByRole('tab', { name: /trends/i }));
     await expect.element(page.getByTestId('exec-trends')).toBeInTheDocument();
-    expect(window.location.pathname).toBe('/executive');
+    // Tabs are addressable sub-paths now — the URL reflects the active surface.
+    expect(window.location.pathname).toBe('/executive/trends');
   });
 
   test('period inputs are present on the trends surface', async () => {

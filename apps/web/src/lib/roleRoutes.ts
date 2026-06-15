@@ -28,6 +28,8 @@ export interface NavItem {
   path: string;
   /** Human-readable label for the nav element. */
   label: string;
+  /** Lucide icon name for the nav item. */
+  icon: string;
 }
 
 export interface RoleRouteConfig {
@@ -46,12 +48,19 @@ export interface RoleRouteConfig {
 export const ROUTES = {
   LOGIN: '/',
   PORTAL: '/portal',
+  // Finance surfaces. /finance renders the Processing tab (the default close-the-
+  // period surface); the other tabs are addressable sub-paths so the sidebar can
+  // link straight to them and deep-links / highlighting work via prefix matching.
   FINANCE: '/finance',
-  RECONCILIATION: '/reconciliation',
+  FINANCE_CASES: '/finance/cases',
+  FINANCE_ADJUSTMENTS: '/finance/adjustments',
+  FINANCE_RECONCILIATION: '/finance/reconciliation',
   MANAGER: '/manager',
+  // Executive surfaces — same sub-path-per-tab pattern as Finance.
   EXECUTIVE: '/executive',
   EXEC_PROFITABILITY: '/executive/profitability',
   EXEC_TRENDS: '/executive/trends',
+  EXEC_FINANCE: '/executive/finance',
   HR: '/hr',
   PARTNER: '/partner',
   DOCS: '/docs',
@@ -66,25 +75,35 @@ export const ROLE_ROUTES: Record<AppRole, RoleRouteConfig> = {
     landing: ROUTES.PORTAL,
     permitted: new Set([ROUTES.PORTAL, ROUTES.DOCS]),
     navItems: [
-      { path: ROUTES.PORTAL, label: 'My Portal' },
-      { path: ROUTES.DOCS, label: 'Docs' },
+      { path: ROUTES.PORTAL, label: 'My Portal', icon: 'layout-dashboard' },
+      { path: ROUTES.DOCS, label: 'Docs', icon: 'book-open' },
     ],
   },
 
   FinanceAdmin: {
+    // Finance's home is the Processing surface (the close-the-period workflow),
+    // so it is the first sidebar item and the post-login landing. Landing always
+    // equals navItems[0] — pinned in roleRoutes.test.ts.
     landing: ROUTES.FINANCE,
     permitted: new Set([
       ROUTES.FINANCE,
-      ROUTES.RECONCILIATION,
+      ROUTES.FINANCE_CASES,
+      ROUTES.FINANCE_ADJUSTMENTS,
+      ROUTES.FINANCE_RECONCILIATION,
       ROUTES.PORTAL,
       ROUTES.HR,
       ROUTES.PARTNER,
       ROUTES.DOCS,
     ]),
+    // The Finance page's tabs are surfaced directly in the sidebar — one nav
+    // item per surface — instead of a single "Finance Home" entry that hides
+    // them. Processing (the default surface) leads at the base /finance path.
     navItems: [
-      { path: ROUTES.FINANCE, label: 'Finance Home' },
-      { path: ROUTES.RECONCILIATION, label: 'Reconciliation' },
-      { path: ROUTES.DOCS, label: 'Docs' },
+      { path: ROUTES.FINANCE, label: 'Processing', icon: 'wallet' },
+      { path: ROUTES.FINANCE_CASES, label: 'Cases', icon: 'briefcase' },
+      { path: ROUTES.FINANCE_ADJUSTMENTS, label: 'Adjustments & Payroll', icon: 'check-circle' },
+      { path: ROUTES.FINANCE_RECONCILIATION, label: 'Reconciliation', icon: 'line-chart' },
+      { path: ROUTES.DOCS, label: 'Docs', icon: 'book-open' },
     ],
   },
 
@@ -92,8 +111,8 @@ export const ROLE_ROUTES: Record<AppRole, RoleRouteConfig> = {
     landing: ROUTES.MANAGER,
     permitted: new Set([ROUTES.MANAGER, ROUTES.DOCS]),
     navItems: [
-      { path: ROUTES.MANAGER, label: 'Team View' },
-      { path: ROUTES.DOCS, label: 'Docs' },
+      { path: ROUTES.MANAGER, label: 'Team View', icon: 'users' },
+      { path: ROUTES.DOCS, label: 'Docs', icon: 'book-open' },
     ],
   },
 
@@ -103,14 +122,16 @@ export const ROLE_ROUTES: Record<AppRole, RoleRouteConfig> = {
       ROUTES.EXECUTIVE,
       ROUTES.EXEC_PROFITABILITY,
       ROUTES.EXEC_TRENDS,
+      ROUTES.EXEC_FINANCE,
       ROUTES.FINANCE,
       ROUTES.DOCS,
     ]),
     navItems: [
-      { path: ROUTES.EXECUTIVE, label: 'Executive Dashboard' },
-      { path: ROUTES.EXEC_PROFITABILITY, label: 'Profitability' },
-      { path: ROUTES.EXEC_TRENDS, label: 'Exception & Dispute Trends' },
-      { path: ROUTES.DOCS, label: 'Docs' },
+      { path: ROUTES.EXECUTIVE, label: 'Dashboard', icon: 'layout-dashboard' },
+      { path: ROUTES.EXEC_PROFITABILITY, label: 'Profitability', icon: 'trending-up' },
+      { path: ROUTES.EXEC_TRENDS, label: 'Trends', icon: 'line-chart' },
+      { path: ROUTES.EXEC_FINANCE, label: 'Finance (read-only)', icon: 'wallet' },
+      { path: ROUTES.DOCS, label: 'Docs', icon: 'book-open' },
     ],
   },
 
@@ -118,8 +139,8 @@ export const ROLE_ROUTES: Record<AppRole, RoleRouteConfig> = {
     landing: ROUTES.HR,
     permitted: new Set([ROUTES.HR, ROUTES.DOCS]),
     navItems: [
-      { path: ROUTES.HR, label: 'HR Home' },
-      { path: ROUTES.DOCS, label: 'Docs' },
+      { path: ROUTES.HR, label: 'HR Home', icon: 'briefcase' },
+      { path: ROUTES.DOCS, label: 'Docs', icon: 'book-open' },
     ],
   },
 
@@ -127,8 +148,8 @@ export const ROLE_ROUTES: Record<AppRole, RoleRouteConfig> = {
     landing: ROUTES.PARTNER,
     permitted: new Set([ROUTES.PARTNER, ROUTES.DOCS]),
     navItems: [
-      { path: ROUTES.PARTNER, label: 'My Placements' },
-      { path: ROUTES.DOCS, label: 'Docs' },
+      { path: ROUTES.PARTNER, label: 'My Placements', icon: 'briefcase' },
+      { path: ROUTES.DOCS, label: 'Docs', icon: 'book-open' },
     ],
   },
 };
@@ -207,6 +228,34 @@ export function activeNavPath(role: AppRole, currentPath: string): string | null
  */
 export function landingPathForRole(role: AppRole): string {
   return ROLE_ROUTES[role]?.landing ?? ROUTES.LOGIN;
+}
+
+// ---------------------------------------------------------------------------
+// Tab <-> path mapping for surfaces whose tabs are addressable sub-paths
+// (Finance, Executive). The default tab lives at the bare base path; every
+// other tab is `${base}/${tabId}`. This keeps the in-page Tabs state and the
+// sidebar's active highlight driven by a single source of truth: the URL.
+// ---------------------------------------------------------------------------
+
+/**
+ * Derive the active tab id from the current path for a surface rooted at
+ * `basePath`. Returns `defaultTab` for the bare base path (or any path that is
+ * not under this base, so a nested/embedded surface stays on its default).
+ */
+export function tabFromPath(currentPath: string, basePath: string, defaultTab: string): string {
+  const p = normalizePath(currentPath);
+  const b = normalizePath(basePath);
+  if (p === b) return defaultTab;
+  if (!p.startsWith(b + '/')) return defaultTab;
+  return p.slice(b.length + 1) || defaultTab;
+}
+
+/**
+ * Inverse of {@link tabFromPath}: the path a given tab id should navigate to.
+ * The default tab maps back to the bare base path.
+ */
+export function pathForTab(tabId: string, basePath: string, defaultTab: string): string {
+  return tabId === defaultTab ? basePath : `${basePath}/${tabId}`;
 }
 
 // ---------------------------------------------------------------------------

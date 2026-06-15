@@ -193,7 +193,7 @@ describe('PartnerPayoutView — scope enforcement (roleRoutes structural)', () =
     const otherRoutes = [
       ROUTES.PORTAL,
       ROUTES.FINANCE,
-      ROUTES.RECONCILIATION,
+      ROUTES.FINANCE_RECONCILIATION,
       ROUTES.MANAGER,
       ROUTES.EXECUTIVE,
       ROUTES.HR,

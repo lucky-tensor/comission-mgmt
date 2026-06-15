@@ -31,7 +31,7 @@ describe('HR-1: Plan acknowledgment two-role flow', () => {
   test('HR sees producer row as Pending before acknowledgment', async () => {
     mount.current = await loginAs('HR');
     await expect.element(page.getByTestId('nav-shell')).toBeInTheDocument();
-    await expect.element(page.getByTestId('nav-role-badge')).toHaveTextContent('HR');
+    await expect.element(page.getByTestId('nav-role-badge')).toHaveTextContent('People Ops');
     expect(window.location.pathname).toBe('/hr');
     await expect.element(page.getByTestId('plan-acknowledgment')).toBeInTheDocument();
     await expect.element(page.getByTestId('acknowledgment-table')).toBeInTheDocument();
