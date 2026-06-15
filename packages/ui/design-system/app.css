@@ -21,6 +21,8 @@
   --color-surface: var(--surface-card);
   --color-surface-muted: var(--surface-page);
   --color-surface-sunken: var(--surface-sunken);
+  --color-surface-hover: var(--surface-hover);
+  --color-surface-active: var(--surface-active);
   --color-border: var(--border-default);
   --color-border-strong: var(--border-strong);
   --color-ink-faint: var(--text-disabled);

@@ -67,7 +67,7 @@ function Icon({ name, size = 18 }: { name: string; size?: number }) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="2"
+      strokeWidth="1.6"
       strokeLinecap="round"
       strokeLinejoin="round"
       className="flex-shrink-0"
@@ -104,9 +104,7 @@ function NavLink({
       onClick={handleClick}
       aria-current={active ? 'page' : undefined}
       className={`flex items-center gap-3 px-2.5 py-2 rounded-sm no-underline cursor-pointer transition-colors duration-120 ${
-        active
-          ? 'bg-color-surface-hover text-color-ink font-medium'
-          : 'text-color-ink-muted hover:text-color-ink'
+        active ? 'bg-surface-active text-ink font-medium' : 'text-ink-muted hover:text-ink'
       }`}
     >
       <Icon name={item.icon} size={17} />
@@ -152,12 +150,12 @@ function UserMenu({
   const primary = showPersona ? (personaName as string) : roleText;
 
   return (
-    <div className="relative border-t border-color-border pt-3">
+    <div className="relative border-t border-border pt-3">
       {open && (
         <div
           role="menu"
           data-testid="nav-account-menu"
-          className="absolute bottom-full left-0 right-0 mb-1 flex flex-col rounded-sm border border-color-border bg-color-surface p-1 shadow-md"
+          className="absolute bottom-full left-0 right-0 mb-1 flex flex-col rounded-sm border border-border bg-surface p-1 shadow-md"
         >
           <button
             type="button"
@@ -167,7 +165,7 @@ function UserMenu({
               setOpen(false);
               onLogout();
             }}
-            className="flex items-center gap-2 px-2 py-2 rounded-sm text-sm font-medium text-color-ink-muted text-left cursor-pointer transition-colors duration-120 hover:bg-color-surface-hover hover:text-color-ink"
+            className="flex items-center gap-2 px-2 py-2 rounded-sm text-sm font-medium text-ink-muted text-left cursor-pointer transition-colors duration-120 hover:bg-surface-hover hover:text-ink"
           >
             <Icon name="log-out" size={16} />
             <span>Sign out</span>
@@ -181,20 +179,20 @@ function UserMenu({
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center gap-2 px-2 py-2 rounded-sm border border-color-border bg-color-surface text-left cursor-pointer transition-colors duration-120 hover:bg-color-surface-hover"
+        className="w-full flex items-center gap-2 px-2 py-2 rounded-sm border border-border bg-surface text-left cursor-pointer transition-colors duration-120 hover:bg-surface-hover"
       >
-        <div className="w-8 h-8 rounded-sm bg-color-ink text-white flex items-center justify-center text-xs font-semibold flex-shrink-0">
+        <div className="w-8 h-8 rounded-sm bg-ink text-white flex items-center justify-center text-xs font-semibold flex-shrink-0">
           {initialsFor(primary)}
         </div>
         <div className="flex-1 min-w-0">
           <div
-            className="text-xs font-medium text-color-ink truncate"
+            className="text-xs font-medium text-ink truncate"
             data-testid={showPersona ? undefined : 'nav-role-badge'}
           >
             {primary}
           </div>
           {showPersona && (
-            <div className="text-xs text-color-ink-subtle truncate" data-testid="nav-role-badge">
+            <div className="text-xs text-ink-subtle truncate" data-testid="nav-role-badge">
               {roleText}
             </div>
           )}
@@ -226,12 +224,12 @@ function Sidebar({
   return (
     <aside
       data-testid="nav-sidebar"
-      className="flex flex-col h-screen w-44 flex-shrink-0 bg-color-surface border-r border-color-border p-3"
+      className="flex flex-col h-screen w-44 flex-shrink-0 bg-surface border-r border-border p-3"
     >
       {/* Brand — product only; the role lives in the account menu below so it is
           never shown twice. */}
-      <div className="flex items-center gap-2 px-2 pb-3 mb-2 border-b border-color-border">
-        <div className="font-semibold text-base text-color-ink">Commission Mgmt</div>
+      <div className="flex items-center gap-2 px-2 pb-3 mb-2 border-b border-border">
+        <div className="font-semibold text-base text-ink">Commission Mgmt</div>
       </div>
 
       {/* Nav items */}
@@ -270,7 +268,7 @@ export function NavShell({
   const roleText = roleLabel(role);
 
   return (
-    <div data-testid="nav-shell" className="flex h-screen bg-color-surface-muted overflow-hidden">
+    <div data-testid="nav-shell" className="flex h-screen bg-surface-muted overflow-hidden">
       <Sidebar
         config={config}
         activePath={activePath}
