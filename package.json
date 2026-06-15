@@ -55,6 +55,7 @@
     "format": "bunx prettier --write .",
     "format:check": "bunx prettier --check .",
     "local-demo": "bun run scripts/local-demo.ts",
+    "reap": "bun run scripts/reap-zombies.ts",
     "provision": "echo 'GCP provisioning is done externally. See docs/architecture.md.' && exit 1",
     "deploy": "bun run scripts/gcp/deploy.ts",
     "doctor": "bun run scripts/gcp/doctor.ts"

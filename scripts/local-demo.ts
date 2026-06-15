@@ -26,6 +26,7 @@ import { createInterface, type Interface as ReadlineInterface } from 'node:readl
 import { join } from 'node:path';
 import { networkInterfaces } from 'node:os';
 import { createConnection } from 'node:net';
+import { newRunIdentity, dockerLabelFlags, k3dRuntimeLabelFlags } from 'db/docker-labels';
 
 function pathHash(p: string): string {
   let h = 0;
@@ -57,6 +58,14 @@ const APP_IMAGE = `commission-demo-app-${INSTANCE_ID}:dev`;
 const APP_NAME = `commission-demo-app-${INSTANCE_ID}`;
 const APP_SERVICE = `commission-demo-app-${INSTANCE_ID}`;
 const APP_SECRET = `commission-demo-secrets-${INSTANCE_ID}`;
+
+// Zombie-detection identities. The cluster/app *names* stay keyed on INSTANCE_ID
+// (the reuse path depends on stable names), but we stamp every k3d node
+// container and built image with run-id + created-unix + host-pid labels so the
+// reaper (scripts/reap-zombies.ts) can tell a healthy current resource from a
+// straggler left by a crashed run. INSTANCE_ID seeds the run-id for readability.
+const K3D_RUN = newRunIdentity('demo-k3d', INSTANCE_ID);
+const IMAGE_RUN = newRunIdentity('demo-app-image', INSTANCE_ID);
 
 const WATCH_DIRS = ['apps/web', 'apps/server', 'apps/worker', 'packages'];
 
@@ -147,7 +156,7 @@ function ensureCluster(): void {
   if (!clusterExists()) {
     console.log(`\nCreating k3d cluster ${CLUSTER_NAME}...`);
     run(
-      `k3d cluster create ${CLUSTER_NAME} --port 0.0.0.0:${INGRESS_HOST_PORT}:80@loadbalancer --wait`,
+      `k3d cluster create ${CLUSTER_NAME} --port 0.0.0.0:${INGRESS_HOST_PORT}:80@loadbalancer ${k3dRuntimeLabelFlags(K3D_RUN)} --wait`,
       { stdio: 'inherit' },
     );
     // Wait for API server to be fully ready
@@ -354,7 +363,9 @@ async function seedPhase2(): Promise<void> {
 
 function buildAndImportImage(): void {
   console.log('\nBuilding app image from latest local code...');
-  run(`docker build --target release -t ${APP_IMAGE} .`, { stdio: 'inherit' });
+  run(`docker build --target release ${dockerLabelFlags(IMAGE_RUN)} -t ${APP_IMAGE} .`, {
+    stdio: 'inherit',
+  });
 
   console.log(`Importing ${APP_IMAGE} into k3d cluster...`);
   run(`k3d image import ${APP_IMAGE} -c ${CLUSTER_NAME}`, { stdio: 'inherit' });

@@ -14,6 +14,7 @@ import { existsSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { cleanupStaleContainers, addProcess, removeProcess } from './cleanup';
+import { newRunIdentity, dockerLabelArgs } from './docker-labels';
 
 const PG_USER = 'superfield';
 const PG_PASSWORD = 'superfield';
@@ -40,12 +41,19 @@ export async function startPostgres(): Promise<PgContainer> {
   if (networkArgs.length) {
     logPg(`using network args: ${networkArgs.join(' ')}`);
   }
+  // Stamp a unique name + zombie-detection labels so a hard-killed runner's
+  // leftover container is both collision-free and discoverable by the reaper.
+  const run = newRunIdentity('pg-test');
+  const containerName = `commission-pgtest-${run.runId}`;
   const runResult = spawnSync(
     'docker',
     [
       'run',
       '-d',
       '--rm',
+      '--name',
+      containerName,
+      ...dockerLabelArgs(run),
       ...networkArgs,
       '-e',
       `POSTGRES_USER=${PG_USER}`,
