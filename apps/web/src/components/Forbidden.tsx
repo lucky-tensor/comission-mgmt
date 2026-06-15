@@ -27,7 +27,7 @@ export function Forbidden({ role, onNavigate }: ForbiddenProps) {
       data-testid="forbidden-surface"
     >
       <div className="bg-surface p-10 rounded-xl border border-border text-center max-w-empty w-full">
-        <p className="text-2xl font-extrabold text-border-strong mb-2 leading-none">403</p>
+        <p className="text-2xl font-bold text-border-strong mb-2 leading-none">403</p>
         <h1 className="text-xl font-bold text-ink mb-3">Access denied</h1>
         <p className="text-sm text-ink-subtle mb-6">
           You do not have permission to view this page. Your role does not include access to this

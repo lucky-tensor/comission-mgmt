@@ -51,7 +51,7 @@ export function ExecutiveDashboard({ role, currentPath }: ExecutiveDashboardProp
   return (
     <div data-testid="executive-dashboard" className="space-y-6">
       <header className="mb-6">
-        <h1 className="text-2xl font-bold text-ink m-0">Executive Dashboard</h1>
+        <h1 className="text-xl font-semibold tracking-tight text-ink m-0">Executive Dashboard</h1>
         <p className="text-sm text-ink-subtle mt-1 mb-0">
           Monitor firm financial position, profitability, trends, and operations.
         </p>

@@ -248,7 +248,7 @@ export function DrawBalanceView() {
         <header className="mb-6">
           <h1
             data-testid="draw-balance-heading"
-            className="text-2xl font-bold text-ink mt-0 mx-0 mb-1"
+            className="text-xl font-semibold tracking-tight text-ink mt-0 mx-0 mb-1"
           >
             Draw Balance &amp; Recovery Schedule
           </h1>

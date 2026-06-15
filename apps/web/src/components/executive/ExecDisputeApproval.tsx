@@ -479,7 +479,10 @@ export function ExecDisputeApprovalView({
     <div data-testid="exec-dispute-approval" className="min-h-surface bg-surface-muted px-4 py-8">
       <div className="max-w-narrow mx-auto">
         <header className="mb-6">
-          <h1 data-testid="exec-dispute-heading" className="text-2xl font-bold text-ink mt-0 mb-1">
+          <h1
+            data-testid="exec-dispute-heading"
+            className="text-xl font-semibold tracking-tight text-ink mt-0 mb-1"
+          >
             Escalated Dispute Approval
           </h1>
           <p className="text-sm text-ink-subtle m-0">

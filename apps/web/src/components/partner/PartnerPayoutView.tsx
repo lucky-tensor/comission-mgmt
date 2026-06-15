@@ -180,7 +180,7 @@ export function PartnerPayoutView({ onUnauthenticated }: PartnerPayoutViewProps)
     <div data-testid="partner-payout-view" className="min-h-surface bg-surface-muted px-4 py-8">
       <div className="max-w-report mx-auto">
         <header className="mb-8">
-          <h1 className="text-2xl font-bold text-ink m-0">My Placements</h1>
+          <h1 className="text-xl font-semibold tracking-tight text-ink m-0">My Placements</h1>
           <p className="text-sm text-ink-subtle mt-1 mb-0">
             Split agreements where you hold a payout interest. Amounts, payment triggers, and
             payment status for your deals only.

@@ -245,7 +245,7 @@ export function TeamCommissionViewView({
         <header className="mb-8">
           <h1
             data-testid="team-commission-view-heading"
-            className="text-2xl font-bold text-ink m-0"
+            className="text-xl font-semibold tracking-tight text-ink m-0"
           >
             Team Commission View
           </h1>

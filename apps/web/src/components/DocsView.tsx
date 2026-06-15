@@ -24,7 +24,7 @@ interface DocsViewProps {
 
 const pageClass = 'max-w-docs mx-auto px-6 pt-10 pb-16 text-ink leading-normal';
 
-const h1Class = 'text-2xl font-extrabold text-ink mb-1';
+const h1Class = 'text-xl font-semibold tracking-tight text-ink mb-1';
 
 const subtitleClass = 'text-base text-ink-subtle mb-10';
 
