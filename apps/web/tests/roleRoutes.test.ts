@@ -32,6 +32,16 @@ describe('roleRoutes seam — landingPathForRole', () => {
   test('a role with no config falls back to the login path', () => {
     expect(landingPathForRole('NotARole' as AppRole)).toBe(ROUTES.LOGIN);
   });
+
+  test('every role lands on its first listed nav item', () => {
+    for (const role of APP_ROLES) {
+      const config = ROLE_ROUTES[role];
+      expect(
+        config.landing,
+        `landing for role ${role} must equal its first nav item (${config.navItems[0]?.path})`,
+      ).toBe(config.navItems[0]?.path);
+    }
+  });
 });
 
 describe('roleRoutes seam — isPathPermitted', () => {

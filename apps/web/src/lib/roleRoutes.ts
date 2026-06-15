@@ -81,7 +81,9 @@ export const ROLE_ROUTES: Record<AppRole, RoleRouteConfig> = {
   },
 
   FinanceAdmin: {
-    landing: ROUTES.FINANCE,
+    // Land on the first listed nav item (Cases), keeping the post-login surface
+    // in lockstep with the sidebar order. Invariant pinned in roleRoutes.test.ts.
+    landing: ROUTES.FINANCE_CASES,
     permitted: new Set([
       ROUTES.FINANCE,
       ROUTES.FINANCE_CASES,
