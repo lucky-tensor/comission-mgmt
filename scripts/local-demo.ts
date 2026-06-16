@@ -155,8 +155,14 @@ function teardownCluster(): void {
 function ensureCluster(): void {
   if (!clusterExists()) {
     console.log(`\nCreating k3d cluster ${CLUSTER_NAME}...`);
+    // Relax kubelet disk-pressure eviction to 2%. The default 10% nodefs.available
+    // threshold taints the node (NoSchedule) on a busy dev host, leaving Postgres
+    // Pending until the rollout times out. This is a local dev/demo cluster, so a
+    // low threshold is safe and avoids spurious startup failures when / is fairly full.
+    const evictionArg =
+      "--k3s-arg '--kubelet-arg=eviction-hard=nodefs.available<2%,imagefs.available<2%,nodefs.inodesFree<2%@server:*'";
     run(
-      `k3d cluster create ${CLUSTER_NAME} --port 0.0.0.0:${INGRESS_HOST_PORT}:80@loadbalancer ${k3dRuntimeLabelFlags(K3D_RUN)} --wait`,
+      `k3d cluster create ${CLUSTER_NAME} --port 0.0.0.0:${INGRESS_HOST_PORT}:80@loadbalancer ${evictionArg} ${k3dRuntimeLabelFlags(K3D_RUN)} --wait`,
       { stdio: 'inherit' },
     );
     // Wait for API server to be fully ready
