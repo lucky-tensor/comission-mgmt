@@ -17,6 +17,29 @@ import { buildSslOptions } from './ssl';
 
 export { buildSslOptions } from './ssl';
 
+// Zombie detection infrastructure — issue #249
+export {
+  LABEL_NAMESPACE,
+  LABEL_PROJECT,
+  LABEL_COMPONENT,
+  LABEL_RUN_ID,
+  LABEL_CREATED_UNIX,
+  LABEL_HOST_PID,
+  PROJECT,
+  newRunIdentity,
+  labelPairs,
+  dockerLabelArgs,
+  dockerLabelFlags,
+  k3dRuntimeLabelFlags,
+  K3D_CLUSTER_LABEL,
+  isPidAlive,
+} from './docker-labels';
+export type { Component, RunIdentity } from './docker-labels';
+export { cleanupStaleContainers, addProcess, removeProcess } from './cleanup';
+export type { CleanupRecord, CleanupSentinel } from './cleanup';
+export { startPostgres } from './pg-container';
+export type { PgContainer } from './pg-container';
+
 export {
   createPlacement,
   getPlacement,
