@@ -37,6 +37,7 @@ const DB_ROOT_MODULES = [
   'migrate',
   'seed',
   'cleanup',
+  'docker-labels',
 ] as const;
 
 /**

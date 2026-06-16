@@ -32,6 +32,9 @@
       "db/clawback": ["packages/db/src/clawback.ts"],
       "db/analytics-executive": ["packages/db/src/analytics-executive.ts"],
       "db/reconciliation": ["packages/db/src/reconciliation.ts"],
+      "db/docker-labels": ["packages/db/docker-labels.ts"],
+      "db/pg-container": ["packages/db/pg-container.ts"],
+      "db/cleanup": ["packages/db/cleanup.ts"],
       "db/*": ["packages/db/*.ts"]
     }
   },

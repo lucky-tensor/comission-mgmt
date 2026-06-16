@@ -12,6 +12,7 @@
 import { join } from 'path';
 import { existsSync, unlinkSync, readFileSync, writeFileSync, readdirSync } from 'fs';
 import { spawnSync } from 'node:child_process';
+import { LABEL_PROJECT, LABEL_HOST_PID, PROJECT, isPidAlive } from './docker-labels';
 
 const SENTINEL_FILE = '.superfield-db';
 
@@ -126,5 +127,43 @@ export function cleanupStaleContainers(): void {
     }
   }
   writeSentinel({ version: 1, processes: [] });
+
+  // Label-based backstop: the sentinel file is lost on a hard kill (SIGKILL),
+  // so also sweep any pg-test container whose owning process is gone. Labels
+  // survive a hard kill, and the host-pid liveness check keeps this safe to run
+  // while OTHER live test processes hold their own containers.
+  sweepDeadLabeledContainers();
+
   console.info(`[cleanup] stale container sweep complete in ${Date.now() - startedAt}ms`);
+}
+
+/**
+ * Stops any container labelled as ours whose owning host PID is no longer alive.
+ * Safe under concurrency: a sibling test process keeps its PID alive, so its
+ * container is never touched.
+ */
+function sweepDeadLabeledContainers(): void {
+  const list = spawnSync(
+    'docker',
+    [
+      'ps',
+      '-a',
+      '--filter',
+      `label=${LABEL_PROJECT}=${PROJECT}`,
+      '--format',
+      `{{.ID}}\t{{.Label "${LABEL_HOST_PID}"}}`,
+    ],
+    { encoding: 'utf8' },
+  );
+  if (list.status !== 0 || !list.stdout.trim()) return;
+
+  for (const line of list.stdout.trim().split('\n')) {
+    const [id, pidRaw] = line.split('\t');
+    if (!id) continue;
+    const pid = Number(pidRaw);
+    // No PID label (legacy) or owner is dead → reap. A live owner is left alone.
+    if (pidRaw && isPidAlive(pid)) continue;
+    console.log(`[cleanup] Stopping orphaned labelled container: ${id} (owner pid ${pidRaw} gone)`);
+    spawnSync('docker', ['rm', '-f', id], { encoding: 'utf8' });
+  }
 }
