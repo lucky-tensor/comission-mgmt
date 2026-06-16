@@ -16,7 +16,8 @@
     "./tier-progress": "./tier-progress.ts",
     "./producer-portal": "./producer-portal.ts",
     "./guarantee-state": "./guarantee-state.ts",
-    "./clawback-ledger": "./clawback-ledger.ts"
+    "./clawback-ledger": "./clawback-ledger.ts",
+    "./entity-names": "./entity-names.ts"
   },
   "scripts": {
     "build": "tsc --noEmit"

@@ -455,8 +455,15 @@ describe('FA-6: Finance Admin creates a case and assigns commission contributors
     await expect.element(page.getByTestId('new-placement-form')).toBeInTheDocument();
 
     await userEvent.fill(page.getByTestId('np-job-title'), 'E2E Test Engineer');
-    await userEvent.fill(page.getByTestId('np-client-entity-id'), 'Acme Corp');
-    await userEvent.fill(page.getByTestId('np-candidate-id'), 'Jane Doe');
+    // Customer and Candidate are now <select> dropdowns populated from ledger entities.
+    // Select any option by matching text pattern (picks first non-placeholder option)
+    const customerSelect = page.getByTestId('np-client-entity-id');
+    const candidateSelect = page.getByTestId('np-candidate-id');
+    const customerOptions = customerSelect.getByRole('option');
+    const candidateOptions = candidateSelect.getByRole('option');
+    // Select the first option that is not the placeholder ("Select customer…" / "Select candidate…")
+    await customerSelect.selectOptions(customerOptions.all()[1]);
+    await candidateSelect.selectOptions(candidateOptions.all()[1]);
     await userEvent.fill(page.getByTestId('np-compensation-base'), '100000');
     await userEvent.fill(page.getByTestId('np-fee-amount'), '20000');
 

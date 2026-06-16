@@ -18,6 +18,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { AppRole } from 'core/auth';
 import { CONTRIBUTOR_ROLES, CONTRIBUTOR_ROLE_LABELS } from 'core/contributor-role';
+import { clientDisplayName, candidateDisplayName } from 'core/entity-names';
 import { Button, StatusChip } from 'ui';
 import { apiDelete, ApiError, apiGet, apiPatch, apiPost } from '../../lib/apiClient';
 import { InvoiceCollection } from '../finance/InvoiceCollection';
@@ -144,7 +145,8 @@ function producerLabel(row: PlacementLedgerRow): string {
 }
 
 function sortValue(row: PlacementLedgerRow, key: SortKey): string {
-  if (key === 'customer') return `${row.client_entity_id} ${row.job_title}`.toLowerCase();
+  if (key === 'customer')
+    return `${clientDisplayName(row.client_entity_id)} ${row.job_title}`.toLowerCase();
   if (key === 'status') return row.status.toLowerCase();
   if (key === 'billing') return billingLabel(row).toLowerCase();
   return producerLabel(row).toLowerCase();
@@ -298,7 +300,7 @@ export function PlacementLedger({
                       <EditableCell enabled={editable} onClick={() => openEditor('customer', row)}>
                         <div className="font-semibold text-ink">{row.job_title}</div>
                         <div className="text-xs text-ink-subtle mt-1">
-                          Customer: {row.client_entity_id}
+                          Customer: {clientDisplayName(row.client_entity_id)}
                         </div>
                       </EditableCell>
                     </td>
@@ -422,6 +424,25 @@ function PlacementForm({
   const [confidential, setConfidential] = useState(placement?.is_confidential ?? false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [availableCustomers, setAvailableCustomers] = useState<string[]>([]);
+  const [availableCandidates, setAvailableCandidates] = useState<string[]>([]);
+
+  // On create form, fetch distinct entities from ledger
+  useEffect(() => {
+    if (placement) return; // Skip on edit form
+    apiGet<LedgerResponse>('/placements/ledger')
+      .then((response) => {
+        const clients = [...new Set(response.placements.map((p) => p.client_entity_id))].sort();
+        const candidates = [...new Set(response.placements.map((p) => p.candidate_id))].sort();
+        setAvailableCustomers(clients);
+        setAvailableCandidates(candidates);
+      })
+      .catch(() => {
+        // If fetch fails, fall back to empty pickers
+        setAvailableCustomers([]);
+        setAvailableCandidates([]);
+      });
+  }, [placement]);
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -454,26 +475,63 @@ function PlacementForm({
       onSubmit={submit}
       className="grid grid-cols-2 gap-4"
     >
-      <label>
-        <span className={LABEL_CLASS}>Customer record ID</span>
-        <input
-          required
-          data-testid="np-client-entity-id"
-          className={INPUT_CLASS}
-          value={clientId}
-          onChange={(event) => setClientId(event.target.value)}
-        />
-      </label>
-      <label>
-        <span className={LABEL_CLASS}>Candidate record ID</span>
-        <input
-          required
-          data-testid="np-candidate-id"
-          className={INPUT_CLASS}
-          value={candidateId}
-          onChange={(event) => setCandidateId(event.target.value)}
-        />
-      </label>
+      {placement ? (
+        // Edit form — customer and candidate are read-only
+        <>
+          <label>
+            <span className={LABEL_CLASS}>Customer</span>
+            <div className="w-full h-9 px-3 border border-border-strong rounded-sm bg-surface-sunken text-sm text-ink-subtle flex items-center">
+              <span className="text-ink">{clientDisplayName(clientId)}</span>
+              <span className="text-xs font-mono ml-2">({clientId.slice(0, 8)}…)</span>
+            </div>
+          </label>
+          <label>
+            <span className={LABEL_CLASS}>Candidate</span>
+            <div className="w-full h-9 px-3 border border-border-strong rounded-sm bg-surface-sunken text-sm text-ink-subtle flex items-center">
+              <span className="text-ink">{candidateDisplayName(candidateId)}</span>
+              <span className="text-xs font-mono ml-2">({candidateId.slice(0, 8)}…)</span>
+            </div>
+          </label>
+        </>
+      ) : (
+        // Create form — customer and candidate are dropdowns
+        <>
+          <label>
+            <span className={LABEL_CLASS}>Customer *</span>
+            <select
+              required
+              data-testid="np-client-entity-id"
+              className={INPUT_CLASS}
+              value={clientId}
+              onChange={(event) => setClientId(event.target.value)}
+            >
+              <option value="">Select customer…</option>
+              {availableCustomers.map((id) => (
+                <option key={id} value={id}>
+                  {clientDisplayName(id)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span className={LABEL_CLASS}>Candidate *</span>
+            <select
+              required
+              data-testid="np-candidate-id"
+              className={INPUT_CLASS}
+              value={candidateId}
+              onChange={(event) => setCandidateId(event.target.value)}
+            >
+              <option value="">Select candidate…</option>
+              {availableCandidates.map((id) => (
+                <option key={id} value={id}>
+                  {candidateDisplayName(id)}
+                </option>
+              ))}
+            </select>
+          </label>
+        </>
+      )}
       <label className="col-span-2">
         <span className={LABEL_CLASS}>Job title</span>
         <input
