@@ -29,17 +29,9 @@ async function main(): Promise<void> {
 
   try {
     // Get producer names for display
-    const producers = await sql.unsafe(
-      `SELECT id, display_name FROM users WHERE id = ANY($1)`,
-      [
-        [
-          SEEDED.producerId,
-          SEEDED.producer2Id,
-          SEEDED.partnerId,
-          SEEDED.managerId,
-        ],
-      ],
-    ) as unknown as Array<{ id: string; display_name: string }>;
+    const producers = (await sql.unsafe(`SELECT id, display_name FROM users WHERE id = ANY($1)`, [
+      [SEEDED.producerId, SEEDED.producer2Id, SEEDED.partnerId, SEEDED.managerId],
+    ])) as unknown as Array<{ id: string; display_name: string }>;
 
     const nameMap = new Map(producers.map((p) => [p.id, p.display_name]));
 
@@ -51,11 +43,7 @@ async function main(): Promise<void> {
     ] as const) {
       console.log(`\n━━━ ${producerName} (${producerId}) ━━━\n`);
 
-      const records = await listCommissionRecordsByContributor(
-        sql,
-        SEEDED.orgId,
-        producerId,
-      );
+      const records = await listCommissionRecordsByContributor(sql, SEEDED.orgId, producerId);
 
       if (records.length === 0) {
         console.log('  (no commission records)\n');
@@ -74,10 +62,10 @@ async function main(): Promise<void> {
 
       // Get placement details
       const placementIds = Array.from(byPlacement.keys());
-      const placements = await sql.unsafe(
+      const placements = (await sql.unsafe(
         `SELECT id, job_title, status FROM placements WHERE id = ANY($1)`,
         [placementIds],
-      ) as unknown as Array<{ id: string; job_title: string; status: string }>;
+      )) as unknown as Array<{ id: string; job_title: string; status: string }>;
 
       const placementMap = new Map(placements.map((p) => [p.id, p]));
 
@@ -105,10 +93,12 @@ async function main(): Promise<void> {
           console.log(`    Gross: $${gross.toFixed(2)}`);
           console.log(`    Net:   $${net.toFixed(2)}`);
           console.log(`    Status: ${displayStatus}`);
-          console.log(`    Tier Rate: ${(r.tierRate || 0).toLocaleString(undefined, {
-            style: 'percent',
-            minimumFractionDigits: 0,
-          })}`);
+          console.log(
+            `    Tier Rate: ${(r.tierRate || 0).toLocaleString(undefined, {
+              style: 'percent',
+              minimumFractionDigits: 0,
+            })}`,
+          );
           if (r.explanation) {
             console.log(`    Note: ${r.explanation}`);
           }
@@ -127,11 +117,11 @@ async function main(): Promise<void> {
     // Summary statistics
     console.log('\n━━━ Summary Statistics ━━━\n');
 
-    const allRecords = await sql.unsafe(
+    const allRecords = (await sql.unsafe(
       `SELECT status, hold_reason, COUNT(*) as count FROM commission_records
        WHERE org_id = $1 GROUP BY status, hold_reason ORDER BY count DESC`,
       [SEEDED.orgId],
-    ) as unknown as Array<{ status: string; hold_reason: string | null; count: string }>;
+    )) as unknown as Array<{ status: string; hold_reason: string | null; count: string }>;
 
     console.log('Commission records by status:');
     for (const r of allRecords) {
@@ -139,11 +129,11 @@ async function main(): Promise<void> {
       console.log(`  ${r.status}${hold}: ${r.count}`);
     }
 
-    const invoiceStats = await sql.unsafe(
+    const invoiceStats = (await sql.unsafe(
       `SELECT status, COUNT(*) as count FROM invoices
        WHERE org_id = $1 GROUP BY status`,
       [SEEDED.orgId],
-    ) as unknown as Array<{ status: string; count: string }>;
+    )) as unknown as Array<{ status: string; count: string }>;
 
     console.log('\nInvoices by status:');
     for (const i of invoiceStats) {

@@ -136,7 +136,12 @@ async function main(): Promise<void> {
       `SELECT id, placement_id, producer_id, split_pct FROM contributors
        WHERE producer_id = $1 AND org_id = $2`,
       [SEEDED.producerId, SEEDED.orgId],
-    )) as unknown as Array<{ id: string; placement_id: string; producer_id: string; split_pct: string }>;
+    )) as unknown as Array<{
+      id: string;
+      placement_id: string;
+      producer_id: string;
+      split_pct: string;
+    }>;
     result(
       'Producer 1 Contributors',
       producerContributors.length > 0,
@@ -178,7 +183,10 @@ async function main(): Promise<void> {
       'Producer 1 Commission Records',
       producerRecords.length > 0,
       `Found ${producerRecords.length} commission records for producer 1`,
-      `Sample: ${producerRecords.slice(0, 3).map((r) => `${r.status} (${r.hold_reason || 'none'})`).join(', ')}`,
+      `Sample: ${producerRecords
+        .slice(0, 3)
+        .map((r) => `${r.status} (${r.hold_reason || 'none'})`)
+        .join(', ')}`,
     );
 
     // ──────────────────────────────────────────────────────────────────────

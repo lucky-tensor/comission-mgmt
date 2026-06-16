@@ -43,7 +43,9 @@ async function main(): Promise<void> {
       [SEEDED.orgId],
     )) as unknown as Array<{ id: string; job_title: string; invoice_count: string }>;
 
-    console.log(`[finalize-demo] Found ${placementsWithPaidInvoices.length} placements with paid invoices\n`);
+    console.log(
+      `[finalize-demo] Found ${placementsWithPaidInvoices.length} placements with paid invoices\n`,
+    );
 
     // For each placement with a paid invoice, release any held collection-gated records
     let totalReleased = 0;
@@ -63,17 +65,13 @@ async function main(): Promise<void> {
 
       const released = result ? result.length : 0;
       if (released > 0) {
-        console.log(
-          `  ✓ ${placement.job_title}: released ${released} collection-gated record(s)`,
-        );
+        console.log(`  ✓ ${placement.job_title}: released ${released} collection-gated record(s)`);
         totalReleased += released;
       }
     }
 
     if (totalReleased === 0) {
-      console.log(
-        '  (no collection-gated records to release — they may already be released)',
-      );
+      console.log('  (no collection-gated records to release — they may already be released)');
     }
     console.log();
 
@@ -185,7 +183,9 @@ async function main(): Promise<void> {
 
     console.log('[finalize-demo] Final State:\n');
     console.log(`  Total commission records: ${totalCount}`);
-    console.log(`  Payable records: ${payableCount} (${((payableCount / totalCount) * 100).toFixed(1)}%)`);
+    console.log(
+      `  Payable records: ${payableCount} (${((payableCount / totalCount) * 100).toFixed(1)}%)`,
+    );
     console.log(
       '\n✅ Demo finalization complete! The demo should now show realistic commission data.\n',
     );
