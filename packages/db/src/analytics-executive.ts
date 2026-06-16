@@ -21,6 +21,7 @@
 import type { Sql } from 'postgres';
 import { FieldEncryptor } from './encryption.js';
 import { createKmsAdapter } from './kms.js';
+import { clientDisplayName } from 'core/entity-names';
 
 // ---------------------------------------------------------------------------
 // Encryptor singleton (lazy-initialised)
@@ -101,67 +102,10 @@ export interface ExecutiveAnalytics {
 }
 
 // ---------------------------------------------------------------------------
-// Client display names
+// Re-export clientDisplayName from core for convenience
 // ---------------------------------------------------------------------------
 
-/**
- * Stable, human-readable label for a client entity id.
- *
- * The data model has no clients table yet — `client_entity_id` is an opaque
- * surrogate UUID minted at placement-create time (see the ATS-integration TODO
- * in apps/server/src/api/placements.ts). Until a real client directory exists,
- * the executive profitability surface still must not show raw UUIDs (#203), so
- * we derive a deterministic readable name from the id: a fixed adjective+noun
- * pair selected by hashing the id, plus a short id suffix to keep it unique.
- *
- * Deterministic: the same id always yields the same name. Never empty.
- */
-const CLIENT_NAME_PREFIXES = [
-  'Summit',
-  'Atlas',
-  'Beacon',
-  'Cardinal',
-  'Pioneer',
-  'Meridian',
-  'Vertex',
-  'Harbor',
-  'Keystone',
-  'Northwind',
-  'Granite',
-  'Sterling',
-  'Evergreen',
-  'Lighthouse',
-  'Ironwood',
-  'Brightline',
-];
-const CLIENT_NAME_SUFFIXES = [
-  'Partners',
-  'Group',
-  'Holdings',
-  'Industries',
-  'Labs',
-  'Systems',
-  'Ventures',
-  'Solutions',
-];
-
-export function clientDisplayName(clientId: string): string {
-  if (!clientId) return 'Unknown Client';
-  // Simple deterministic hash over the id characters (FNV-1a style).
-  let h = 0x811c9dc5;
-  for (let i = 0; i < clientId.length; i++) {
-    h ^= clientId.charCodeAt(i);
-    h = Math.imul(h, 0x01000193) >>> 0;
-  }
-  const prefix = CLIENT_NAME_PREFIXES[h % CLIENT_NAME_PREFIXES.length];
-  const suffix = CLIENT_NAME_SUFFIXES[(h >>> 8) % CLIENT_NAME_SUFFIXES.length];
-  // A short slug from the id keeps two clients that hash alike distinguishable.
-  const slug = clientId
-    .replace(/[^a-z0-9]/gi, '')
-    .slice(0, 4)
-    .toUpperCase();
-  return `${prefix} ${suffix} (${slug})`;
-}
+export { clientDisplayName } from 'core/entity-names';
 
 // ---------------------------------------------------------------------------
 // Internal raw row types
