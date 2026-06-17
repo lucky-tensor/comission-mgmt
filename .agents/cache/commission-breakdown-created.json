@@ -1,0 +1,58 @@
+{
+  "ok": true,
+  "number": 259,
+  "title": "feat: producer portal — commission breakdown redesign",
+  "body": "## Phase\n\ndemo-polish\n\n## Issue type\n\nfeature\n\n## Canonical docs\n\n- `docs/prd.md — §5.3 Commission Calculation, §5.9 Producer Payout Portal`\n- `docs/demo-polish.md — demo data consolidation contract`\n\n## Motivation\n\nCredited placements section currently shows only net payable amount, making it impossible for producers to understand: (1) what they notionally earned (gross commission), (2) what is held and why, (3) the gap between gross and net. This undermines trust and creates support burden. PRD §5.9 explicitly requires producers to understand 'how current' and 'how derived' their payout is; current UI delivers neither.\n\n## Behaviour\n\nProducer sees detailed commission breakdown card for each placement: notional gross → deductions (hold reason, split adjustment, draw offset) → net payable. Visual breakdown with reason tags and status chips. Demo producer account loads with realistic mix of commission states (collected, held-for-collection, tiered rates, split, guarantee-held, retained-phase) so demo faithfully simulates real producer experience.\n\n## Scope\n\nIn scope:\n- Redesign CreditedPlacements to show notional + holds = net breakdown\n- Add hold reason tags with visual distinction per reason type\n- Consolidate demo seed data into EXTRA_DEMO_PLACEMENTS\n- Ensure demo producer account shows all 6+ commission scenarios\n- Component + E2E tests verify breakdown rendering and demo scenarios\n\nOut of scope:\n- Changes to commission calculation engine (calculation-engine.ts stays unchanged)\n- API contract changes (GET /me/commission-records stays unchanged)\n- New hold reason types or changes to hold logic\n- Producer dispute/arbitration flow (separate feature #186)\n- Manager approval UI changes\n\n## Acceptance criteria\n\n- [ ] Component renders each commission record with notional gross amount displayed (tests/component/CreditedPlacements.test.tsx)\n- [ ] Component renders hold reason tags for each applicable hold (collection_gate, guarantee_hold, held_pending_phase_invoice); snapshot test verifies layout (tests/component/CreditedPlacements.test.tsx)\n- [ ] Component calculates and displays net payable as a result of all deductions; visual alignment shows gross - holds = net (tests/component/CreditedPlacements.test.tsx)\n- [ ] Demo seed data in scripts/shared-seed/demo-placement-seam.ts includes all 6 scenarios: collected, held-for-collection, tiered-rate, split, guarantee-held, retained-phase (verified by seed script validation)\n- [ ] Demo producer login via E2E test shows exactly 6+ commission records with correct statuses and amounts (tests/e2e/producer-portal.test.ts asserts commission_records.length >= 6)\n- [ ] E2E test verifies demo collected scenario shows net payable = gross (no holds) (tests/e2e/producer-portal.test.ts with fixture assertion)\n- [ ] E2E test verifies demo held-for-collection scenario shows net payable = 0 with hold_reason = 'collection_gate' (tests/e2e/producer-portal.test.ts)\n- [ ] E2E test verifies demo guaranteed scenario shows net payable = 0 with hold_reason = 'guarantee_hold' and explanation mentions expiry date (tests/e2e/producer-portal.test.ts)\n- [ ] Component snapshot test passes (tests/component/CreditedPlacements.test.tsx verifies visual hierarchy)\n\n## Test plan\n\n- [ ] tests/component/CreditedPlacements.test.tsx — unit test breakdown rendering, hold reason tags, status alignment\n- [ ] tests/component/CreditedPlacements.test.tsx — snapshot test for all breakdown states (collected, held, split, guaranteed, etc.)\n- [ ] tests/e2e/producer-portal.test.ts — load demo producer, assert 6+ commission records present with correct statuses and amounts\n- [ ] tests/e2e/producer-portal.test.ts — verify each demo scenario displays correct gross, hold reason, and net payable\n- [ ] Manual verification in browser: run dev server, log in as demo producer, verify Placements tab shows breakdown cards with readable layout on desktop and mobile\n\n## Stage\n\n**Current:** Specified",
+  "url": "https://github.com/lucky-tensor/comission-mgmt/issues/259",
+  "phase": "demo-polish",
+  "phase_confidence": "high",
+  "phase_branch": "phase/demo-polish",
+  "issue_kind": "feature",
+  "integration_level": "feature",
+  "target_base": "phase/demo-polish",
+  "test_tier": "fast",
+  "expected_touchpoints": [
+    "apps/web/src/components/portal/CreditedPlacements.tsx — redesign view to show breakdown",
+    "apps/web/src/components/portal/ProducerPortal.tsx — may need layout adjustments for taller cards",
+    "apps/web/src/components — new breakdown card subcomponents (NotionalCommissionBreakdown, HoldReasonTag, etc.)",
+    "tests/component/CreditedPlacements.test.tsx — add breakdown rendering tests",
+    "tests/e2e/producer-portal.test.ts — verify demo scenarios render correctly",
+    "scripts/shared-seed/encrypted.ts — consolidate demo commission scenarios",
+    "scripts/shared-seed/demo-placement-seam.ts — populate EXTRA_DEMO_PLACEMENTS with all scenarios"
+  ],
+  "public_contracts": [
+    "None — existing GET /me/commission-records endpoint already provides gross_commission, net_payable, hold_reason; no API changes"
+  ],
+  "shared_state": [
+    "Demo seed data consolidated into single EXTRA_DEMO_PLACEMENTS array to prevent duplication and ensure all scenarios load together"
+  ],
+  "migration_effects": [],
+  "config_effects": [],
+  "test_surfaces": [
+    "Component test: CreditedPlacements renders breakdown with gross commission + deductions = net payable (tests/component/CreditedPlacements.test.tsx)",
+    "Component test: Hold reason tags display correctly for each reason type (collection_gate, guarantee_hold, held_pending_phase_invoice) with tooltips",
+    "Component test: Status chips (Held, Payable, Paid) render with correct colors and alignment",
+    "Component test: Split adjustments show correctly (e.g., 60% split shows reduced gross from full credit)",
+    "Component snapshot test: Verify layout and visual hierarchy for all breakdown states",
+    "E2E test: Demo producer login shows all 6+ commission scenarios in placements tab (collected, held-for-collection, tiered, split, guarantee-held, retained-phase)",
+    "E2E test: Each demo scenario displays correct gross, hold reason(s), and net payable figures",
+    "E2E test: Clicking 'How was this calculated?' expands explanation text that mentions the breakdown components",
+    "E2E test: Verify demo data includes at least one scenario for each hold reason type"
+  ],
+  "coupling_risks": [
+    {
+      "surface": "Demo data consolidation",
+      "risk": "EXTRA_DEMO_PLACEMENTS must use fresh UUIDs for candidates/clients but stable producer/manager IDs to avoid ID collisions with E2E fixture placements",
+      "mitigation": "Follow seam contract defined in demo-placement-seam.ts; validation script ensures ID uniqueness before seed runs"
+    },
+    {
+      "surface": "Component layout",
+      "risk": "Expanded breakdown cards may affect portal tab scrolling or overflow behavior",
+      "mitigation": "Responsive design test; verify on mobile and tablet viewports"
+    }
+  ],
+  "spec_quality": "complete",
+  "open_questions": [],
+  "dependencies": [],
+  "parallel_safe_candidate": true
+}

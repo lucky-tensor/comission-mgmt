@@ -233,8 +233,9 @@ describe('PR-5: Retained-search CFO card has consistent status, amount, and expl
         // A held phase must have amber chip, not green
         if (variant === 'amber') {
           foundHeldRow = true;
-          // The net amount for a held row should be $0.00
-          expect(rowText).toContain('$0.00 net');
+          // The net amount for a held row should be $0.00 in the breakdown
+          expect(rowText).toContain('$0.00');
+          expect(rowText).toContain('Net payable');
           break;
         }
       }

@@ -93,8 +93,113 @@ export interface DemoPlacementDef {
 /**
  * Additive demo placements. EMPTY in the scout — wiring this into the Phase-2
  * seed is therefore a no-op. #196 populates it.
+ *
+ * Scenarios defined per issue #259:
+ *   - collected: fully collected, 25% rate, $7,500 net (Payable)
+ *   - held-collection: active+calculated, no paid invoice, $0 net (Held)
+ *   - tiered: tiered-rate plan where effective rate ≠ base rate, $21,600 net
+ *   - split: manager-override with split_pct < 1.0, $6,000 net
+ *   - guarantee: inside guarantee window, $0 net (Held for guarantee)
+ *   - retained: retained-search with retainer (paid/Payable) + delivery (unpaid/Held) phases
  */
-export const EXTRA_DEMO_PLACEMENTS: readonly DemoPlacementDef[] = [];
+export const EXTRA_DEMO_PLACEMENTS: readonly DemoPlacementDef[] = [
+  {
+    jobTitle: 'Chief Technology Officer (Demo Collected)',
+    compensationBase: '180000',
+    feeAmount: '30000',
+    startDate: '2025-12-01',
+    guaranteeDays: null,
+    status: 'Collected',
+    contributors: [
+      {
+        producerId: 'e2e00000-0000-0000-0000-0000000000b1', // SEEDED.producerId
+        role: 'CandidateOwner',
+        splitPct: 1.0,
+      },
+    ],
+    calculate: true,
+  },
+  {
+    jobTitle: 'Head of Product (Demo Held)',
+    compensationBase: '150000',
+    feeAmount: '20000',
+    startDate: '2026-01-15',
+    guaranteeDays: null,
+    status: 'Active',
+    contributors: [
+      {
+        producerId: 'e2e00000-0000-0000-0000-0000000000b1', // SEEDED.producerId
+        role: 'CandidateOwner',
+        splitPct: 1.0,
+      },
+    ],
+    calculate: true,
+  },
+  {
+    jobTitle: 'VP Engineering (Demo Tiered)',
+    compensationBase: '200000',
+    feeAmount: '120000',
+    startDate: '2025-11-15',
+    guaranteeDays: null,
+    status: 'Collected',
+    contributors: [
+      {
+        producerId: 'e2e00000-0000-0000-0000-0000000000b1', // SEEDED.producerId
+        role: 'CandidateOwner',
+        splitPct: 1.0,
+      },
+    ],
+    calculate: true,
+  },
+  {
+    jobTitle: 'Sales Director (Demo Split)',
+    compensationBase: '140000',
+    feeAmount: '50000',
+    startDate: '2025-10-01',
+    guaranteeDays: null,
+    status: 'Collected',
+    contributors: [
+      {
+        producerId: 'e2e00000-0000-0000-0000-0000000000b1', // SEEDED.producerId
+        role: 'ManagerOverride',
+        splitPct: 0.6,
+      },
+    ],
+    calculate: true,
+  },
+  {
+    jobTitle: 'General Counsel (Demo Guarantee)',
+    compensationBase: '220000',
+    feeAmount: '45000',
+    startDate: '2026-03-18',
+    guaranteeDays: 90,
+    status: 'Active',
+    contributors: [
+      {
+        producerId: 'e2e00000-0000-0000-0000-0000000000b1', // SEEDED.producerId
+        role: 'CandidateOwner',
+        splitPct: 1.0,
+      },
+    ],
+    calculate: true,
+  },
+  {
+    jobTitle: 'Chief Financial Officer (Demo Retained Search)',
+    compensationBase: '280000',
+    feeAmount: '70000',
+    startDate: '2025-08-01',
+    guaranteeDays: 90,
+    status: 'Invoiced',
+    contributors: [
+      {
+        producerId: 'e2e00000-0000-0000-0000-0000000000b1', // SEEDED.producerId
+        role: 'CandidateOwner',
+        splitPct: 1.0,
+      },
+    ],
+    calculate: true,
+  },
+];
 
 /**
  * Returns the additive demo placements to seed beyond the existing fixture set.

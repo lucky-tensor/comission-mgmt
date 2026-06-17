@@ -1,0 +1,39 @@
+{
+  "name": "Commission breakdown redesign",
+  "phase": "demo-polish",
+  "motivation": "Credited placements section currently shows only net payable amount, making it impossible for producers to understand: (1) what they notionally earned (gross commission), (2) what is held and why, (3) the gap between gross and net. This undermines trust and creates support burden.",
+  "intended_experience": "Producers see a detailed commission breakdown card for each placement showing: notional gross commission → deductions/holds (collection gate, guarantee window, draw offset, split adjustments) → net payable. Visual breakdown with reason tags helps producers understand hold mechanics. Demo data provides realistic mix of scenarios (collected, tiered rates, held, guaranteed, split, retained-phase).",
+  "constraints": [
+    "Must preserve existing CommissionRecord API schema (gross_commission, net_payable, hold_reason, status already available)",
+    "Frontend-only change to CreditedPlacements view; no API contract changes",
+    "Seed data must be consolidated into demo-placement-seam.ts so all demo scenarios run together without breaking E2E tests",
+    "Demo producer account must show all 6+ realistic commission states in a single login",
+    "Redesign must work with existing calculation-engine.ts (no changes to hold logic)"
+  ],
+  "touchpoints": {
+    "frontend": [
+      "apps/web/src/components/portal/CreditedPlacements.tsx - component redesign to show breakdown",
+      "apps/web/src/components/portal/ProducerPortal.tsx - may need layout adjustments for taller cards"
+    ],
+    "seed_data": [
+      "scripts/shared-seed/encrypted.ts - consolidate demo scenarios",
+      "scripts/shared-seed/demo-placement-seam.ts - use EXTRA_DEMO_PLACEMENTS for new scenarios"
+    ],
+    "tests": [
+      "tests/component/CreditedPlacements.test.tsx - update tests for breakdown display",
+      "tests/e2e/producer-portal.test.ts - verify demo data scenarios render correctly"
+    ]
+  },
+  "public_contracts": [
+    "No API changes; existing GET /me/commission-records endpoint already returns all needed fields"
+  ],
+  "shared_state_changes": [
+    "Demo seed data will consolidate into single EXTRA_DEMO_PLACEMENTS array to avoid duplication"
+  ],
+  "test_surfaces": [
+    "UI breakdown rendering: gross, holds, net payable alignment",
+    "Hold reason tags display (collection_gate, guarantee_hold, held_pending_phase_invoice)",
+    "Demo scenarios: collected placement shows full net payable; held placement shows $0 net with reason; split shows reduced gross; guaranteed shows hold reason + expiry",
+    "Status transitions: verify Held/Payable/Paid status chips align with hold state"
+  ]
+}

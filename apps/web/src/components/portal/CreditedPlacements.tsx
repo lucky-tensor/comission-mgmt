@@ -13,11 +13,9 @@
 import type { CommissionRecord } from 'core/producer-portal';
 import { apiGet } from '../../lib/apiClient';
 import { useAsync, type AsyncState } from '../../lib/useAsync';
-import { formatCurrency } from '../../lib/format';
 import { PortalCard, LoadingState, ErrorState, EmptyState } from './states';
 import { StatusChip } from 'ui';
-
-const ROW_CLASS = 'py-3.5 border-b border-surface-sunken';
+import { CommissionBreakdown } from './CommissionBreakdown';
 
 /** A human-readable lead label: role title, else a short placement reference. */
 function placementLead(r: CommissionRecord): string {
@@ -36,13 +34,19 @@ export function CreditedPlacementsView({ state }: { state: AsyncState<Commission
       ) : !state.data || state.data.length === 0 ? (
         <EmptyState message="No credited placements yet." />
       ) : (
-        <ul data-testid="placements-list" className="list-none m-0 p-0">
+        <ul data-testid="placements-list" className="list-none m-0 p-0 space-y-4">
           {state.data.map((r) => (
-            <li key={r.id} className={ROW_CLASS} data-testid={`placement-row-${r.id}`}>
-              {/* Lead with the role title + amount + a semantic status chip;
-                  the placement identity is no longer buried in the explanation. */}
-              <div className="flex justify-between items-center">
-                <span data-testid={`placement-lead-${r.id}`} className="font-semibold text-ink">
+            <li
+              key={r.id}
+              className="p-4 rounded-md border border-border-subtle bg-surface-raised"
+              data-testid={`placement-row-${r.id}`}
+            >
+              {/* Header: role title + status chip */}
+              <div className="flex justify-between items-start mb-1">
+                <span
+                  data-testid={`placement-lead-${r.id}`}
+                  className="font-semibold text-ink text-base"
+                >
                   {placementLead(r)}
                 </span>
                 <StatusChip
@@ -50,20 +54,29 @@ export function CreditedPlacementsView({ state }: { state: AsyncState<Commission
                   data-testid={`placement-status-${r.id}`}
                 />
               </div>
-              <div className="text-sm text-ink-muted mt-1">{formatCurrency(r.net_payable)} net</div>
+
+              {/* Commission breakdown: gross → deductions → net */}
+              <CommissionBreakdown record={r} />
 
               {/* Plain-language explanation as an expandable detail. */}
               {r.explanation && (
-                <details data-testid={`placement-explanation-${r.id}`} className="mt-2">
-                  <summary className="text-sm text-accent cursor-pointer select-none">
+                <details
+                  data-testid={`placement-explanation-${r.id}`}
+                  className="mt-3 pt-3 border-t border-border-subtle"
+                >
+                  <summary className="text-sm text-accent cursor-pointer select-none font-medium">
                     How was this calculated?
                   </summary>
-                  <p className="text-sm text-ink-subtle mt-1.5 mb-0">{r.explanation}</p>
+                  <p className="text-sm text-text-secondary mt-2 mb-0">{r.explanation}</p>
                 </details>
               )}
+
+              {/* Phase blocking info if applicable */}
               {r.blocked_phase && (
-                <p className="text-xs text-warn-fg mt-1 mb-0">
-                  Blocked by phase: {r.blocked_phase.phase_name}
+                <p className="text-xs text-text-secondary mt-3 pt-3 border-t border-border-subtle mb-0">
+                  <strong>Blocked by phase:</strong> {r.blocked_phase.phase_name}
+                  {r.blocked_phase.blocking_invoice_id &&
+                    ` (invoice: ${r.blocked_phase.blocking_invoice_id})`}
                 </p>
               )}
             </li>
