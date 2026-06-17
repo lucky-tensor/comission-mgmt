@@ -367,6 +367,22 @@ async function seedPhase2(): Promise<void> {
   console.log('  Phase 2 complete — encrypted commission data seeded.');
 }
 
+/**
+ * finalizeSeedData — post-seed cleanup to ensure realistic commission data.
+ *
+ * This step releases collection gates for placements with paid invoices, so the
+ * demo shows both Held and Payable records (realistic state for user stories).
+ */
+async function finalizeSeedData(): Promise<void> {
+  console.log('\nFinalizing seed data (releasing collection gates for paid invoices)...');
+
+  await withDbPortForward(() => {
+    run(`DATABASE_URL=${HOST_DB_URL} bun run scripts/finalize-demo.ts`, {
+      stdio: 'inherit',
+    });
+  });
+}
+
 function buildAndImportImage(): void {
   console.log('\nBuilding app image from latest local code...');
   run(`docker build --target release ${dockerLabelFlags(IMAGE_RUN)} -t ${APP_IMAGE} .`, {
@@ -721,6 +737,7 @@ async function main(): Promise<void> {
 
   await seedPhase2();
   await smokeTest();
+  await finalizeSeedData();
 
   const externalIps = Object.values(networkInterfaces())
     .flat()

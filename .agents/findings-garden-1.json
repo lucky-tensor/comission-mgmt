@@ -1,0 +1,22 @@
+{
+  "type": "docs",
+  "title": "README.md references removed docs/plan.md",
+  "description": "README.md (line 21) links to [Plan](docs/plan.md), but this file was intentionally removed in PR #202 and replaced with GitHub Issues as the single source of truth for the implementation plan. The reference is stale and breaks navigation for users trying to access the planning document.",
+  "classification": "STALE_HEADER",
+  "severity": "medium",
+  "affected_files": ["README.md"],
+  "evidence": {
+    "readme_line": "21: - [Plan](docs/plan.md)",
+    "removed_in": "PR #202 commit 609419f52c13bda6b9a9f511201226bb8cd521dc",
+    "removal_reason": "Conflicts with Plan issue #1; planning state now tracked in GitHub Issues"
+  },
+  "acceptance_criteria": [
+    "README.md no longer references docs/plan.md",
+    "README.md either removes the Plan link or updates it to point to the GitHub project/issues (e.g., https://github.com/.../issues/1)",
+    "Architecture.md also has stale references to docs/plan.md (lines 4 and 123) that should be updated to clarify planning is in GitHub Issues"
+  ],
+  "test_plan": [
+    "Verify README.md links are not broken",
+    "Confirm architecture.md references to docs/plan.md are clarified or removed"
+  ]
+}

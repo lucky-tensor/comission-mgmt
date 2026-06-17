@@ -1,0 +1,78 @@
+{
+  "summary": {
+    "total_findings": 1,
+    "issues_to_file": 1,
+    "duplicates_skipped": 0,
+    "decision_issues": 0,
+    "clean_rungs": [
+      "PRD ↔ Code (all major features documented and implemented or properly stubbed)",
+      "Architecture ↔ PRD (architecture correctly derives from PRD requirements)",
+      "Dependencies Registry (docs/dependencies.md accurately documents all shipped and planned dependencies with proper Buy/DIY justification)",
+      "Code Comments ↔ Docs (canonical doc back-links present throughout codebase; 81 PRD §X references found)",
+      "Package Layout (shipped packages/{core,db,ui} matches documented partial layout; planned packages/{auth,data,services,integrations} properly marked as planned)"
+    ]
+  },
+  "findings": [
+    {
+      "id": 1,
+      "title": "Stale documentation references to removed docs/plan.md",
+      "type": "docs",
+      "classification": "STALE_HEADER",
+      "severity": "medium",
+      "description": "README.md and docs/architecture.md contain stale references to docs/plan.md, which was intentionally removed in PR #202 (commit 609419f52c13bda6b9a9f511201226bb8cd521dc). Planning state is now tracked exclusively in GitHub Issues (#1 = Plan). The references break navigation and confuse users about where the implementation plan lives.",
+      "evidence": {
+        "readme": {
+          "file": "README.md",
+          "line": 21,
+          "text": "- [Plan](docs/plan.md)"
+        },
+        "architecture": [
+          {
+            "file": "docs/architecture.md",
+            "line": 4,
+            "text": "> Derived from `docs/prd.md`, `docs/plan.md`, and the per-rule research under `docs/architecture/rule-*.md`"
+          },
+          {
+            "file": "docs/architecture.md",
+            "line": 123,
+            "text": "GitHub Issues mirrors `docs/plan.md`."
+          },
+          {
+            "file": "docs/architecture.md",
+            "line": 184,
+            "text": "Plan's `docs/plan.md` package list (`packages/{core,db,ui}`) matches the shipped set..."
+          }
+        ],
+        "removal": {
+          "pr": "#202",
+          "commit": "609419f52c13bda6b9a9f511201226bb8cd521dc",
+          "date": "2026-06-09",
+          "reason": "Conflicts with Plan issue tracking in GitHub; planning state now in Issues"
+        }
+      },
+      "acceptance_criteria": [
+        "README.md no longer references docs/plan.md",
+        "README.md either removes the Plan link or updates it to reference GitHub Issues (e.g., 'Implementation Plan: See GitHub Issues')",
+        "docs/architecture.md line 4 updated to remove reference to docs/plan.md; update header to clarify architecture derives from PRD and per-rule research",
+        "docs/architecture.md line 123 reworded to clarify planning state is tracked in GitHub Issues, not a docs file",
+        "docs/architecture.md line 184 updated to clarify the Plan reference means GitHub Issues tracking"
+      ],
+      "test_plan": [
+        "Verify README.md links do not lead to 404 on docs/plan.md",
+        "Check that any user navigating from README can find the actual Plan (GitHub Issues or a new Docs link pointing to the right place)",
+        "Confirm docs/architecture.md does not reference a non-existent file"
+      ]
+    }
+  ],
+  "audit_notes": {
+    "drift_detection_method": "Compared PRD §5–§9 against shipped code and docs; checked recent merges since c1db6433 for new features and drift; audited dependencies.md against package.json files; verified canonical doc back-links in code; confirmed all six role surfaces present",
+    "rung_1_prd_vs_code": "CLEAN — PRD describes features 5.1–5.12 (placement, attribution, calculation, approval, invoicing, guarantee, close, reconciliation, portal, onboarding, partner, AI arbitration/simulation). Code implements through 5.11 with 5.12 properly stubbed (dispute-arbitration.ts, simulations.ts, claude-api-client.ts all marked DORMANT_BY_DESIGN with issue references #186, #187, #188).",
+    "rung_2_architecture_vs_prd": "CLEAN — Architecture.md correctly derives from PRD; _(planned)_ tags accurately mark incomplete work (keyVersion prefix, requireScope helper, BIP-39 recovery, merge queue, ledger replay, image signing, DP on analytics, M-of-N, worker NetworkPolicy enforcement). All shipped items match code state.",
+    "rung_3_plan_vs_architecture": "CLEAN (with caveat) — GitHub Issues now serve as Plan; recent merges (#251 dependencies.md, #248 architecture refresh, #245 sidebar, #234 placement ledger, #226 case management, #224 design, #221 Tailwind reskin) all have canonical PRD §X back-links and are properly reflected in architecture.md. Caveat: README.md and architecture.md still reference the removed docs/plan.md file.",
+    "rung_4_code_comments": "CLEAN — 81 PRD §X back-links found in code; all six role surfaces have canonical doc headers (producer/finance/manager/executive/hr/partner directories present); DORMANT_BY_DESIGN annotations on arbitration scaffolds; claude-api-client.ts properly stubbed with issue references.",
+    "recent_changes_audit": "12 commits since last garden pass (c1db6433). Highlights: dependencies.md created (resolves #240, fulfills ARCH-C-005); architecture.md updated for Tailwind v4 and Atlas system; customer/candidate entity picker feature merged (#252); sidebar nav per design system (#245); phantom back-links cleaned (#237). All changes have proper commit messages and canonical doc references.",
+    "dependencies_audit": "docs/dependencies.md created 2026-06-16, comprehensively documents all shipped and planned deps with Buy/DIY justification and blueprint rule traceability. Verified against package.json files across monorepo: postgres, @simplewebauthn/*, react, react-dom, tailwindcss 4, @tailwindcss/vite, @fontsource-variable/*, vitest, playwright, vite, typescript, eslint, prettier, @types/*, ajv, croner all present. Matches architecture.md §3 assertions (ARCH-C-005/C-013, IMPL-ARCH-023).",
+    "package_layout_audit": "Shipped layout matches architecture.md: packages/{core,db,ui}, apps/{web,server,worker}. Planned layout (packages/{auth,data,services,integrations}) properly marked **_(planned)_** in architecture.md §5.2 and §6. No surprise undocumented packages found.",
+    "next_audit_trigger": "When issues #186 (Dispute Arbitration), #187 (Producer Simulation), or #188 (Arbitration/Simulation Scout) land, re-audit the arbitration-simulation.md doc against real implementation; verify claude-api-client.ts moves from STUB to real API calls; check if digital twin infrastructure materializes for simulation feature."
+  }
+}
