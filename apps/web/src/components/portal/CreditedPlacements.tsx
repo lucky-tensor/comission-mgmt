@@ -13,12 +13,9 @@
 import type { CommissionRecord } from 'core/producer-portal';
 import { apiGet } from '../../lib/apiClient';
 import { useAsync, type AsyncState } from '../../lib/useAsync';
-import { formatCurrency } from '../../lib/format';
 import { PortalCard, LoadingState, ErrorState, EmptyState } from './states';
 import { StatusChip } from 'ui';
 import { CommissionBreakdown } from './CommissionBreakdown';
-
-const ROW_CLASS = 'py-3.5 border-b border-surface-sunken';
 
 /** A human-readable lead label: role title, else a short placement reference. */
 function placementLead(r: CommissionRecord): string {
