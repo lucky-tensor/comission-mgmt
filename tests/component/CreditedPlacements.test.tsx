@@ -60,7 +60,12 @@ describe('CreditedPlacementsView', () => {
       <CreditedPlacementsView state={{ data: [record], loading: false, error: null }} />,
     );
     await expect.element(page.getByTestId('placements-list')).toBeInTheDocument();
-    await expect.element(page.getByText('$15,750.00 net')).toBeInTheDocument();
+    // The redesigned breakdown (#259) renders the net amount on a labelled
+    // "Net payable:" row rather than a "$X net" string.
+    const row = page.getByTestId(`placement-row-${record.id}`);
+    const rowText = (await row.element())?.textContent ?? '';
+    expect(rowText).toContain('Net payable');
+    expect(rowText).toContain('$15,750.00');
     await expect.element(page.getByText('Gross fee 20000 × 25% tier rate')).toBeInTheDocument();
   });
 
@@ -121,8 +126,11 @@ describe('CreditedPlacementsView', () => {
     await expect.element(chip).toBeInTheDocument();
     // Should render amber (held/pending) — never green (paid/complete)
     expect((await chip.element())?.getAttribute('data-variant')).toBe('amber');
-    // Amount shows $0.00 net
-    await expect.element(page.getByText('$0.00 net')).toBeInTheDocument();
+    // Amount shows $0.00 on the labelled "Net payable:" row (#259 redesign).
+    const row = page.getByTestId(`placement-row-${heldRecord.id}`);
+    const rowText = (await row.element())?.textContent ?? '';
+    expect(rowText).toContain('Net payable');
+    expect(rowText).toContain('$0.00');
   });
 
   test('guarantee-held record renders amber chip and $0.00 net with guarantee wording', async () => {
