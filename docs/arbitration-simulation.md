@@ -446,17 +446,20 @@ The TTL reaper (`reapExpiredSimulationRuns`, `packages/db/src/simulation-run.ts`
 deletes `simulation_run` rows past `ttl_expires_at` on a recurring tick;
 forecasts are ephemeral by design.
 
-### Reserved seams (this scout)
+### Implemented pipeline (issue #262)
 
-| Seam | Location | Contract |
+The seams reserved by the scout (#263) are now live:
+
+| Component | Location | Contract |
 |---|---|---|
 | `simulation_run` table | `packages/db/schema.sql` | `id, producer_id, org_id, job_id, input_params, result_json, created_at, ttl_expires_at` |
-| TTL expiry job | `packages/db/src/simulation-run.ts` → `reapExpiredSimulationRuns()` | Idempotent DELETE keyed on `ttl_expires_at`; returns rows removed |
-| Claude CLI engine | `packages/db/src/claude-cli-engine.ts` → `runClaudeCli()` | Typed entrypoint, `timeoutMs` (default 60s), `parse(stdout)→T` structured-output signature; **no subprocess** in scout |
-| Worker entrypoint | `apps/worker/src/agents/simulation.ts` → `executeSimulationTask()` | `(taskId, payload, delegatedToken)` digital-twin signature (from #188) |
+| Persistence + TTL | `packages/db/src/simulation-run.ts` | `insertSimulationRun` (30-day TTL), `setSimulationRunResult` (org-scoped), `listSimulationRunsByProducer`, `reapExpiredSimulationRuns` (idempotent DELETE keyed on `ttl_expires_at`) |
+| Claude CLI engine | `packages/db/src/claude-cli-engine.ts` → `runClaudeCli()` | Spawns the local `claude` CLI (`-p` print mode) via `Bun.spawn`, bounded by `timeoutMs` (default 60s); `parse(stdout)→T`. Maps every outcome to a structured error (`timeout`/`spawn_error`/`nonzero_exit`/`parse_error`); never throws. Subprocess is injectable (`request.spawn`) for hermetic tests |
+| Worker entrypoint | `apps/worker/src/agents/simulation.ts` → `executeSimulationTask()` | Builds a prompt from the digital-twin payload (scenario + the producer's own plan version + fee rate), runs `runClaudeCli`, parses `{ payout_estimate, dispute_risk, reasoning }`. Graceful failure on CLI timeout/error → no partial forecast submitted |
+| Worker dispatch | `apps/worker/src/index.ts` | For `agent_type = 'simulation_agent'`, submits the forecast to `POST /producer/simulations/:id/result` using the per-simulation single-use token embedded in the task payload |
 | Producer RBAC | `packages/core/auth.ts` | `GET` + `POST /producer/simulations` so the Producer role is no longer 403 |
-| Request routes | `apps/server/src/api/simulations.ts` | `POST /producer/simulations/{actual,hypothetical}`, `GET /producer/simulations` (501 stubs) |
-| Delegated-result route | `apps/server/src/api/simulations.ts` → `handleSubmitSimulationResult()` | `POST /producer/simulations/:id/result` — worker write path (Bearer delegated token, no session cookie), wired before `requireAuth` in `apps/server/src/index.ts` |
+| Request routes | `apps/server/src/api/simulations.ts` | `POST /producer/simulations/{actual,hypothetical}` enqueue a `producer_simulation` task (producer-scope: 403 on another producer's `deal_id`), insert a `simulation_run`, mint a single-use delegated token, return a `202 { status: 'pending', simulation_id, job_id, result_token }`. `GET /producer/simulations` returns the caller's own history |
+| Delegated-result route | `apps/server/src/api/simulations.ts` → `handleSubmitSimulationResult()` | `POST /producer/simulations/:id/result` — worker write path (Bearer delegated token, no session cookie), wired before `requireAuth` in `apps/server/src/index.ts`. Validates the single-use token bound to the `simulation_run`, persists `result_json`, and writes an `AuditLogEntry` (action `simulation.completed`, correlation id in `after_json`) |
 
 ### Claude-CLI engine seam vs. callClaudeAPI
 

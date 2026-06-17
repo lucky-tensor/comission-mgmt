@@ -982,6 +982,58 @@ export async function seedEncrypted(
       // non-fatal if already approved
     }
 
+    // ── 14. Demo: Producer Deal Simulator history (issue #262) ────────────
+    //
+    // The Deal Simulator "Actual Deals" tab derives the producer's registered
+    // deals from prior simulation_run input_params, so the demo Producer needs
+    // at least one simulation_run row per deal to have deals to (re)simulate
+    // end-to-end. We seed completed forecasts for several of the producer's own
+    // placements so the surface is populated; the producer can re-run any of
+    // them live (which spawns the `claude` CLI worker). Rows carry a 30-day TTL.
+    //
+    // These INSERTs are additive and touch only simulation_run (an ephemeral,
+    // forecast-only table) — they never create or alter a placement, commission,
+    // or payout, preserving the read-only simulation guarantee.
+    const simDealIds = [collectedPlacementId, tieredPlacementId, splitPlacementId];
+    const simForecasts: Array<{ payout: number; risk: string; reasoning: string }> = [
+      {
+        payout: 7500,
+        risk: 'low',
+        reasoning:
+          'Based on your Demo Collected Plan (25% gross-fee rate) the collected $30,000 fee yields a $7,500 payout. Low dispute risk: a single full-credit split with a paid invoice.',
+      },
+      {
+        payout: 21600,
+        risk: 'moderate',
+        reasoning:
+          'Under your Demo Tiered Plan the $120,000 fee reaches the 18% tier, projecting a $21,600 payout. Moderate dispute risk: tier-boundary placements are more often questioned.',
+      },
+      {
+        payout: 6000,
+        risk: 'moderate',
+        reasoning:
+          'Your Demo Split Plan (20% gross-fee) credits 60% of the $50,000 fee to you: $6,000. Moderate dispute risk because of the manager-override split.',
+      },
+    ];
+    const simTtl = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    for (let i = 0; i < simDealIds.length; i++) {
+      const f = simForecasts[i];
+      // Use sql.json() (not a pre-stringified positional param) so the values
+      // are stored as JSONB objects, not JSON-string scalars.
+      await sql`
+        INSERT INTO simulation_run
+          (org_id, producer_id, job_id, input_params, result_json, ttl_expires_at)
+        VALUES (
+          ${SEEDED.orgId},
+          ${SEEDED.producerId},
+          NULL,
+          ${sql.json({ kind: 'actual', deal_id: simDealIds[i] })},
+          ${sql.json({ payout_estimate: f.payout, dispute_risk: f.risk, reasoning: f.reasoning })},
+          ${simTtl}
+        )
+      `;
+    }
+
     return {
       closeRunId,
       closeIncompletePlacementId: incompletePlacementId,

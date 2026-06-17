@@ -1,142 +1,201 @@
 /**
- * Simulation Agent Worker
+ * Simulation Agent Worker (issue #262).
  *
- * Stub implementation for producer deal simulation task execution.
- * This agent processes simulation requests in digital twins and returns
- * predicted outcomes without mutating production state.
+ * Executes producer deal-simulation tasks inside an isolated digital twin
+ * (WORKER-P-007) and returns a payout + dispute-risk forecast WITHOUT mutating
+ * any production state. The forecast is produced by spawning the locally
+ * installed `claude` CLI as a subprocess (runClaudeCli) — no outbound Anthropic
+ * HTTP call is made by the worker.
  *
- * Phase: Producer Deal Simulator (dev-scout #263; original seam from #188)
- * Canonical docs: docs/prd.md §5.9, docs/prd.md §5.12
- * Canonical: docs/arbitration-simulation.md — Simulation worker execution flow, WORKER-P-007
+ * Execution flow (docs/arbitration-simulation.md — Simulation worker flow):
+ *   1. The task payload carries the producer-authored context (deal / scenario
+ *      terms + the producer's own plan version + fee-rate) resolved by the
+ *      server under the producer's authority. The worker never connects to the
+ *      DB (WORKER-X-001); it reasons over the payload context only — this IS the
+ *      isolated digital twin: a self-contained projection of the deal that is
+ *      discarded when the task returns.
+ *   2. Build a structured prompt instructing the CLI to emit a JSON forecast.
+ *   3. Spawn the `claude` CLI (bounded by a timeout); parse stdout into
+ *      { payout_estimate, dispute_risk, reasoning }.
+ *   4. On any CLI timeout / spawn / parse failure, return status 'error' so the
+ *      task is marked failed and the UI falls back to "Simulation unavailable".
  *
- * DORMANT_BY_DESIGN
- * depends_on: issue #262 (Producer Deal Simulator pipeline)
- * reason: the digital-twin execution signature is reserved so the feature plugs
- * into a stable entrypoint. The forecasting engine (Claude CLI / API) is wired
- * in #262, not here.
+ * Simulation is strictly read-only: it never creates or modifies a placement,
+ * commission, or payout. The twin (the in-memory payload projection) is dropped
+ * the moment this function returns.
  *
- * STUB IMPLEMENTATION: Compiles and accepts task payloads. Does not invoke any
- * Claude engine or return actual predictions. Real feature (#262) will fill in
- * the simulation logic via runClaudeCli (CLI engine seam) or callClaudeAPI.
- *
- * Expected payload shape for producer_deal_simulation job type:
- *   {
- *     "deal_id": "<UUID>",
- *     "bonus_season_flag": boolean
- *   }
- *
- * Return contract: { status: 'success' | 'error', result_or_error: any }
- *
- * Per WORKER-P-007 (simulation-in-digital-twins), simulation happens in isolated
- * digital twins, not on production. The worker requests a twin, executes the
- * simulation inside it, and returns predictions without mutation.
+ * Canonical docs: docs/prd.md §5.9, §5.12, §9; docs/arbitration-simulation.md
  */
 
-import { type ClaudeApiContext } from 'db';
-// Note: callClaudeAPI is not imported in this stub. Real feature (#187) will
-// import callClaudeAPI and invoke it inside executeSimulationTask().
+import { runClaudeCli, type ClaudeCliSpawn } from 'db';
 
 /**
  * Simulation agent task payload.
- * Fields are opaque references; business data is fetched via API at execution time.
+ *
+ * `kind` selects the scenario: an `actual` deal references a placement (deal_id)
+ * with resolved deal_context; a `hypothetical` scenario carries scenario terms.
+ * Both carry the producer's plan_context (plan version + fee rate) so the
+ * forecast reasoning is traceable to it (PRD §9).
  */
 export interface SimulationTaskPayload {
-  deal_id: string;
-  bonus_season_flag: boolean;
-  // Optional context fields (filled in at task creation)
+  /** Binds the forecast back to its simulation_run row. */
+  simulation_run_id?: string;
+  kind?: 'actual' | 'hypothetical';
+  deal_id?: string;
+  bonus_season_flag?: boolean;
+  amount?: number;
+  tier?: string;
+  accrual_percent?: number;
   producer_id?: string;
+  org_id?: string;
   client_id?: string;
+  deal_context?: Record<string, unknown>;
+  plan_context?: Record<string, unknown> | null;
+  /** Single-use delegated token for POST /producer/simulations/:id/result. */
+  result_token?: string;
+}
+
+/** The structured forecast schema the CLI must emit and the UI consumes. */
+export interface SimulationForecast {
+  payout_estimate: number;
+  dispute_risk: string;
+  reasoning: string;
 }
 
 /**
  * Simulation agent execution result.
- * Returns predicted outcomes from the digital twin simulation.
+ * On success, result_or_error is a SimulationForecast; on error it carries an
+ * error message and the task is marked failed.
  */
 export interface SimulationTaskResult {
   status: 'success' | 'error';
   result_or_error: {
-    predicted_commission?: number; // Projected commission amount (stub: placeholder)
-    predicted_payout_schedule?: Array<{ date: string; amount: number }>; // Stub: placeholder
-    risk_factors?: string[]; // Identified risks (stub: placeholder)
-    error?: string; // Error message if status='error'
+    payout_estimate?: number;
+    dispute_risk?: string;
+    reasoning?: string;
+    error?: string;
+    /** True when the failure is transient and the producer may retry. */
+    retriable?: boolean;
   };
+}
+
+/**
+ * Build the CLI prompt from the digital-twin payload. The prompt instructs the
+ * CLI to reason from the producer's OWN plan version and fee-rate structure and
+ * to emit a single JSON object so the output is machine-parseable.
+ */
+export function buildSimulationPrompt(payload: SimulationTaskPayload): string {
+  const planContext = payload.plan_context ?? {};
+  const scenario =
+    payload.kind === 'hypothetical'
+      ? {
+          kind: 'hypothetical',
+          amount: payload.amount,
+          tier: payload.tier,
+          bonus_season_flag: payload.bonus_season_flag ?? false,
+          accrual_percent: payload.accrual_percent,
+        }
+      : {
+          kind: 'actual',
+          deal_id: payload.deal_id,
+          bonus_season_flag: payload.bonus_season_flag ?? false,
+          deal_context: payload.deal_context ?? {},
+        };
+
+  return [
+    'You are a commission forecasting assistant for a recruiting agency.',
+    'Estimate the producer payout and dispute risk for the scenario below.',
+    "Base your reasoning on the producer's own commission plan version and fee-rate structure provided in plan_context.",
+    '',
+    `plan_context: ${JSON.stringify(planContext)}`,
+    `scenario: ${JSON.stringify(scenario)}`,
+    '',
+    'Respond with ONLY a single JSON object, no prose, of the exact shape:',
+    '{"payout_estimate": <number>, "dispute_risk": "low"|"moderate"|"high", "reasoning": "<plain-language explanation referencing the plan version and fee rate>"}',
+  ].join('\n');
+}
+
+/**
+ * Parse the CLI stdout into the forecast schema. Tolerates the model wrapping
+ * the JSON in code fences or surrounding prose by extracting the first JSON
+ * object. Throws on malformed output so runClaudeCli maps it to 'parse_error'.
+ */
+export function parseSimulationForecast(rawStdout: string): SimulationForecast {
+  const text = rawStdout.trim();
+  // Extract the first {...} block (handles ```json fences / leading prose).
+  const start = text.indexOf('{');
+  const end = text.lastIndexOf('}');
+  if (start === -1 || end === -1 || end <= start) {
+    throw new Error('no JSON object found in CLI output');
+  }
+  const parsed = JSON.parse(text.slice(start, end + 1)) as Record<string, unknown>;
+
+  const payout = parsed['payout_estimate'];
+  const risk = parsed['dispute_risk'];
+  const reasoning = parsed['reasoning'];
+  if (typeof payout !== 'number' || Number.isNaN(payout)) {
+    throw new Error('payout_estimate must be a number');
+  }
+  if (typeof risk !== 'string' || risk.trim() === '') {
+    throw new Error('dispute_risk must be a non-empty string');
+  }
+  if (typeof reasoning !== 'string' || reasoning.trim() === '') {
+    throw new Error('reasoning must be a non-empty string');
+  }
+  return { payout_estimate: payout, dispute_risk: risk, reasoning };
 }
 
 /**
  * Execute a producer deal simulation task.
  *
- * This is the entrypoint for the simulation worker. It:
- * 1. Accepts a task ID and payload from the task queue view
- * 2. Requests a digital twin for this deal (isolated from production)
- * 3. Fetches deal and producer data via authenticated API
- * 4. Calls Claude to simulate deal outcomes
- * 5. Returns predictions without mutating production state
- *
- * STUB: Always returns { status: 'success', ... }. Real implementation (#187) will
- * call Claude API and return actual deal predictions from a digital twin.
- *
- * @param taskId - Task ID from task queue
- * @param payload - Opaque task payload (deal_id, bonus_season_flag, etc.)
- * @param delegatedToken - Single-use, task-scoped token for result submission
- * @returns Structured result ready for POST /producer/simulations/:id/result
+ * @param taskId         - Task ID from the task queue.
+ * @param payload        - Digital-twin payload (scenario + plan context).
+ * @param _delegatedToken - Single-use token (the worker uses payload.result_token
+ *                          for the delegated-result POST; this arg is retained for
+ *                          signature parity with other agents).
+ * @param spawn          - Optional injectable subprocess launcher (hermetic tests).
+ * @returns Structured result ready for POST /producer/simulations/:id/result.
  */
 export async function executeSimulationTask(
   taskId: string,
   payload: SimulationTaskPayload,
   _delegatedToken: string,
+  spawn?: ClaudeCliSpawn,
 ): Promise<SimulationTaskResult> {
   try {
-    console.log(
-      `[simulation-worker] Executing task ${taskId} for deal ${payload.deal_id} (bonus_season=${payload.bonus_season_flag})`,
-    );
+    const prompt = buildSimulationPrompt(payload);
 
-    // STUB: Placeholder for real feature implementation.
-    // Feature #187 will:
-    // 1. Request a digital twin for this deal (isolated environment)
-    // 2. Fetch deal and producer data via authenticated API
-    // 3. Build Claude prompt from deal details and simulation context
-    // 4. Call callClaudeAPI() with deal simulation prompt
-    // 5. Parse Claude response into predicted outcomes
-    // 6. Return predictions for submission via delegated token
-    //
-    // Per WORKER-P-007, simulation produces predictions and diffs, not mutations.
-    // The twin is discarded after simulation. Promotion to live submission is a
-    // separate, explicitly authorized step.
-
-    const _context: ClaudeApiContext = {
+    const cli = await runClaudeCli<SimulationForecast>({
       taskId,
-      jobType: 'producer_simulation',
-      correlationId: payload.deal_id,
-    };
+      prompt,
+      parse: parseSimulationForecast,
+      ...(spawn ? { spawn } : {}),
+    });
 
-    console.log(
-      `[simulation-worker] Task ${taskId}: would call Claude API for deal ${payload.deal_id}`,
-    );
-    // await callClaudeAPI(_context, '<deal simulation prompt>');
+    if (cli.status === 'success' && cli.result) {
+      return {
+        status: 'success',
+        result_or_error: {
+          payout_estimate: cli.result.payout_estimate,
+          dispute_risk: cli.result.dispute_risk,
+          reasoning: cli.result.reasoning,
+        },
+      };
+    }
 
-    const result: SimulationTaskResult = {
-      status: 'success',
-      result_or_error: {
-        predicted_commission: 45000,
-        predicted_payout_schedule: [
-          { date: '2026-07-31', amount: 22500 },
-          { date: '2026-08-31', amount: 22500 },
-        ],
-        risk_factors: ['[STUB] Placeholder risk factors from Claude'],
-      },
-    };
-
-    console.log(`[simulation-worker] Task ${taskId} completed with status=${result.status}`);
-    return result;
-  } catch (err) {
-    const errorMsg = err instanceof Error ? err.message : String(err);
-    console.error(`[simulation-worker] Task ${taskId} failed:`, err);
-
+    // Graceful failure: surface a stable message so the UI shows the fallback.
     return {
       status: 'error',
       result_or_error: {
-        error: `Simulation task failed: ${errorMsg}`,
+        error: cli.error?.message ?? 'Simulation engine returned no result',
+        retriable: cli.error?.retriable ?? false,
       },
+    };
+  } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    return {
+      status: 'error',
+      result_or_error: { error: `Simulation task failed: ${errorMsg}`, retriable: false },
     };
   }
 }
@@ -149,22 +208,21 @@ export function validateSimulationPayload(payload: unknown): payload is Simulati
   if (!payload || typeof payload !== 'object') {
     return false;
   }
-
   const p = payload as Record<string, unknown>;
 
-  // Required: deal_id and bonus_season_flag
-  if (typeof p.deal_id !== 'string' || typeof p.bonus_season_flag !== 'boolean') {
+  const kind = p['kind'];
+  if (kind === 'hypothetical') {
+    return typeof p['amount'] === 'number' && typeof p['tier'] === 'string';
+  }
+  // Default / actual: a deal_id is required.
+  if (typeof p['deal_id'] !== 'string') {
     return false;
   }
-
-  // Optional fields: producer_id, client_id (strings)
-  if (p.producer_id !== undefined && typeof p.producer_id !== 'string') {
+  if (p['bonus_season_flag'] !== undefined && typeof p['bonus_season_flag'] !== 'boolean') {
     return false;
   }
-
-  if (p.client_id !== undefined && typeof p.client_id !== 'string') {
+  if (p['producer_id'] !== undefined && typeof p['producer_id'] !== 'string') {
     return false;
   }
-
   return true;
 }

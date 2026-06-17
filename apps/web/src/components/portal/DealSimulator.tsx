@@ -27,6 +27,7 @@ import type {
   ActualDealSimulationRequest,
   DealSimulationForecast,
   HypotheticalDealSimulationRequest,
+  SimulationPendingResponse,
   SimulationRunHistoryResponse,
   SimulationRunRecord,
 } from 'core/producer-simulation';
@@ -37,6 +38,32 @@ import { PortalCard, EmptyState, LoadingState, ErrorState } from './states';
 import { Button } from 'ui';
 
 type Tab = 'actual' | 'hypothetical';
+
+/** Plain-language fallback when the async forecast does not arrive in time. */
+const SIMULATION_UNAVAILABLE = 'Simulation unavailable; please try again';
+
+/**
+ * Poll GET /producer/simulations until `simulationId`'s forecast (result_json)
+ * lands, or the attempt budget is exhausted. The forecast is produced
+ * asynchronously by the simulation worker; the UI never invents numbers — it
+ * displays only what the API persists for the signed-in producer.
+ */
+async function pollForForecast(
+  simulationId: string,
+  opts: { attempts?: number; intervalMs?: number } = {},
+): Promise<DealSimulationForecast> {
+  const attempts = opts.attempts ?? 20;
+  const intervalMs = opts.intervalMs ?? 750;
+  for (let i = 0; i < attempts; i++) {
+    const { simulation_runs } = await apiGet<SimulationRunHistoryResponse>('/producer/simulations');
+    const run = simulation_runs.find((r) => r.id === simulationId);
+    if (run?.result_json) {
+      return run.result_json;
+    }
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+  }
+  throw new Error(SIMULATION_UNAVAILABLE);
+}
 
 const FIELD_CLASS =
   'w-full px-3 py-2.5 border border-border-strong rounded-md text-sm box-border mb-3.5';
@@ -107,12 +134,17 @@ function ActualDealsTab() {
   async function simulate(dealId: string) {
     setBusyDeal(dealId);
     setError(null);
+    setResult(null);
     try {
       const body: ActualDealSimulationRequest = { deal_id: dealId };
-      const forecast = await apiPost<DealSimulationForecast>('/producer/simulations/actual', body);
+      const pending = await apiPost<SimulationPendingResponse>(
+        '/producer/simulations/actual',
+        body,
+      );
+      const forecast = await pollForForecast(pending.simulation_id);
       setResult(forecast);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to run simulation');
+      setError(err instanceof Error ? err.message : SIMULATION_UNAVAILABLE);
     } finally {
       setBusyDeal(null);
     }
@@ -186,6 +218,7 @@ function HypotheticalBuilderTab() {
     }
     setSubmitting(true);
     setError(null);
+    setResult(null);
     try {
       const body: HypotheticalDealSimulationRequest = {
         amount: amountNum,
@@ -193,13 +226,14 @@ function HypotheticalBuilderTab() {
         bonus_season_flag: bonusSeason,
         accrual_percent: accrualNum,
       };
-      const forecast = await apiPost<DealSimulationForecast>(
+      const pending = await apiPost<SimulationPendingResponse>(
         '/producer/simulations/hypothetical',
         body,
       );
+      const forecast = await pollForForecast(pending.simulation_id);
       setResult(forecast);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to run simulation');
+      setError(err instanceof Error ? err.message : SIMULATION_UNAVAILABLE);
     } finally {
       setSubmitting(false);
     }

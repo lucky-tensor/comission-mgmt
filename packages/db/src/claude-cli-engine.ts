@@ -1,30 +1,31 @@
 /**
  * @file claude-cli-engine.ts
  *
- * Producer Deal Simulator — Claude CLI spawn engine seam.
+ * Producer Deal Simulator — Claude CLI spawn engine.
  *
- * DORMANT_BY_DESIGN
- * depends_on: issue #262 (Producer Deal Simulator pipeline)
- * reason: dev-scout #263 reserves the typed entrypoint, timeout contract, and
- * structured-output parse signature for the forecasting engine. The real
- * implementation spawns the `claude` CLI as a subprocess; this scout performs
- * NO subprocess execution so the phase branch stays compile-safe and inert.
+ * The simulation worker shells out to the locally-installed `claude` CLI as a
+ * subprocess to produce a structured deal forecast. The CLI engine reuses the
+ * operator's local agent toolchain (no outbound Anthropic HTTP call is made by
+ * the worker; the device-local binary is invoked) and is bounded by a hard
+ * subprocess timeout.
  *
  * Why a CLI engine (vs. the HTTP callClaudeAPI client):
  *   - callClaudeAPI (claude-api-client.ts, #188) is the HTTP/SDK path shared by
  *     the arbitration + simulation workers for short structured prompts.
- *   - runClaudeCli is the SIMULATION-specific engine seam: the digital-twin
+ *   - runClaudeCli is the SIMULATION-specific engine: the digital-twin
  *     forecasting step shells out to the `claude` CLI so the simulation worker
- *     can reuse the operator's local agent toolchain (tools, MCP, sandboxing)
- *     rather than a bare message API call. Issue #262 picks the final engine;
- *     both seams are reserved so the feature is not blocked on that choice.
+ *     reuses the operator's local agent toolchain (tools, MCP, sandboxing).
  *
- * Contract reserved here:
+ * Contract:
  *   - typed entrypoint: runClaudeCli(request) -> ClaudeCliResult<T>
  *   - timeout contract: request.timeoutMs (default 60s); on expiry the engine
  *     aborts the subprocess and returns { status: 'error', error.code: 'timeout' }.
  *   - structured-output parse signature: request.parse maps raw stdout -> T,
  *     and parse failures surface as error.code 'parse_error' (never a throw).
+ *
+ * Hermetic testing: the subprocess spawn is injectable via request.spawn so unit
+ * tests never invoke the real binary. Production callers omit it and the engine
+ * spawns the configured `claude` CLI through node:child_process.
  *
  * Canonical docs: docs/prd.md §5.9, docs/prd.md §5.12, docs/arbitration-simulation.md
  */
@@ -32,8 +33,36 @@
 /** Default subprocess timeout for a CLI forecast run — 60 seconds. */
 export const CLAUDE_CLI_DEFAULT_TIMEOUT_MS = 60_000;
 
+/** Binary invoked for the forecast run. Overridable via CLAUDE_CLI_BIN. */
+export const CLAUDE_CLI_BIN = process.env.CLAUDE_CLI_BIN ?? 'claude';
+
 /** Structured-output parser: maps raw CLI stdout to the typed result shape. */
 export type ClaudeCliParser<T> = (rawStdout: string) => T;
+
+/**
+ * Outcome of one subprocess execution, normalized so the engine never has to
+ * know how the process was launched. Returned by ClaudeCliSpawn.
+ */
+export interface ClaudeCliSpawnResult {
+  /** Process exit code (null if the process was killed by a signal/timeout). */
+  code: number | null;
+  /** True when the run was aborted because it exceeded timeoutMs. */
+  timedOut: boolean;
+  stdout: string;
+  stderr: string;
+  /** Set when the binary could not be launched at all (ENOENT etc.). */
+  spawnError?: Error;
+}
+
+/**
+ * Subprocess launcher. The default implementation spawns the `claude` CLI; tests
+ * inject a stub so no real binary is invoked.
+ */
+export type ClaudeCliSpawn = (args: {
+  bin: string;
+  prompt: string;
+  timeoutMs: number;
+}) => Promise<ClaudeCliSpawnResult>;
 
 /**
  * Request to the Claude CLI engine.
@@ -45,15 +74,17 @@ export type ClaudeCliParser<T> = (rawStdout: string) => T;
 export interface ClaudeCliRequest<T = string> {
   /** Correlates the run to its simulation_run / task_queue row for audit. */
   taskId: string;
-  /** Fully-formed prompt sent to the CLI on stdin / as an argument. */
+  /** Fully-formed prompt sent to the CLI via stdin. */
   prompt: string;
   /** Hard subprocess timeout in ms (default CLAUDE_CLI_DEFAULT_TIMEOUT_MS). */
   timeoutMs?: number;
   /**
-   * Structured-output parser. The real engine pipes CLI stdout through this to
+   * Structured-output parser. The engine pipes CLI stdout through this to
    * produce the typed forecast. Defaults to identity (raw stdout as string).
    */
   parse?: ClaudeCliParser<T>;
+  /** Injectable subprocess launcher for hermetic tests. */
+  spawn?: ClaudeCliSpawn;
 }
 
 /** Stable error codes surfaced by the CLI engine (never thrown). */
@@ -62,7 +93,6 @@ export type ClaudeCliErrorCode =
   | 'spawn_error' // CLI binary missing / failed to launch
   | 'nonzero_exit' // CLI exited non-zero
   | 'parse_error' // parse(stdout) threw or returned invalid output
-  | 'not_implemented' // dev-scout stub: engine intentionally inert
   | 'unknown';
 
 /** Structured result from the CLI engine. Mirrors ClaudeApiResponse shape. */
@@ -78,18 +108,75 @@ export interface ClaudeCliResult<T = string> {
 }
 
 /**
+ * Default subprocess launcher — spawns the `claude` CLI in non-interactive
+ * print mode (Bun.spawn), feeds the prompt over stdin, and captures
+ * stdout/stderr. The process is killed if it exceeds timeoutMs.
+ *
+ * `claude -p` (print mode) runs a single non-interactive turn and writes the
+ * response to stdout, which is exactly the structured-output contract the engine
+ * needs. We do not pass tool/permission flags here — the operator's local config
+ * governs the toolchain.
+ */
+export const defaultClaudeCliSpawn: ClaudeCliSpawn = async ({ bin, prompt, timeoutMs }) => {
+  let proc: ReturnType<typeof Bun.spawn>;
+  try {
+    proc = Bun.spawn([bin, '-p'], {
+      stdin: new TextEncoder().encode(prompt),
+      stdout: 'pipe',
+      stderr: 'pipe',
+    });
+  } catch (err) {
+    return {
+      code: null,
+      timedOut: false,
+      stdout: '',
+      stderr: '',
+      spawnError: err instanceof Error ? err : new Error(String(err)),
+    };
+  }
+
+  let timedOut = false;
+  const timer = setTimeout(() => {
+    timedOut = true;
+    proc.kill('SIGKILL');
+  }, timeoutMs);
+
+  try {
+    // With stdout/stderr: 'pipe', Bun exposes ReadableStreams here; the type
+    // union also includes a numeric fd which never applies under 'pipe'.
+    const [stdout, stderr] = await Promise.all([
+      new Response(proc.stdout as ReadableStream<Uint8Array>).text(),
+      new Response(proc.stderr as ReadableStream<Uint8Array>).text(),
+    ]);
+    await proc.exited;
+    clearTimeout(timer);
+    return { code: proc.exitCode, timedOut, stdout, stderr };
+  } catch (err) {
+    clearTimeout(timer);
+    return {
+      code: null,
+      timedOut,
+      stdout: '',
+      stderr: '',
+      spawnError: err instanceof Error ? err : new Error(String(err)),
+    };
+  }
+};
+
+/**
  * Spawn the Claude CLI to produce a structured forecast.
  *
- * STUB IMPLEMENTATION (dev-scout #263): does NOT spawn any subprocess. It
- * validates the request shape and returns a structured `not_implemented` error
- * so callers compile and route against a stable signature. Issue #262 will:
- *   1. Spawn `claude` via node:child_process with an AbortController bound to
- *      `timeoutMs` (on abort -> error.code 'timeout', retriable true).
- *   2. Capture stdout/stderr; non-zero exit -> error.code 'nonzero_exit'.
- *   3. Apply `parse(stdout)`; a throw -> error.code 'parse_error' (not a throw).
- *   4. On success -> { status: 'success', result }.
+ * Execution model:
+ *   1. Spawn `claude` (or CLAUDE_CLI_BIN) bounded by `timeoutMs`. On expiry the
+ *      subprocess is killed -> error.code 'timeout' (retriable).
+ *   2. Failure to launch the binary (ENOENT etc.) -> error.code 'spawn_error'.
+ *   3. Non-zero exit -> error.code 'nonzero_exit'.
+ *   4. Apply `parse(stdout)`; a throw -> error.code 'parse_error' (never a throw).
+ *   5. On success -> { status: 'success', result }.
  *
- * @param request - typed CLI request (prompt, timeout, parser).
+ * The function never throws: every failure path maps to a structured error.
+ *
+ * @param request - typed CLI request (prompt, timeout, parser, optional spawn).
  * @returns structured result; never throws.
  */
 export async function runClaudeCli<T = string>(
@@ -97,7 +184,7 @@ export async function runClaudeCli<T = string>(
 ): Promise<ClaudeCliResult<T>> {
   const timeoutMs = request.timeoutMs ?? CLAUDE_CLI_DEFAULT_TIMEOUT_MS;
 
-  // Shape guard so the seam fails fast on obviously malformed requests.
+  // Shape guard so the engine fails fast on obviously malformed requests.
   if (typeof request.taskId !== 'string' || request.taskId.trim() === '') {
     return {
       status: 'error',
@@ -111,20 +198,72 @@ export async function runClaudeCli<T = string>(
     };
   }
 
-  // STUB: no subprocess is spawned in the scout. The parser/timeout are part of
-  // the reserved contract and are referenced so they remain wired for #262.
-  void timeoutMs;
-  void (request.parse ?? ((raw: string) => raw as unknown as T));
+  const spawn = request.spawn ?? defaultClaudeCliSpawn;
+  const parse = request.parse ?? ((raw: string) => raw as unknown as T);
 
-  return {
-    status: 'error',
-    error: {
-      code: 'not_implemented',
-      message:
-        'Claude CLI engine is a dev-scout seam (#263); real subprocess execution lands in #262.',
-      retriable: false,
-    },
-  };
+  let outcome: ClaudeCliSpawnResult;
+  try {
+    outcome = await spawn({ bin: CLAUDE_CLI_BIN, prompt: request.prompt, timeoutMs });
+  } catch (err) {
+    // A spawn implementation that itself throws is treated as a spawn failure.
+    return {
+      status: 'error',
+      error: {
+        code: 'spawn_error',
+        message: `Failed to launch ${CLAUDE_CLI_BIN}: ${err instanceof Error ? err.message : String(err)}`,
+        retriable: true,
+      },
+    };
+  }
+
+  if (outcome.timedOut) {
+    return {
+      status: 'error',
+      error: {
+        code: 'timeout',
+        message: `${CLAUDE_CLI_BIN} exceeded ${timeoutMs}ms and was terminated`,
+        retriable: true,
+      },
+    };
+  }
+
+  if (outcome.spawnError) {
+    return {
+      status: 'error',
+      error: {
+        code: 'spawn_error',
+        message: `Failed to launch ${CLAUDE_CLI_BIN}: ${outcome.spawnError.message}`,
+        retriable: true,
+      },
+    };
+  }
+
+  if (outcome.code !== 0) {
+    return {
+      status: 'error',
+      error: {
+        code: 'nonzero_exit',
+        message: `${CLAUDE_CLI_BIN} exited with code ${outcome.code}: ${outcome.stderr.trim() || '(no stderr)'}`,
+        retriable: false,
+      },
+    };
+  }
+
+  let result: T;
+  try {
+    result = parse(outcome.stdout);
+  } catch (err) {
+    return {
+      status: 'error',
+      error: {
+        code: 'parse_error',
+        message: `Failed to parse CLI output: ${err instanceof Error ? err.message : String(err)}`,
+        retriable: false,
+      },
+    };
+  }
+
+  return { status: 'success', result };
 }
 
 export default { runClaudeCli };
