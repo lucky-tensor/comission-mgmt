@@ -29,12 +29,12 @@ function HoldReasonTag({ reason, label }: HoldReasonTagProps) {
 }
 
 export function CommissionBreakdown({ record }: { record: CommissionRecord }) {
-  const gross = typeof record.gross_commission === 'string'
-    ? parseFloat(record.gross_commission)
-    : record.gross_commission;
-  const net = typeof record.net_payable === 'string'
-    ? parseFloat(record.net_payable)
-    : record.net_payable;
+  const gross =
+    typeof record.gross_commission === 'string'
+      ? parseFloat(record.gross_commission)
+      : record.gross_commission;
+  const net =
+    typeof record.net_payable === 'string' ? parseFloat(record.net_payable) : record.net_payable;
   const held = gross - net;
 
   return (
@@ -56,7 +56,10 @@ export function CommissionBreakdown({ record }: { record: CommissionRecord }) {
           {/* Hold reason tags */}
           {record.hold_reason && (
             <div className="ml-2 mt-1.5 flex flex-wrap gap-1.5">
-              <HoldReasonTag reason={record.hold_reason} label={holdReasonLabel(record.hold_reason)} />
+              <HoldReasonTag
+                reason={record.hold_reason}
+                label={holdReasonLabel(record.hold_reason)}
+              />
             </div>
           )}
         </>
@@ -65,7 +68,9 @@ export function CommissionBreakdown({ record }: { record: CommissionRecord }) {
       {/* Net payable row - highlighted */}
       <div className="flex justify-between items-baseline pt-1.5 border-t border-border-subtle font-semibold">
         <span className="text-ink">Net payable:</span>
-        <span className={net > 0 ? 'text-status-success' : 'text-text-secondary'}>{formatCurrency(net)}</span>
+        <span className={net > 0 ? 'text-status-success' : 'text-text-secondary'}>
+          {formatCurrency(net)}
+        </span>
       </div>
     </div>
   );

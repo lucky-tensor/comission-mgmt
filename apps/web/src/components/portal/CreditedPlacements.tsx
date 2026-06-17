@@ -43,7 +43,10 @@ export function CreditedPlacementsView({ state }: { state: AsyncState<Commission
             >
               {/* Header: role title + status chip */}
               <div className="flex justify-between items-start mb-1">
-                <span data-testid={`placement-lead-${r.id}`} className="font-semibold text-ink text-base">
+                <span
+                  data-testid={`placement-lead-${r.id}`}
+                  className="font-semibold text-ink text-base"
+                >
                   {placementLead(r)}
                 </span>
                 <StatusChip
@@ -57,7 +60,10 @@ export function CreditedPlacementsView({ state }: { state: AsyncState<Commission
 
               {/* Plain-language explanation as an expandable detail. */}
               {r.explanation && (
-                <details data-testid={`placement-explanation-${r.id}`} className="mt-3 pt-3 border-t border-border-subtle">
+                <details
+                  data-testid={`placement-explanation-${r.id}`}
+                  className="mt-3 pt-3 border-t border-border-subtle"
+                >
                   <summary className="text-sm text-accent cursor-pointer select-none font-medium">
                     How was this calculated?
                   </summary>
@@ -69,7 +75,8 @@ export function CreditedPlacementsView({ state }: { state: AsyncState<Commission
               {r.blocked_phase && (
                 <p className="text-xs text-text-secondary mt-3 pt-3 border-t border-border-subtle mb-0">
                   <strong>Blocked by phase:</strong> {r.blocked_phase.phase_name}
-                  {r.blocked_phase.blocking_invoice_id && ` (invoice: ${r.blocked_phase.blocking_invoice_id})`}
+                  {r.blocked_phase.blocking_invoice_id &&
+                    ` (invoice: ${r.blocked_phase.blocking_invoice_id})`}
                 </p>
               )}
             </li>
