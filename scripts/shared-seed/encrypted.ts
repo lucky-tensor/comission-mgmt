@@ -1015,25 +1015,23 @@ export async function seedEncrypted(
           'Your Demo Split Plan (20% gross-fee) credits 60% of the $50,000 fee to you: $6,000. Moderate dispute risk because of the manager-override split.',
       },
     ];
-    const simTtl = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    const simTtl = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
     for (let i = 0; i < simDealIds.length; i++) {
       const f = simForecasts[i];
-      await sql.unsafe(
-        `INSERT INTO simulation_run
-           (org_id, producer_id, job_id, input_params, result_json, ttl_expires_at)
-         VALUES ($1, $2, NULL, $3::jsonb, $4::jsonb, $5)`,
-        [
-          SEEDED.orgId,
-          SEEDED.producerId,
-          JSON.stringify({ kind: 'actual', deal_id: simDealIds[i] }),
-          JSON.stringify({
-            payout_estimate: f.payout,
-            dispute_risk: f.risk,
-            reasoning: f.reasoning,
-          }),
-          simTtl,
-        ],
-      );
+      // Use sql.json() (not a pre-stringified positional param) so the values
+      // are stored as JSONB objects, not JSON-string scalars.
+      await sql`
+        INSERT INTO simulation_run
+          (org_id, producer_id, job_id, input_params, result_json, ttl_expires_at)
+        VALUES (
+          ${SEEDED.orgId},
+          ${SEEDED.producerId},
+          NULL,
+          ${sql.json({ kind: 'actual', deal_id: simDealIds[i] })},
+          ${sql.json({ payout_estimate: f.payout, dispute_risk: f.risk, reasoning: f.reasoning })},
+          ${simTtl}
+        )
+      `;
     }
 
     return {
