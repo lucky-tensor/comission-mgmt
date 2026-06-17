@@ -38,8 +38,12 @@ describe('PR-1: Producer sees credited placement detail', () => {
   test('payout table renders with at least one payout amount', async () => {
     mount.current = await loginAs('Producer');
     await expect.element(page.getByTestId('payout-table')).toBeInTheDocument();
-    const amountCell = page.getByTestId('payout-table').getByRole('cell', { name: '$5,000.00' });
-    await expect.element(amountCell).toBeInTheDocument();
+    // A payout whose gross equals its net (no holdback) renders $5,000.00 in
+    // both the commissionable-base and calculated-amount cells, so the locator
+    // legitimately matches more than one cell — assert at least one is present
+    // rather than triggering a strict-mode (single-match) violation.
+    const amountCells = page.getByTestId('payout-table').getByRole('cell', { name: '$5,000.00' });
+    expect((await amountCells.elements()).length).toBeGreaterThan(0);
   });
 
   test('payout table row shows contributor role', async () => {
