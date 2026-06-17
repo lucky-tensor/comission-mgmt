@@ -22,6 +22,7 @@
 
 import { log } from 'core/logger';
 import { runPingAgent } from './agents/ping';
+import { executeSimulationTask, type SimulationTaskPayload } from './agents/simulation';
 import { assertNoDbCredentials } from './startup-guard';
 
 // Fail fast if the worker was handed a DB credential or the encryption master
@@ -97,6 +98,15 @@ export async function processOnce(
     job_type: task.job_type,
   });
 
+  // Producer Deal Simulator (#262): the simulation worker submits its forecast
+  // to POST /producer/simulations/:id/result using the per-simulation single-use
+  // delegated token embedded in the task payload — NOT the generic
+  // /tasks/:id/result path. Handle it before the generic agent dispatch.
+  if (task.agent_type === 'simulation_agent') {
+    await processSimulationTask(apiBase, traceId, task);
+    return true;
+  }
+
   const handler = AGENT_HANDLERS[task.agent_type];
   if (!handler) {
     log('warn', 'unknown_agent_type', {
@@ -139,6 +149,68 @@ export async function processOnce(
   });
 
   return true;
+}
+
+/**
+ * Process a producer_simulation task: run the digital-twin forecast and submit
+ * it to POST /producer/simulations/:id/result with the embedded single-use
+ * delegated token. On forecast failure the simulation_run is left without a
+ * result so the UI shows the "Simulation unavailable; please try again"
+ * fallback; the worker does not submit a partial forecast.
+ */
+async function processSimulationTask(
+  apiBase: string,
+  traceId: string,
+  task: { id: string; payload: Record<string, unknown> },
+): Promise<void> {
+  const payload = task.payload as SimulationTaskPayload;
+  const simulationId = payload.simulation_run_id;
+  const resultToken = payload.result_token;
+
+  if (!simulationId || !resultToken) {
+    log('warn', 'simulation_payload_incomplete', {
+      trace_id: traceId,
+      task_id: task.id,
+      has_simulation_id: Boolean(simulationId),
+      has_result_token: Boolean(resultToken),
+    });
+    return;
+  }
+
+  const result = await executeSimulationTask(task.id, payload, resultToken);
+
+  if (result.status !== 'success') {
+    // Graceful failure: no result is submitted; the run stays result-less and the
+    // task is left for retry/timeout handling. The UI surfaces the fallback.
+    log('warn', 'simulation_forecast_failed', {
+      trace_id: traceId,
+      task_id: task.id,
+      error: result.result_or_error.error,
+      retriable: result.result_or_error.retriable,
+    });
+    return;
+  }
+
+  const submitRes = await fetch(`${apiBase}/producer/simulations/${simulationId}/result`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${resultToken}`,
+    },
+    body: JSON.stringify({
+      payout_estimate: result.result_or_error.payout_estimate,
+      dispute_risk: result.result_or_error.dispute_risk,
+      reasoning: result.result_or_error.reasoning,
+    }),
+  });
+
+  log('info', 'simulation_processed', {
+    trace_id: traceId,
+    task_id: task.id,
+    simulation_id: simulationId,
+    submitted: submitRes.ok,
+    status: submitRes.status,
+  });
 }
 
 /**

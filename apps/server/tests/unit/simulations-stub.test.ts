@@ -1,97 +1,75 @@
 /**
- * Producer Deal Simulator API seam tests — dev-scout #263.
+ * Producer Deal Simulator — server-side unit tests (issue #262).
  *
- * Verifies the reserved route contract (actual/hypothetical/history + the
- * delegated single-use token result route) and the result payload validator
- * without wiring the live simulation pipeline (delivered by #262).
+ * Covers the no-DB-touching paths only (the full enqueue + delegated-result
+ * flow is exercised against real Postgres in the simulations integration suite,
+ * vitest.simulations.config.ts):
+ *   - the result payload validator (new { payout_estimate, dispute_risk, reasoning }
+ *     schema)
+ *   - the delegated-result route's auth guards that short-circuit before any DB
+ *     access (missing Bearer token → 401; malformed token → 403)
  */
 
 import { describe, expect, test } from 'vitest';
-import type { SessionClaims } from 'core/auth';
 import {
-  handleCreateActualSimulation,
-  handleCreateHypotheticalSimulation,
-  handleListMySimulations,
   handleSubmitSimulationResult,
   validateSimulationResultBody,
 } from '../../src/api/simulations';
-
-const claims: SessionClaims = {
-  org_id: crypto.randomUUID(),
-  user_id: crypto.randomUUID(),
-  role: 'Producer',
-  jti: crypto.randomUUID(),
-  exp: Math.floor(Date.now() / 1000) + 3600,
-};
-
-function makeRequest(body?: unknown): Request {
-  return new Request('http://test/producer/simulations', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
-}
 
 describe('simulation result payload validator', () => {
   test('accepts the documented forecast shape', () => {
     expect(
       validateSimulationResultBody({
-        predicted_commission: 45000,
-        predicted_payout_schedule: [
-          { date: '2026-07-31', amount: 22500 },
-          { date: '2026-08-31', amount: 22500 },
-        ],
-        risk_factors: ['Bonus-season tier rollback risk'],
+        payout_estimate: 45000,
+        dispute_risk: 'moderate',
+        reasoning: 'Plan v3 25% gross-fee rate on the $180,000 fee.',
       }),
     ).toBe(true);
   });
 
   test('rejects malformed payloads', () => {
-    expect(validateSimulationResultBody({ predicted_commission: 1 })).toBe(false);
+    expect(validateSimulationResultBody({ payout_estimate: 1 })).toBe(false);
     expect(
       validateSimulationResultBody({
-        predicted_commission: 'not-a-number',
-        predicted_payout_schedule: [],
-        risk_factors: [],
+        payout_estimate: 'not-a-number',
+        dispute_risk: 'low',
+        reasoning: 'x',
       }),
     ).toBe(false);
     expect(
-      validateSimulationResultBody({
-        predicted_commission: 100,
-        predicted_payout_schedule: [{ date: '2026-07-31' }],
-        risk_factors: [],
-      }),
+      validateSimulationResultBody({ payout_estimate: 100, dispute_risk: '', reasoning: 'x' }),
+    ).toBe(false);
+    expect(
+      validateSimulationResultBody({ payout_estimate: 100, dispute_risk: 'low', reasoning: '' }),
     ).toBe(false);
   });
 });
 
-describe('producer simulation route seams', () => {
-  test('reserved POST /producer/simulations/actual handler returns Not Implemented', async () => {
-    const response = await handleCreateActualSimulation(makeRequest(), claims);
-    expect(response.status).toBe(501);
-    await expect(response.json()).resolves.toMatchObject({ error: 'Not Implemented' });
-  });
-
-  test('reserved POST /producer/simulations/hypothetical handler returns Not Implemented', async () => {
-    const response = await handleCreateHypotheticalSimulation(makeRequest(), claims);
-    expect(response.status).toBe(501);
-  });
-
-  test('reserved GET /producer/simulations handler returns Not Implemented', async () => {
-    const response = await handleListMySimulations(makeRequest(), claims);
-    expect(response.status).toBe(501);
-  });
-
-  test('reserved POST /producer/simulations/:id/result handler returns Not Implemented', async () => {
-    const response = await handleSubmitSimulationResult(
+describe('delegated-result route auth guards (no DB access)', () => {
+  test('missing Bearer token returns 401', async () => {
+    const res = await handleSubmitSimulationResult(
       crypto.randomUUID(),
-      makeRequest({
-        predicted_commission: 45000,
-        predicted_payout_schedule: [{ date: '2026-07-31', amount: 45000 }],
-        risk_factors: [],
+      new Request('http://test/producer/simulations/x/result', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ payout_estimate: 1, dispute_risk: 'low', reasoning: 'x' }),
       }),
     );
-    expect(response.status).toBe(501);
-    await expect(response.json()).resolves.toMatchObject({ error: 'Not Implemented' });
+    expect(res.status).toBe(401);
+  });
+
+  test('malformed Bearer token returns 403', async () => {
+    const res = await handleSubmitSimulationResult(
+      crypto.randomUUID(),
+      new Request('http://test/producer/simulations/x/result', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer not.a.jwt',
+        },
+        body: JSON.stringify({ payout_estimate: 1, dispute_risk: 'low', reasoning: 'x' }),
+      }),
+    );
+    expect(res.status).toBe(403);
   });
 });

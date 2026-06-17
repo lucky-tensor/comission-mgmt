@@ -328,22 +328,33 @@ export type {
 export { callClaudeAPI } from './src/claude-api-client.js';
 export type { ClaudeApiResponse, ClaudeApiContext } from './src/claude-api-client.js';
 
-// Claude CLI spawn engine seam for the producer deal simulator — dev-scout #263
-export { runClaudeCli, CLAUDE_CLI_DEFAULT_TIMEOUT_MS } from './src/claude-cli-engine.js';
+// Claude CLI spawn engine for the producer deal simulator — issue #262
+export {
+  runClaudeCli,
+  defaultClaudeCliSpawn,
+  CLAUDE_CLI_DEFAULT_TIMEOUT_MS,
+  CLAUDE_CLI_BIN,
+} from './src/claude-cli-engine.js';
 export type {
   ClaudeCliRequest,
   ClaudeCliResult,
   ClaudeCliParser,
   ClaudeCliErrorCode,
+  ClaudeCliSpawn,
+  ClaudeCliSpawnResult,
 } from './src/claude-cli-engine.js';
 
-// simulation_run persistence + TTL expiry job seam — dev-scout #263
+// simulation_run persistence + TTL expiry job — issue #262
 export {
   reapExpiredSimulationRuns,
   computeSimulationRunTtl,
+  insertSimulationRun,
+  getSimulationRunById,
+  setSimulationRunResult,
+  listSimulationRunsByProducer,
   SIMULATION_RUN_TTL_SECONDS,
 } from './src/simulation-run.js';
-export type { SimulationRunRow } from './src/simulation-run.js';
+export type { SimulationRunRow, InsertSimulationRunOptions } from './src/simulation-run.js';
 
 const DEFAULT_DATABASE_URLS = {
   app: 'postgres://app_rw:app_rw_password@localhost:5432/commission_app',

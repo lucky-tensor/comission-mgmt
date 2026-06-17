@@ -71,6 +71,7 @@ jobs:
           - vitest.producer-portal.config.ts
           - vitest.reconciliation.config.ts
           - vitest.security.config.ts
+          - vitest.simulations.config.ts
           - vitest.tasks.config.ts
           - vitest.tier-progress.config.ts
           - vitest.worker-infrastructure.config.ts

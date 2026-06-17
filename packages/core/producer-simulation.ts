@@ -36,6 +36,21 @@ export interface DealSimulationForecast {
   reasoning: string;
 }
 
+/**
+ * Async-enqueue envelope returned by POST /producer/simulations/{actual,hypothetical}.
+ * The forecast is produced asynchronously by the simulation worker; clients poll
+ * GET /producer/simulations and read result_json for `simulation_id`.
+ */
+export interface SimulationPendingResponse {
+  status: 'pending';
+  /** simulation_run id to poll for the forecast. */
+  simulation_id: string;
+  /** task_queue id of the enqueued producer_simulation job. */
+  job_id: string;
+  /** Single-use delegated token (demo worker convenience; not used by the UI). */
+  result_token?: string;
+}
+
 /** History row planned for the simulation_run table. */
 export interface SimulationRunRecord {
   id: string;

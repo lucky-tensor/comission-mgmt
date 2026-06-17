@@ -13,11 +13,7 @@ import {
   validateArbitrationPayload,
   type ArbitrationTaskPayload,
 } from '../src/agents/arbitration';
-import {
-  executeSimulationTask,
-  validateSimulationPayload,
-  type SimulationTaskPayload,
-} from '../src/agents/simulation';
+import { validateSimulationPayload, type SimulationTaskPayload } from '../src/agents/simulation';
 
 describe('arbitration worker stub', () => {
   test('validateArbitrationPayload accepts the documented task shape', () => {
@@ -52,34 +48,23 @@ describe('arbitration worker stub', () => {
   });
 });
 
-describe('simulation worker stub', () => {
-  test('validateSimulationPayload accepts the documented task shape', () => {
-    const payload: SimulationTaskPayload = {
+describe('simulation worker', () => {
+  test('validateSimulationPayload accepts the documented task shapes', () => {
+    const actual: SimulationTaskPayload = {
       deal_id: crypto.randomUUID(),
       bonus_season_flag: true,
       producer_id: crypto.randomUUID(),
-      client_id: crypto.randomUUID(),
     };
+    expect(validateSimulationPayload(actual)).toBe(true);
 
-    expect(validateSimulationPayload(payload)).toBe(true);
-    expect(validateSimulationPayload({ deal_id: payload.deal_id })).toBe(false);
-  });
+    const hypothetical: SimulationTaskPayload = {
+      kind: 'hypothetical',
+      amount: 50000,
+      tier: 'standard',
+    };
+    expect(validateSimulationPayload(hypothetical)).toBe(true);
 
-  test('executeSimulationTask returns the documented stub response', async () => {
-    const result = await executeSimulationTask(
-      crypto.randomUUID(),
-      {
-        deal_id: crypto.randomUUID(),
-        bonus_season_flag: false,
-      },
-      'delegated-token-stub',
-    );
-
-    expect(result.status).toBe('success');
-    expect(result.result_or_error).toMatchObject({
-      predicted_commission: expect.any(Number),
-      predicted_payout_schedule: expect.any(Array),
-      risk_factors: expect.any(Array),
-    });
+    // Missing deal_id (and not hypothetical) is rejected.
+    expect(validateSimulationPayload({ bonus_season_flag: false })).toBe(false);
   });
 });

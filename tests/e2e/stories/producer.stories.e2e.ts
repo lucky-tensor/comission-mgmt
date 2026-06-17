@@ -290,3 +290,47 @@ describe('PR-4: Producer submits a dispute', () => {
     await expect.element(page.getByTestId('dispute-state')).toHaveTextContent('Submitted');
   });
 });
+
+// ---------------------------------------------------------------------------
+// PR-6 — Deal Simulator (issue #262)
+//
+// The Deal Simulator lives in the "Tools" tab. The demo seed creates
+// simulation_run history rows for the producer's own deals, so the Actual
+// Deals tab lists registered deals (and no longer returns Forbidden / Not
+// Implemented). The live forecast loop (worker + `claude` CLI subprocess) is
+// covered by the server integration + worker unit suites; here we assert the
+// surface renders and both tabs are reachable for the signed-in producer.
+// ---------------------------------------------------------------------------
+
+describe('PR-6: Producer opens the Deal Simulator', () => {
+  test('Tools tab renders the deal simulator card (no Forbidden / Not Implemented)', async () => {
+    mount.current = await loginAs('Producer');
+    await userEvent.click(page.getByRole('tab', { name: /tools/i }));
+    await expect.element(page.getByTestId('simulator-tabs')).toBeInTheDocument();
+    await expect.element(page.getByText('Deal simulator')).toBeInTheDocument();
+  });
+
+  test("Actual Deals tab lists the producer's registered deals", async () => {
+    mount.current = await loginAs('Producer');
+    await userEvent.click(page.getByRole('tab', { name: /tools/i }));
+    await userEvent.click(page.getByTestId('tab-actual'));
+    // Seeded simulation history surfaces the producer's deals with Simulate buttons.
+    await expect.element(page.getByTestId('actual-deals')).toBeInTheDocument();
+    const buttons = await page
+      .getByTestId('actual-deals')
+      .getByRole('button', { name: /simulate/i })
+      .elements();
+    expect(buttons.length).toBeGreaterThan(0);
+  });
+
+  test('Hypothetical Builder tab renders the scenario form', async () => {
+    mount.current = await loginAs('Producer');
+    await userEvent.click(page.getByRole('tab', { name: /tools/i }));
+    await userEvent.click(page.getByTestId('tab-hypothetical'));
+    await expect.element(page.getByTestId('hypothetical-form')).toBeInTheDocument();
+    await expect.element(page.getByTestId('hypothetical-amount')).toBeInTheDocument();
+    await expect.element(page.getByTestId('hypothetical-tier')).toBeInTheDocument();
+    await expect.element(page.getByTestId('hypothetical-accrual')).toBeInTheDocument();
+    await expect.element(page.getByTestId('hypothetical-bonus')).toBeInTheDocument();
+  });
+});
