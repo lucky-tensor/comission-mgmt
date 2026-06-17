@@ -17,6 +17,11 @@ import postgres from 'postgres';
 import { startPostgres, type PgContainer } from '../pg-container';
 import { migrate } from '../index';
 import { seedCommissionFixtures } from '../seed';
+import {
+  reapExpiredSimulationRuns,
+  computeSimulationRunTtl,
+  SIMULATION_RUN_TTL_SECONDS,
+} from '../src/simulation-run';
 
 let pg: PgContainer;
 let sql: ReturnType<typeof postgres>;
@@ -110,6 +115,7 @@ describe('commission_app schema — table existence', () => {
     'task_queue',
     'worker_tokens',
     'revoked_tokens',
+    'simulation_run',
   ];
 
   for (const tableName of expectedTables) {
@@ -426,5 +432,64 @@ describe('commission_analytics schema', () => {
       ) AS exists
     `;
     expect(rows[0].exists).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 9. Producer Deal Simulator — simulation_run skeleton + TTL reaper (#263)
+// ---------------------------------------------------------------------------
+describe('simulation_run migration skeleton (dev-scout #263)', () => {
+  test('table has the reserved columns with correct nullability', async () => {
+    const rows = await sql<{ column_name: string; is_nullable: string }[]>`
+      SELECT column_name, is_nullable
+      FROM information_schema.columns
+      WHERE table_schema = 'public' AND table_name = 'simulation_run'
+    `;
+    const byName = new Map(rows.map((r) => [r.column_name, r]));
+    for (const col of [
+      'id',
+      'producer_id',
+      'org_id',
+      'job_id',
+      'input_params',
+      'result_json',
+      'created_at',
+      'ttl_expires_at',
+    ]) {
+      expect(byName.has(col), `simulation_run should have column "${col}"`).toBe(true);
+    }
+    // org_id and ttl_expires_at are required; result_json is written later.
+    expect(byName.get('org_id')!.is_nullable).toBe('NO');
+    expect(byName.get('ttl_expires_at')!.is_nullable).toBe('NO');
+    expect(byName.get('result_json')!.is_nullable).toBe('YES');
+  });
+
+  test('TTL reaper deletes only rows past ttl_expires_at', async () => {
+    const org = '00000000-0000-0000-0000-000000000263';
+    const producer = '00000000-0000-0000-0000-000000000264';
+    // Clean slate for this org so the assertion is deterministic.
+    await sql`DELETE FROM simulation_run WHERE org_id = ${org}`;
+
+    const past = new Date(Date.now() - 60_000);
+    const future = computeSimulationRunTtl(new Date(), SIMULATION_RUN_TTL_SECONDS);
+
+    await sql`
+      INSERT INTO simulation_run (producer_id, org_id, input_params, ttl_expires_at)
+      VALUES (${producer}, ${org}, ${sql.json({ scenario: 'expired' })}, ${past})
+    `;
+    await sql`
+      INSERT INTO simulation_run (producer_id, org_id, input_params, ttl_expires_at)
+      VALUES (${producer}, ${org}, ${sql.json({ scenario: 'fresh' })}, ${future})
+    `;
+
+    const removed = await reapExpiredSimulationRuns(sql);
+    expect(removed).toBeGreaterThanOrEqual(1);
+
+    const remaining = await sql<{ count: string }[]>`
+      SELECT COUNT(*) AS count FROM simulation_run WHERE org_id = ${org}
+    `;
+    expect(Number(remaining[0].count)).toBe(1);
+
+    await sql`DELETE FROM simulation_run WHERE org_id = ${org}`;
   });
 });
