@@ -156,8 +156,11 @@ describe('CreditedPlacementsView', () => {
     await expect.element(chip).toBeInTheDocument();
     // Payable maps to green
     expect((await chip.element())?.getAttribute('data-variant')).toBe('green');
-    // Non-zero net displayed
-    await expect.element(page.getByText('$15,750.00 net')).toBeInTheDocument();
+    // Non-zero net displayed in breakdown section
+    const row = page.getByTestId(`placement-row-${record.id}`);
+    const rowText = (await row.element())?.textContent ?? '';
+    expect(rowText).toContain('$15,750.00');
+    expect(rowText).toContain('Net payable');
   });
 
   test('explanation does not render UUID-like strings in primary prose', async () => {
