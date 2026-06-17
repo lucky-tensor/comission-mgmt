@@ -671,7 +671,6 @@ export async function seedEncrypted(
       role: 'CandidateOwner',
       split_pct: 1.0,
     });
-    await admin.post(`/placements/${collectedPlacementId}/calculate`);
     const collectedInvoice = await admin.post<{ id: string }>('/invoices', {
       placement_id: collectedPlacementId,
       invoice_number: 'INV-DEMO-COLLECTED-196',
@@ -683,6 +682,8 @@ export async function seedEncrypted(
       status: 'Paid',
       amount_collected: '30000',
     });
+    // Calculate commission after invoice is marked Paid so net_payable is released.
+    await admin.post(`/placements/${collectedPlacementId}/calculate`);
 
     // (b) Held for collection — Active + calculated, no paid invoice → $0 net,
     //     "held for collection" explanation. fee 20000 × 25% = $5,000 gross held.
@@ -744,7 +745,6 @@ export async function seedEncrypted(
       role: 'CandidateOwner',
       split_pct: 1.0,
     });
-    await admin.post(`/placements/${tieredPlacementId}/calculate`);
     const tieredInvoice = await admin.post<{ id: string }>('/invoices', {
       placement_id: tieredPlacementId,
       invoice_number: 'INV-DEMO-TIERED-196',
@@ -755,6 +755,8 @@ export async function seedEncrypted(
       status: 'Paid',
       amount_collected: '120000',
     });
+    // Calculate commission after invoice is marked Paid so net_payable is released.
+    await admin.post(`/placements/${tieredPlacementId}/calculate`);
 
     // (d) Manager-override split — split_pct < 1.0 demonstrates a split-based
     //     reduction. The producer takes 0.6 of the credit; a manager override
@@ -795,7 +797,6 @@ export async function seedEncrypted(
       role: 'ManagerOverride',
       split_pct: 0.4,
     });
-    await admin.post(`/placements/${splitPlacementId}/calculate`);
     const splitInvoice = await admin.post<{ id: string }>('/invoices', {
       placement_id: splitPlacementId,
       invoice_number: 'INV-DEMO-SPLIT-196',
@@ -806,6 +807,8 @@ export async function seedEncrypted(
       status: 'Paid',
       amount_collected: '50000',
     });
+    // Calculate commission after invoice is marked Paid so net_payable is released.
+    await admin.post(`/placements/${splitPlacementId}/calculate`);
 
     // (e) Guarantee-held — placement inside an active guarantee window shows $0
     //     net with a guarantee-hold explanation. We insert an Active
@@ -841,13 +844,7 @@ export async function seedEncrypted(
       role: 'CandidateOwner',
       split_pct: 1.0,
     });
-    // Active guarantee window ending well in the future relative to the demo clock.
-    await sql.unsafe(
-      `INSERT INTO guarantee_periods (org_id, placement_id, guarantee_ends, status, risk_amount)
-       VALUES ($1, $2, $3, 'Active', $4)`,
-      [SEEDED.orgId, guaranteePlacementId, '2026-12-31', Buffer.alloc(0)],
-    );
-    // Pay the invoice so the only remaining hold is the guarantee hold.
+    // Create the paid invoice.
     const guarInvoice = await admin.post<{ id: string }>('/invoices', {
       placement_id: guaranteePlacementId,
       invoice_number: 'INV-DEMO-GUARANTEE-196',
@@ -855,6 +852,13 @@ export async function seedEncrypted(
       issued_at: '2026-04-01T00:00:00.000Z',
     });
     await admin.patch(`/invoices/${guarInvoice.id}`, { status: 'Paid', amount_collected: '45000' });
+    // Set up the active guarantee window before calculating (so the calculation detects it).
+    await sql.unsafe(
+      `INSERT INTO guarantee_periods (org_id, placement_id, guarantee_ends, status, risk_amount)
+       VALUES ($1, $2, $3, 'Active', $4)`,
+      [SEEDED.orgId, guaranteePlacementId, '2026-12-31', Buffer.alloc(0)],
+    );
+    // Calculate commission (it will be held due to the guarantee window, not collection gate).
     await admin.post(`/placements/${guaranteePlacementId}/calculate`);
 
     // (f) Retained search — phase-level collection gating (PRD §5.5).
@@ -937,6 +941,46 @@ export async function seedEncrypted(
       status: 'Paid',
       amount_collected: '20000',
     });
+
+    // Create an approved commission run for the demo heterogeneous placements so they
+    // appear in the Payout Statement (GET /me/payouts). This demonstrates the difference
+    // between Credited Placements (all commission records) and Payouts (approved runs).
+    const heteroRunPlacementIds = [
+      collectedPlacementId,
+      heldCollPlacementId,
+      tieredPlacementId,
+      splitPlacementId,
+      guaranteePlacementId,
+      retainedPlacementId,
+    ];
+
+    const { id: heteroRunId } = await admin.post<{ id: string }>('/commission-runs', {
+      period_start: '2025-06-01',
+      period_end: '2026-05-31',
+      placement_ids: heteroRunPlacementIds,
+    });
+
+    // Approve all records in the hetero run so they appear as payouts.
+    const { queue: heteroQueue } = await admin.get<{
+      queue: Array<{ commission_record_id: string }>;
+    }>(`/commission-runs/${heteroRunId}/queue`);
+
+    for (const item of heteroQueue) {
+      try {
+        await admin.post(
+          `/commission-runs/${heteroRunId}/records/${item.commission_record_id}/approve`,
+        );
+      } catch {
+        // already approved or error — non-fatal
+      }
+    }
+
+    // Approve the entire run.
+    try {
+      await admin.post(`/commission-runs/${heteroRunId}/approve`);
+    } catch {
+      // non-fatal if already approved
+    }
 
     return {
       closeRunId,
