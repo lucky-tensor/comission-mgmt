@@ -124,6 +124,7 @@ import {
   handleCreateActualSimulation,
   handleCreateHypotheticalSimulation,
   handleListMySimulations,
+  handleSubmitSimulationResult,
 } from './api/simulations';
 import { handleDemoUsers, handleDemoSession, isDemoMode } from './api/demo-session';
 import { requireAuth } from './middleware/auth';
@@ -261,6 +262,14 @@ export async function fetchHandler(req: Request): Promise<Response> {
   // Worker task claim — Bearer token auth (no session cookie)
   if (req.method === 'POST' && pathname === '/tasks/claim') {
     return handleClaimTask(req);
+  }
+
+  // Producer deal simulation result — delegated single-use token, no session
+  // cookie (worker write path, WORKER-P-002). Matched alongside the other worker
+  // Bearer-token routes so it bypasses requireAuth + CSRF. Stub until #262.
+  const simulationResultMatch = pathname.match(/^\/producer\/simulations\/([^/]+)\/result$/);
+  if (req.method === 'POST' && simulationResultMatch) {
+    return handleSubmitSimulationResult(simulationResultMatch[1]!, req);
   }
 
   // Demo routes — only registered when DEMO_MODE=true

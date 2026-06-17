@@ -395,6 +395,100 @@ This scout prepares infrastructure for two features:
 - Digital twin infrastructure is assumed to exist or be built in #187
 - If not present, feature #187 must scope it explicitly
 
+## Producer Deal Simulator Phase Seams (dev-scout #263)
+
+The original Arbitration & Simulation scout (#188) is frozen. The Producer Deal
+Simulator phase reuses that infrastructure (task queue views, `simulation_agent`
+role, delegated-token write path) and adds the phase-specific seams below. All
+are compile-safe stubs; real forecasting, subprocess execution, and result
+persistence are delivered by the feature pipeline (#262). Nothing here mutates
+runtime behaviour.
+
+### Simulation worker execution flow
+
+```
+Producer (UI)                Server API                 Task Queue            Simulation Worker
+     │                            │                          │                        │
+     │  POST /producer/           │                          │                        │
+     │  simulations/{actual|      │                          │                        │
+     │  hypothetical}             │                          │                        │
+     ├───────────────────────────▶  insert simulation_run    │                        │
+     │                            │  (input_params,           │                        │
+     │                            │   ttl_expires_at)         │                        │
+     │                            ├──────────────────────────▶ enqueue producer_       │
+     │                            │  + mint single-use         simulation task          │
+     │                            │    delegated token         (simulation_agent)       │
+     │                            │                          ◀────────── claim ─────────┤
+     │                            │                          │  read via                │
+     │                            │                          │  task_queue_view_        │
+     │                            │                          │  simulation              │
+     │                            │                          │                          │
+     │                            │             executeSimulationTask(taskId, payload,  │
+     │                            │             delegatedToken) — runs inside a digital │
+     │                            │             twin (WORKER-P-007); calls the engine    │
+     │                            │                          │   ┌──────────────────┐   │
+     │                            │                          │   │ runClaudeCli  OR │   │
+     │                            │                          │   │ callClaudeAPI    │   │
+     │                            │                          │   └──────────────────┘   │
+     │                            │  POST /producer/          │                          │
+     │                            │  simulations/:id/result  ◀──── submit forecast ──────┤
+     │                            │  (delegated token, no     │   via delegated token     │
+     │                            │   session cookie)         │                          │
+     │                            │  validate + persist        │                          │
+     │                            │  result_json + invalidate  │                          │
+     │                            │  token                     │                          │
+     │  GET /producer/simulations │                          │                          │
+     ◀────────────────────────────  read own simulation_run   │                          │
+     │  history (result_json)     │  rows (TTL-bounded)        │                          │
+```
+
+The TTL reaper (`reapExpiredSimulationRuns`, `packages/db/src/simulation-run.ts`)
+deletes `simulation_run` rows past `ttl_expires_at` on a recurring tick;
+forecasts are ephemeral by design.
+
+### Reserved seams (this scout)
+
+| Seam | Location | Contract |
+|---|---|---|
+| `simulation_run` table | `packages/db/schema.sql` | `id, producer_id, org_id, job_id, input_params, result_json, created_at, ttl_expires_at` |
+| TTL expiry job | `packages/db/src/simulation-run.ts` → `reapExpiredSimulationRuns()` | Idempotent DELETE keyed on `ttl_expires_at`; returns rows removed |
+| Claude CLI engine | `packages/db/src/claude-cli-engine.ts` → `runClaudeCli()` | Typed entrypoint, `timeoutMs` (default 60s), `parse(stdout)→T` structured-output signature; **no subprocess** in scout |
+| Worker entrypoint | `apps/worker/src/agents/simulation.ts` → `executeSimulationTask()` | `(taskId, payload, delegatedToken)` digital-twin signature (from #188) |
+| Producer RBAC | `packages/core/auth.ts` | `GET` + `POST /producer/simulations` so the Producer role is no longer 403 |
+| Request routes | `apps/server/src/api/simulations.ts` | `POST /producer/simulations/{actual,hypothetical}`, `GET /producer/simulations` (501 stubs) |
+| Delegated-result route | `apps/server/src/api/simulations.ts` → `handleSubmitSimulationResult()` | `POST /producer/simulations/:id/result` — worker write path (Bearer delegated token, no session cookie), wired before `requireAuth` in `apps/server/src/index.ts` |
+
+### Claude-CLI engine seam vs. callClaudeAPI
+
+Two engine seams are reserved so #262 is not blocked on the engine choice:
+
+- **`callClaudeAPI`** (`claude-api-client.ts`, #188) — HTTP/SDK path for short
+  structured prompts, shared with the arbitration worker. Timeout via
+  `AbortController`, exponential-backoff retry.
+- **`runClaudeCli`** (`claude-cli-engine.ts`, #263) — simulation-specific
+  engine that shells out to the `claude` CLI as a subprocess, so the digital-twin
+  forecasting step can reuse the operator's local agent toolchain. The scout
+  performs **no** subprocess execution: `runClaudeCli` validates the request
+  shape and returns `{ status: 'error', error.code: 'not_implemented' }`. The
+  reserved contract: `timeoutMs` aborts the subprocess (→ `error.code 'timeout'`),
+  and `parse(stdout)` failures surface as `error.code 'parse_error'` (never a throw).
+
+### Risk / unknowns (Producer Deal Simulator)
+
+- **Engine selection** — #262 must pick `runClaudeCli` (CLI subprocess) vs.
+  `callClaudeAPI` (HTTP). CLI gives toolchain/MCP reuse but adds subprocess
+  lifecycle, sandboxing, and binary-availability concerns; HTTP is simpler but
+  lacks local tools. Both seams compile today.
+- **`simulation_run` retention / TTL tuning** — default 24h; high-volume
+  what-if usage may need a shorter TTL or a cap per producer. The reaper is
+  cron-ready but is not yet scheduled (no scheduler entry is added by this scout).
+- **Delegated-token result path** — `POST /producer/simulations/:id/result` is
+  reserved before `requireAuth`/CSRF like the worker `/tasks/:id/result` route;
+  #262 must validate the single-use token against the originating `simulation_run`
+  row and invalidate it on first use.
+- **Digital-twin isolation** — `executeSimulationTask` is documented to run in an
+  isolated twin (WORKER-P-007); the twin substrate is assumed from #188/#262.
+
 ## See Also
 
 - `docs/architecture.md` — Overall system architecture, WORKER-P-007 digital twins

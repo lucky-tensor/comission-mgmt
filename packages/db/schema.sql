@@ -1007,3 +1007,39 @@ ALTER TABLE commission_record_adjustments ADD COLUMN IF NOT EXISTS reason TEXT;
 CREATE INDEX IF NOT EXISTS idx_cra_reason_code_type
   ON commission_record_adjustments (org_id, reason_code)
   WHERE reason_code IN ('refund', 'credit_memo');
+
+-- =============================================================================
+-- Producer Deal Simulator — simulation_run table (dev-scout #263)
+--
+-- DORMANT_BY_DESIGN
+-- depends_on: issue #262 (Producer Deal Simulator pipeline)
+-- reason: Migration skeleton reserves the persistence shape so the feature work
+-- plugs into a stable contract. No row is written by runtime code in this scout;
+-- the simulation worker and delegated-result route stubs are inert until #262.
+--
+-- One row per producer "what-if" simulation request. input_params captures the
+-- producer's scenario (deal terms, bonus-season flag, etc.). result_json holds
+-- the worker's forecast (predicted commission, payout schedule, risk factors)
+-- written back via the delegated single-use token route. Rows are ephemeral:
+-- ttl_expires_at carries the retention ceiling and the TTL expiry job stub
+-- (packages/db/src/simulation-run.ts → reapExpiredSimulationRuns) deletes rows
+-- past their TTL once the feature lands.
+--
+-- Canonical docs: docs/prd.md §5.9, docs/prd.md §5.12, docs/arbitration-simulation.md
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS simulation_run (
+  id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  producer_id     UUID        NOT NULL,
+  org_id          UUID        NOT NULL,
+  job_id          TEXT        REFERENCES task_queue(id),
+  input_params    JSONB       NOT NULL DEFAULT '{}',
+  result_json     JSONB,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  ttl_expires_at  TIMESTAMPTZ NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_simulation_run_org ON simulation_run (org_id);
+CREATE INDEX IF NOT EXISTS idx_simulation_run_producer ON simulation_run (org_id, producer_id);
+CREATE INDEX IF NOT EXISTS idx_simulation_run_job ON simulation_run (job_id);
+-- TTL reaper scans by expiry; partial-friendly btree on the expiry column.
+CREATE INDEX IF NOT EXISTS idx_simulation_run_ttl ON simulation_run (ttl_expires_at);

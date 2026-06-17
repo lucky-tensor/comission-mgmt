@@ -5,12 +5,19 @@
  * This agent processes simulation requests in digital twins and returns
  * predicted outcomes without mutating production state.
  *
- * Phase: Arbitration & Simulation (dev-scout #188)
+ * Phase: Producer Deal Simulator (dev-scout #263; original seam from #188)
  * Canonical docs: docs/prd.md §5.9, docs/prd.md §5.12
- * Canonical: docs/arbitration-simulation.md — Simulation agent execution flow, WORKER-P-007
+ * Canonical: docs/arbitration-simulation.md — Simulation worker execution flow, WORKER-P-007
  *
- * STUB IMPLEMENTATION: Compiles and accepts task payloads. Does not invoke Claude API
- * or return actual predictions. Real feature (#187) will fill in the simulation logic.
+ * DORMANT_BY_DESIGN
+ * depends_on: issue #262 (Producer Deal Simulator pipeline)
+ * reason: the digital-twin execution signature is reserved so the feature plugs
+ * into a stable entrypoint. The forecasting engine (Claude CLI / API) is wired
+ * in #262, not here.
+ *
+ * STUB IMPLEMENTATION: Compiles and accepts task payloads. Does not invoke any
+ * Claude engine or return actual predictions. Real feature (#262) will fill in
+ * the simulation logic via runClaudeCli (CLI engine seam) or callClaudeAPI.
  *
  * Expected payload shape for producer_deal_simulation job type:
  *   {

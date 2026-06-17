@@ -292,6 +292,25 @@ describe('RBAC enforcement', () => {
     const body = result!.body;
     expect(body).not.toBeNull();
   });
+
+  // Producer Deal Simulator RBAC seam (dev-scout #263): a Producer must reach
+  // GET/POST /producer/simulations without a 403 (handlers may still be stubbed).
+  test('Producer can GET /producer/simulations (enforceRbac returns null)', () => {
+    const req = makeRequest({ path: '/producer/simulations', method: 'GET' });
+    expect(enforceRbac('Producer', req)).toBeNull();
+    expect(isPermitted('Producer', 'GET', '/producer/simulations')).toBe(true);
+  });
+
+  test('Producer can POST /producer/simulations/actual (enforceRbac returns null)', () => {
+    const req = makeRequest({ path: '/producer/simulations/actual', method: 'POST' });
+    expect(enforceRbac('Producer', req)).toBeNull();
+    expect(isPermitted('Producer', 'POST', '/producer/simulations/actual')).toBe(true);
+  });
+
+  test('Producer can POST /producer/simulations/hypothetical (enforceRbac returns null)', () => {
+    const req = makeRequest({ path: '/producer/simulations/hypothetical', method: 'POST' });
+    expect(enforceRbac('Producer', req)).toBeNull();
+  });
 });
 
 // ---------------------------------------------------------------------------

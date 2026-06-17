@@ -86,6 +86,11 @@ export const ROLE_PERMISSIONS: Record<AppRole, Permission[]> = {
     // Disputes: submit and view own disputes (issue #18)
     { method: 'POST', pathPrefix: '/disputes' },
     { method: 'GET', pathPrefix: '/disputes' },
+    // Producer Deal Simulator: request and review own deal simulations (dev-scout #263).
+    // Covers GET /producer/simulations (history) and POST /producer/simulations/*
+    // (actual/hypothetical entrypoints). Handlers are stubbed until #262.
+    { method: 'GET', pathPrefix: '/producer/simulations' },
+    { method: 'POST', pathPrefix: '/producer/simulations' },
     { method: 'POST', pathPrefix: '/auth/logout' },
     { method: 'GET', pathPrefix: '/healthz' },
     { method: 'GET', pathPrefix: '/readyz' },
