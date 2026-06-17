@@ -141,7 +141,11 @@ describe('CreditedPlacementsView', () => {
     const chip = page.getByTestId(`placement-status-${guaranteeRecord.id}`);
     await expect.element(chip).toBeInTheDocument();
     expect((await chip.element())?.getAttribute('data-variant')).toBe('amber');
-    await expect.element(page.getByText('$0.00 net')).toBeInTheDocument();
+    // Check for $0.00 in breakdown (Net payable: $0.00)
+    const row = page.getByTestId(`placement-row-${guaranteeRecord.id}`);
+    const rowText = (await row.element())?.textContent ?? '';
+    expect(rowText).toContain('$0.00');
+    expect(rowText).toContain('Net payable');
     // Explanation wording mentions guarantee window
     await expect
       .element(page.getByText('Payment is held inside a guarantee window.'))
