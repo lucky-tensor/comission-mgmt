@@ -10,8 +10,9 @@
  * subprocess timeout.
  *
  * Why a CLI engine (vs. the HTTP callClaudeAPI client):
- *   - callClaudeAPI (claude-api-client.ts, #188) is the HTTP/SDK path shared by
- *     the arbitration + simulation workers for short structured prompts.
+ *   - callClaudeAPI (claude-api-client.ts, #188) is the HTTP/SDK path reserved
+ *     for the arbitration worker for short structured prompts. The simulation
+ *     worker does NOT use it — its engine is runClaudeCli (CLI spawn) below.
  *   - runClaudeCli is the SIMULATION-specific engine: the digital-twin
  *     forecasting step shells out to the `claude` CLI so the simulation worker
  *     reuses the operator's local agent toolchain (tools, MCP, sandboxing).

@@ -1,8 +1,10 @@
 /**
  * Claude API Client with timeout and retry logic.
  *
- * Provides a shared module for arbitration and simulation workers to call Claude API
- * with exponential backoff retry, configurable timeout, and structured error handling.
+ * Provides a module for the arbitration worker to call the Claude API with
+ * exponential backoff retry, configurable timeout, and structured error handling.
+ * The simulation worker does NOT use this client — it spawns the local `claude`
+ * CLI via runClaudeCli (claude-cli-engine.ts) and makes no outbound HTTP call.
  *
  * Phase: Arbitration & Simulation (dev-scout #188)
  * Canonical: docs/arbitration-simulation.md — Claude API client integration
