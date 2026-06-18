@@ -76,6 +76,12 @@ jobs:
           - vitest.tier-progress.config.ts
           - vitest.worker-infrastructure.config.ts
           - vitest.worker.config.ts
+          # Postgres-backed packages/db suites (#272) — arbitration-results,
+          # arbitration-simulation, simulation-run, task-queue,
+          # task-queue-advanced, worker-tokens.
+          - vitest.db.config.ts
+          # Placements API integration suites (#272) — placements + completeness.
+          - vitest.placements-integration.config.ts
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
@@ -99,6 +105,9 @@ jobs:
           # (calculation engine, commission run, clawback, encryption/kms,
           # explanation, state machines, demo-placement-seam contract).
           - vitest.core.config.ts
+          # Pure-unit packages/db suites (#272) — FieldEncryptor/KMS cache
+          # contract and the injected-spawn Claude CLI engine (no Postgres).
+          - vitest.db-unit.config.ts
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
