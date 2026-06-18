@@ -25,7 +25,7 @@
  *
  * Hermetic testing: the subprocess spawn is injectable via request.spawn so unit
  * tests never invoke the real binary. Production callers omit it and the engine
- * spawns the configured `claude` CLI through node:child_process.
+ * spawns the configured `claude` CLI through Bun.spawn.
  *
  * Canonical docs: docs/prd.md §5.9, docs/prd.md §5.12, docs/arbitration-simulation.md
  */
