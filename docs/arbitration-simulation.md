@@ -1,7 +1,10 @@
 # Arbitration & Simulation Worker Infrastructure
 
-> Scout implementation for Dispute Arbitration Engine (#186) and Producer Deal Simulation (#187).
-> Establishes shared infrastructure: task queue views, database roles, Claude API client, and worker stubs.
+> Shared worker infrastructure for Dispute Arbitration Engine (#186) and the Producer Deal Simulator.
+> Establishes task queue views, database roles, the Claude HTTP client, and worker entrypoints.
+> **Status:** the Producer Deal Simulator half is SHIPPED (issue #262, delivered in #267) — the
+> simulation worker spawns the local `claude` CLI via `runClaudeCli`; see the "Implemented pipeline
+> (issue #262)" table below. The Dispute Arbitration Engine (#186) remains a scout stub.
 
 ## Phase
 
@@ -252,13 +255,12 @@ if (result.status === 'success') {
 - Twin is discarded after simulation
 - Promotion to live submission is a separate, explicit step
 
-**STUB NOTE**: Current implementation accepts valid payloads and returns a structured response. Real implementation (#187) will:
-1. Request a digital twin environment
-2. Fetch deal and producer data via API
-3. Build Claude prompt from deal context
-4. Call `callClaudeAPI()` with prompt
-5. Parse Claude response into predicted outcomes
-6. Return predictions (no mutations)
+**SHIPPED** (issue #262, delivered in #267 — see the "Implemented pipeline (issue #262)" table below): the simulation agent is no longer a stub. `executeSimulationTask()` (`apps/worker/src/agents/simulation.ts`):
+1. Runs inside an isolated digital twin (WORKER-P-007)
+2. Builds a Claude prompt from the digital-twin payload (scenario + the producer's own plan version + fee rate)
+3. Spawns the local `claude` CLI via `runClaudeCli` (`packages/db/src/claude-cli-engine.ts`) — **not** `callClaudeAPI`; the simulator uses the CLI-spawn engine
+4. Parses the structured forecast `{ payout_estimate, dispute_risk, reasoning }` from stdout
+5. Submits the forecast via the delegated single-use token to `POST /producer/simulations/:id/result` (no mutations to production state). On CLI timeout/error the run fails gracefully — no partial forecast is submitted
 
 ## Integration Handoff
 
@@ -279,31 +281,40 @@ This scout prepares infrastructure for two features:
 - API endpoint to accept results and update dispute records
 - Integration tests for dispute-specific behavior
 
-### Producer Deal Simulation (#187)
+### Producer Deal Simulation — SHIPPED (issue #262, delivered in #267)
 
-**Depends on**:
+> The simulator phase (#262) reused this scout's shared infrastructure and is now
+> fully implemented. The seams below are live; see the **"Implemented pipeline
+> (issue #262)"** table for exact locations and contracts. This section is kept
+> for the integration history but no longer describes pending work.
+
+**Built on**:
 - `task_queue_view_simulation` (read task data)
 - `simulation_agent` role (DB access scoped)
-- `callClaudeAPI()` (Claude integration)
-- `executeSimulationTask()` stub (entrypoint signature)
+- `runClaudeCli()` (`packages/db/src/claude-cli-engine.ts`) — the CLI-spawn engine
+  the simulation worker uses; **not** `callClaudeAPI` (the HTTP path is reserved
+  for the arbitration worker)
+- `executeSimulationTask()` (`apps/worker/src/agents/simulation.ts`) — real entrypoint
 - Digital twin infrastructure (existing WORKER-P-007)
 - Delegated token write path at `POST /producer/simulations/:id/result`
 
-**Current scout seam**:
-- `apps/server/src/api/simulations.ts` reserves the producer-facing route namespace
-  (`POST /producer/simulations/actual`, `POST /producer/simulations/hypothetical`,
-  `GET /producer/simulations`) and returns 501 until feature work lands.
-- `packages/core/producer-simulation.ts` defines the shared request/response types for the
-  future producer simulation history payloads.
-- The existing worker/queue contract remains `simulation_agent` + `producer_simulation`;
-  the issue body's user-facing wording (`simulate_deal`, `role_agent_simulator`) should be
-  treated as product naming unless the downstream feature intentionally aliases it.
-
-**Must implement**:
-- Deal simulation logic (Claude prompting, parsing, digital twin interaction)
-- Actual call to `callClaudeAPI()` inside `executeSimulationTask()`
-- API endpoint to accept predictions and create simulation records
-- Integration tests for simulation-specific behavior
+**Shipped behaviour**:
+- `apps/server/src/api/simulations.ts` implements the producer-facing routes
+  (`POST /producer/simulations/{actual,hypothetical}` enqueue a `producer_simulation`
+  task, insert a `simulation_run`, mint a single-use delegated token, and return
+  `202 { status: 'pending', simulation_id, job_id, result_token }`;
+  `GET /producer/simulations` returns the caller's own TTL-bounded history). The
+  prior 501 stubs are gone.
+- `packages/core/producer-simulation.ts` defines the shared request/response types
+  for the producer simulation history payloads.
+- The worker/queue contract is `simulation_agent` + `producer_simulation`. The
+  issue body's user-facing wording (`simulate_deal`, `role_agent_simulator`) is
+  product naming over this contract.
+- `executeSimulationTask()` builds a plan-context prompt, spawns the local `claude`
+  CLI via `runClaudeCli`, parses `{ payout_estimate, dispute_risk, reasoning }`, and
+  submits the forecast through the delegated single-use token. `simulation_run`
+  rows carry a 30-day TTL and are reaped by `reapExpiredSimulationRuns`
+  (`packages/db/src/simulation-run.ts`).
 
 ## Verification Checklist
 
@@ -399,10 +410,10 @@ This scout prepares infrastructure for two features:
 
 The original Arbitration & Simulation scout (#188) is frozen. The Producer Deal
 Simulator phase reuses that infrastructure (task queue views, `simulation_agent`
-role, delegated-token write path) and adds the phase-specific seams below. All
-are compile-safe stubs; real forecasting, subprocess execution, and result
-persistence are delivered by the feature pipeline (#262). Nothing here mutates
-runtime behaviour.
+role, delegated-token write path) and added the phase-specific seams below. These
+seams are now **live** — real forecasting, `claude` CLI subprocess execution, and
+result persistence were delivered by the feature pipeline (#262, shipped in #267);
+see the "Implemented pipeline (issue #262)" table for the exact contracts.
 
 ### Simulation worker execution flow
 
@@ -427,8 +438,9 @@ Producer (UI)                Server API                 Task Queue            Si
      │                            │             delegatedToken) — runs inside a digital │
      │                            │             twin (WORKER-P-007); calls the engine    │
      │                            │                          │   ┌──────────────────┐   │
-     │                            │                          │   │ runClaudeCli  OR │   │
-     │                            │                          │   │ callClaudeAPI    │   │
+     │                            │                          │   │ runClaudeCli     │   │
+     │                            │                          │   │ (spawns `claude` │   │
+     │                            │                          │   │  CLI, Bun.spawn) │   │
      │                            │                          │   └──────────────────┘   │
      │                            │  POST /producer/          │                          │
      │                            │  simulations/:id/result  ◀──── submit forecast ──────┤
@@ -463,34 +475,37 @@ The seams reserved by the scout (#263) are now live:
 
 ### Claude-CLI engine seam vs. callClaudeAPI
 
-Two engine seams are reserved so #262 is not blocked on the engine choice:
+Two engine seams exist; the simulator (#262) selected the CLI-spawn engine:
 
 - **`callClaudeAPI`** (`claude-api-client.ts`, #188) — HTTP/SDK path for short
-  structured prompts, shared with the arbitration worker. Timeout via
+  structured prompts, reserved for the arbitration worker. Timeout via
   `AbortController`, exponential-backoff retry.
-- **`runClaudeCli`** (`claude-cli-engine.ts`, #263) — simulation-specific
-  engine that shells out to the `claude` CLI as a subprocess, so the digital-twin
-  forecasting step can reuse the operator's local agent toolchain. The scout
-  performs **no** subprocess execution: `runClaudeCli` validates the request
-  shape and returns `{ status: 'error', error.code: 'not_implemented' }`. The
-  reserved contract: `timeoutMs` aborts the subprocess (→ `error.code 'timeout'`),
-  and `parse(stdout)` failures surface as `error.code 'parse_error'` (never a throw).
+- **`runClaudeCli`** (`claude-cli-engine.ts`, #263; shipped in #267) — the
+  simulation engine. It spawns the local `claude` CLI (`-p` print mode) as a
+  subprocess via `Bun.spawn`, so the digital-twin forecasting step reuses the
+  operator's local agent toolchain. The subprocess **is** executed in production;
+  spawn is injectable (`request.spawn`) only so unit tests stay hermetic. Contract:
+  `timeoutMs` (default 60s) aborts the subprocess (→ `error.code 'timeout'`), and
+  `parse(stdout)` failures surface as `error.code 'parse_error'` (every outcome maps
+  to a structured error — `timeout`/`spawn_error`/`nonzero_exit`/`parse_error` — never a throw).
 
-### Risk / unknowns (Producer Deal Simulator)
+### Resolved decisions / operational notes (Producer Deal Simulator)
 
-- **Engine selection** — #262 must pick `runClaudeCli` (CLI subprocess) vs.
-  `callClaudeAPI` (HTTP). CLI gives toolchain/MCP reuse but adds subprocess
-  lifecycle, sandboxing, and binary-availability concerns; HTTP is simpler but
-  lacks local tools. Both seams compile today.
-- **`simulation_run` retention / TTL tuning** — default 24h; high-volume
-  what-if usage may need a shorter TTL or a cap per producer. The reaper is
-  cron-ready but is not yet scheduled (no scheduler entry is added by this scout).
-- **Delegated-token result path** — `POST /producer/simulations/:id/result` is
-  reserved before `requireAuth`/CSRF like the worker `/tasks/:id/result` route;
-  #262 must validate the single-use token against the originating `simulation_run`
-  row and invalidate it on first use.
-- **Digital-twin isolation** — `executeSimulationTask` is documented to run in an
-  isolated twin (WORKER-P-007); the twin substrate is assumed from #188/#262.
+- **Engine selection (resolved)** — #262 chose `runClaudeCli` (CLI subprocess) over
+  `callClaudeAPI` (HTTP) so the simulation worker reuses the operator's local
+  toolchain/MCP. This makes `vendor-cli-data-exfiltration` an active threat for the
+  simulation worker (mitigated by the bounded subprocess timeout, no tool/permission
+  flags passed to the CLI, and the delegated single-use result token).
+- **`simulation_run` retention / TTL** — `insertSimulationRun` sets a 30-day TTL;
+  high-volume what-if usage may warrant a shorter TTL or a per-producer cap. The
+  reaper `reapExpiredSimulationRuns` is an idempotent DELETE keyed on `ttl_expires_at`.
+- **Delegated-token result path** — `POST /producer/simulations/:id/result` is wired
+  before `requireAuth`/CSRF like the worker `/tasks/:id/result` route;
+  `handleSubmitSimulationResult` validates the single-use token bound to the
+  originating `simulation_run` row, persists `result_json`, and invalidates the
+  token on first use.
+- **Digital-twin isolation** — `executeSimulationTask` runs in an isolated twin
+  (WORKER-P-007); the twin substrate is the existing #188 infrastructure.
 
 ## See Also
 
