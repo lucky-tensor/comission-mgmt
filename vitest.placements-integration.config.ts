@@ -28,6 +28,12 @@ export default defineConfig({
     globals: false,
     environment: 'node',
     include: ['apps/server/tests/integration/placements/**/*.test.ts'],
+    // Run the two suites serially, one Postgres container at a time. Parallel
+    // forks each call `cleanupStaleContainers()` on startup, which reads a single
+    // shared cleanup sentinel at the repo root and can `docker stop` a sibling
+    // fork's freshly-registered container (the ECONNREFUSED/timeout flake seen on
+    // #272). One container at a time avoids that race.
+    fileParallelism: false,
     testTimeout: 300_000,
     hookTimeout: 300_000,
   },

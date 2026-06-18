@@ -39,6 +39,15 @@ export default defineConfig({
       'packages/db/tests/task-queue-advanced.test.ts',
       'packages/db/tests/worker-tokens.test.ts',
     ],
+    // Run the six suites serially, one Postgres container at a time. Each suite
+    // stands up its own pg-container and registers it in a single shared cleanup
+    // sentinel at the repo root; if the suites ran in parallel forks, each
+    // fork's startup `cleanupStaleContainers()` would read that shared sentinel
+    // and `docker stop` a sibling fork's freshly-registered container, producing
+    // mid-test ECONNREFUSED / 300s timeouts (observed in CI on #272). Serial
+    // execution keeps exactly one container live at a time, matching the
+    // single-container-per-job profile of the other postgres-suites matrix jobs.
+    fileParallelism: false,
     testTimeout: 300_000,
     hookTimeout: 300_000,
   },
