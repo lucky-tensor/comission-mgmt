@@ -95,6 +95,10 @@ jobs:
           - vitest.webapp-ux.config.ts
           # Design-system layer (#203) — StatusChip semantic mapping unit tests.
           - vitest.ui.config.ts
+          # Core domain logic (#268) — packages/core/tests pure-logic suites
+          # (calculation engine, commission run, clawback, encryption/kms,
+          # explanation, state machines, demo-placement-seam contract).
+          - vitest.core.config.ts
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
