@@ -112,15 +112,6 @@ const KNOWN_UNCOVERED: { glob: string; reason: string }[] = [
     glob: 'tests/deprecated/**',
     reason: 'Retired suites kept for reference only; intentionally run by no workflow.',
   },
-  {
-    glob: 'packages/db/tests/**',
-    reason:
-      'Pre-existing orphan tracked in #272 (only migration/encryption-integration/demo-seed run, via vitest.migration.config.ts). Out of scope for #268.',
-  },
-  {
-    glob: 'apps/server/tests/integration/placements/**',
-    reason: 'Pre-existing orphan tracked in #272. Out of scope for #268.',
-  },
 ];
 
 const executedMatchers: RegExp[] = [];
